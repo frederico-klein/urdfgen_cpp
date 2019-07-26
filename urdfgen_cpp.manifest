@@ -1,0 +1,15 @@
+{
+	"autodeskProduct":	"Fusion360",
+	"type":	"addin",
+	"author":	"FBK",
+	"description":	{
+		"":	"Port of python version"
+	},
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true,
+	"id":	"ae254961-42c3-4355-8b7f-ce631d8f1c9e",
+	"version":	"0.1",
+	"runOnStartup":	false,
+	"sourcewindows":	"urdfgen_cpp.vcxproj",
+	"sourcemac":	"urdfgen_cpp.xcodeproj"
+}
