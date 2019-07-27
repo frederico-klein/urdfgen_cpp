@@ -57,6 +57,25 @@ public:
 		if (eventArgs)
 		{
 			ui->messageBox("Hello from urdfgen ");
+			try 
+			{
+				//need to update default design!
+				Ptr<Product> product = app->activeProduct();
+				if (!product)
+					throw "error: can't get active product!";
+
+				//this feels silly but they are different objects. Cpp is very clear...
+				design = product;
+				if (!design)
+					throw "can't get current design.";
+			}
+			catch (const char* msg) {
+				ui->messageBox(msg);
+			}
+			catch (...) //probably bad style. will just avoid failing here. 
+			{
+				ui->messageBox("unknown error!?!");
+			}
 		}
 	}
 private:
@@ -75,6 +94,16 @@ public:
 			ui->messageBox("Hello from genSTL ");
 			try
 			{
+				//need to update default design!
+				Ptr<Product> product = app->activeProduct();
+				if (!product)
+					throw "error: can't get active product!";
+
+				//this feels silly but they are different objects. Cpp is very clear...
+				design = product;
+				if (!design)
+					throw "can't get current design.";
+
 				Ptr<Component> rootComp = design->rootComponent();
 				if (!rootComp)
 					throw "error: can't find root component";
@@ -198,7 +227,7 @@ extern "C" XI_EXPORT bool run(const char* context)
 	}
 	else
 	{
-
+		urdfGenCmdDef->execute();
 	}
 
 
