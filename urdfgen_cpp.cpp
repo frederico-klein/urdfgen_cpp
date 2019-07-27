@@ -120,14 +120,16 @@ extern "C" XI_EXPORT bool run(const char* context)
 	if (runfrommenu)
 	{
 		Ptr<ToolbarControl> aControl = tbControls->itemById("cmdInputsUrdfGen");
-		while (aControl)
+		while (aControl && aControl->isValid())
 		{
 			aControl->deleteMe();
+			aControl = tbControls->itemById("cmdInputsUrdfGen");
 		}
 		Ptr<ToolbarControl> bControl = tbControls->itemById("cmdInputsgenSTL");
-		while (bControl)
+		while (bControl && bControl->isValid())
 		{
 			bControl->deleteMe();
+			bControl = tbControls->itemById("cmdInputsgenSTL");
 		}
 		tbControls->addCommand(urdfGenCmdDef);
 		tbControls->addCommand(genSTLcmdDef);
@@ -145,6 +147,32 @@ extern "C" XI_EXPORT bool run(const char* context)
 
 extern "C" XI_EXPORT bool stop(const char* context)
 {
+
+	//removing buttons from toolbar
+	Ptr<ToolbarPanelList> toolBarPanels = ui->allToolbarPanels();
+	if (!toolBarPanels)
+		return false;
+
+	Ptr<ToolbarPanel> tbPanel = toolBarPanels->itemById("SolidScriptsAddinsPanel");
+
+	Ptr<ToolbarControls> tbControls = tbPanel->controls();
+	if (runfrommenu)
+	{
+		Ptr<ToolbarControl> aControl = tbControls->itemById("cmdInputsUrdfGen");
+		while (aControl && aControl->isValid())
+		{
+			aControl->deleteMe();
+			aControl = tbControls->itemById("cmdInputsUrdfGen");
+		}
+		Ptr<ToolbarControl> bControl = tbControls->itemById("cmdInputsgenSTL");
+		while (bControl && bControl->isValid())
+		{
+			bControl->deleteMe();
+			bControl = tbControls->itemById("cmdInputsgenSTL");
+		}
+
+	}
+
 	if (ui)
 	{
 		ui->messageBox("Stop addin");
