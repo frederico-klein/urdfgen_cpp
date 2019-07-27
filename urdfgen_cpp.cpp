@@ -16,15 +16,6 @@ const bool runfrommenu = true; // this allowed to be run as script as well. TODO
 
 const double PI = 3.14159265359;
 
-class Limit
-{
-public:
-	std::string lower = "-1";
-	std::string upper = "1";
-	std::string effort = "0";
-	std::string velocity = "0";
-};
-
 class OrVec
 {
 public:
@@ -67,10 +58,44 @@ public:
 	std::string color = "0.792156862745098 0.819607843137255 0.933333333333333 1";  // the colour that was being used in our other files.i am used to it, so i will keep it
 };
 
+class Collision
+{
+	OrVec origin;
+	std::string geometryfilename = "";
+};
 
+class ULink
+{};
+
+class Limit
+{
+public:
+	std::string lower = "-1";
+	std::string upper = "1";
+	std::string effort = "0";
+	std::string velocity = "0";
+};
+
+class UJoint
+{};
+
+class UrdfTree
+{
+};
+
+class MotherShip
+{
+public:
+	int rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1;
+	std::string packagename = "mypackage";
+	//missing! jtctrl lastjoint is maybe not a ujoint object?
+	UJoint lastjoint;
+	UrdfTree thistree;
+};
+
+//////////////////////////////////////////////////////
 //UI bits:
-
-
+//////////////////////////////////////////////////////
 
 // InputChange event handler.
 class UrdfGenOnInputChangedEventHander : public adsk::core::InputChangedEventHandler
