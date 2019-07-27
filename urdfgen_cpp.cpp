@@ -116,7 +116,7 @@ extern "C" XI_EXPORT bool run(const char* context)
 	commandCreatedEvent->add(&_cmdCreatedHandler);
 
 
-	Ptr<ToolbarControls> tbControls = tbPanel->controls;
+	Ptr<ToolbarControls> tbControls = tbPanel->controls();
 	if (runfrommenu)
 	{
 		Ptr<ToolbarControl> aControl = tbControls->itemById("cmdInputsUrdfGen");
