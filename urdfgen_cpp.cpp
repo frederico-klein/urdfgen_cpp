@@ -16,6 +16,52 @@ const bool runfrommenu = true; // this allowed to be run as script as well. TODO
 
 const double PI = 3.14159265359;
 
+// InputChange event handler.
+class OnInputChangedEventHander : public adsk::core::InputChangedEventHandler
+{
+public:
+	void notify(const Ptr<InputChangedEventArgs>& eventArgs) override
+	{
+		
+	}
+};
+
+// CommandExecuted event handler.
+class OnExecuteEventHander : public adsk::core::CommandEventHandler
+{
+public:
+	void notify(const Ptr<CommandEventArgs>& eventArgs) override
+	{
+
+	}
+};
+
+// CommandDestroyed event handler
+class OnDestroyEventHandler : public adsk::core::CommandEventHandler
+{
+public:
+	void notify(const Ptr<CommandEventArgs>& eventArgs) override
+	{
+		adsk::terminate();
+	}
+};
+
+// CommandCreated event handler.
+class CommandCreatedEventHandler : public adsk::core::CommandCreatedEventHandler
+{
+public:
+	void notify(const Ptr<CommandCreatedEventArgs>& eventArgs) override
+	{
+		if (eventArgs)
+		{
+		}
+	}
+private:
+	OnExecuteEventHander onExecuteHandler;
+	OnDestroyEventHandler onDestroyHandler;
+	OnInputChangedEventHander onInputChangedHandler;
+} _cmdCreatedHandler;
+
 extern "C" XI_EXPORT bool run(const char* context)
 {
 	app = Application::get();
@@ -60,6 +106,35 @@ extern "C" XI_EXPORT bool run(const char* context)
 		genSTLcmdDef = commandDefinitions->addButtonDefinition("cmdInputsgenSTL",
 			"Generate STL",
 			"Generate single STL (in case some of them are incorrect/changed), only now in cpp.");
+	}
+
+
+	// Connect to the command created event.
+	Ptr<CommandCreatedEvent> commandCreatedEvent = urdfGenCmdDef->commandCreated();
+	if (!commandCreatedEvent)
+		return false;
+	commandCreatedEvent->add(&_cmdCreatedHandler);
+
+
+	Ptr<ToolbarControls> tbControls = tbPanel->controls;
+	if (runfrommenu)
+	{
+		Ptr<ToolbarControl> aControl = tbControls->itemById("cmdInputsUrdfGen");
+		while (aControl)
+		{
+			aControl->deleteMe();
+		}
+		Ptr<ToolbarControl> bControl = tbControls->itemById("cmdInputsgenSTL");
+		while (bControl)
+		{
+			bControl->deleteMe();
+		}
+		tbControls->addCommand(urdfGenCmdDef);
+		tbControls->addCommand(genSTLcmdDef);
+	}
+	else
+	{
+
 	}
 
 
