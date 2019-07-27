@@ -73,6 +73,43 @@ public:
 		if (eventArgs)
 		{
 			ui->messageBox("Hello from genSTL ");
+			try
+			{
+				Ptr<Component> rootComp = design->rootComponent();
+				if (!rootComp)
+					throw "error: can't find root component";
+				//Ptr<OccurrenceList> allOccs = rootComp->allOccurrences();
+				Ptr<ExportManager> exportMgr = design->exportManager();
+				if (!exportMgr)
+					throw "error: can't find export manager";
+
+				Ptr<FileDialog> fileDlg = ui->createFileDialog();
+				fileDlg->isMultiSelectEnabled(false);
+				fileDlg->title("Choose location to save your STL ");
+				fileDlg->filter("*.stl");
+				DialogResults dlgResult = fileDlg->showSave();
+				if (dlgResult != DialogResults::DialogOK)
+					throw "You need to select a folder";
+				
+				Ptr<STLExportOptions> stlRootOptions = exportMgr->createSTLExportOptions(rootComp);
+				if (!stlRootOptions)
+					throw "error: can't set stl export options";
+				stlRootOptions->filename(fileDlg->filename());
+				stlRootOptions->sendToPrintUtility(false);
+				exportMgr->execute(stlRootOptions);
+
+				//sadly messageBox does not accept streams
+				//ui->messageBox("File" << fileDlg->filename() << " saved successfully");
+				ui->messageBox("File saved successfully");
+			}
+			catch (const char* msg) {
+				ui->messageBox(msg);
+			}
+			catch (...) //probably bad style. will just avoid failing here. 
+			{
+				ui->messageBox("unknown error!?!");
+			}
+
 		}
 	}
 private:
