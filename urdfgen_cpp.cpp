@@ -16,8 +16,10 @@ const bool runfrommenu = true; // this allowed to be run as script as well. TODO
 
 const double PI = 3.14159265359;
 
+//UI bits:
+
 // InputChange event handler.
-class OnInputChangedEventHander : public adsk::core::InputChangedEventHandler
+class UrdfGenOnInputChangedEventHander : public adsk::core::InputChangedEventHandler
 {
 public:
 	void notify(const Ptr<InputChangedEventArgs>& eventArgs) override
@@ -27,7 +29,7 @@ public:
 };
 
 // CommandExecuted event handler.
-class OnExecuteEventHander : public adsk::core::CommandEventHandler
+class UrdfGenOnExecuteEventHander : public adsk::core::CommandEventHandler
 {
 public:
 	void notify(const Ptr<CommandEventArgs>& eventArgs) override
@@ -37,7 +39,7 @@ public:
 };
 
 // CommandDestroyed event handler
-class OnDestroyEventHandler : public adsk::core::CommandEventHandler
+class UrdfGenOnDestroyEventHandler : public adsk::core::CommandEventHandler
 {
 public:
 	void notify(const Ptr<CommandEventArgs>& eventArgs) override
@@ -47,20 +49,39 @@ public:
 };
 
 // CommandCreated event handler.
-class CommandCreatedEventHandler : public adsk::core::CommandCreatedEventHandler
+class UrdfGenCommandCreatedEventHandler : public adsk::core::CommandCreatedEventHandler
 {
 public:
 	void notify(const Ptr<CommandCreatedEventArgs>& eventArgs) override
 	{
 		if (eventArgs)
 		{
+			ui->messageBox("Hello from urdfgen ");
 		}
 	}
 private:
-	OnExecuteEventHander onExecuteHandler;
-	OnDestroyEventHandler onDestroyHandler;
-	OnInputChangedEventHander onInputChangedHandler;
-} _cmdCreatedHandler;
+	UrdfGenOnExecuteEventHander onExecuteHandler;
+	UrdfGenOnDestroyEventHandler onDestroyHandler;
+	UrdfGenOnInputChangedEventHander onInputChangedHandler;
+} _urdfGenCmdCreatedHandler;
+
+class GenSTLCreatedEventHandler : public adsk::core::CommandCreatedEventHandler
+{
+public:
+	void notify(const Ptr<CommandCreatedEventArgs>& eventArgs) override
+	{
+		if (eventArgs)
+		{
+			ui->messageBox("Hello from genSTL ");
+		}
+	}
+private:
+	// So yeah, I didn't create those because I don't need them for this simple command
+
+	//OnExecuteEventHander onExecuteHandler;
+	//OnDestroyEventHandler onDestroyHandler;
+	//OnInputChangedEventHander onInputChangedHandler;
+} _genSTLCmdCreatedHandler;
 
 extern "C" XI_EXPORT bool run(const char* context)
 {
@@ -110,11 +131,15 @@ extern "C" XI_EXPORT bool run(const char* context)
 
 
 	// Connect to the command created event.
-	Ptr<CommandCreatedEvent> commandCreatedEvent = urdfGenCmdDef->commandCreated();
-	if (!commandCreatedEvent)
+	Ptr<CommandCreatedEvent> urdfGenCommandCreatedEvent = urdfGenCmdDef->commandCreated();
+	if (!urdfGenCommandCreatedEvent)
 		return false;
-	commandCreatedEvent->add(&_cmdCreatedHandler);
+	urdfGenCommandCreatedEvent->add(&_urdfGenCmdCreatedHandler);
 
+	Ptr<CommandCreatedEvent> genSTLcommandCreatedEvent = genSTLcmdDef->commandCreated();
+	if (!genSTLcommandCreatedEvent)
+		return false;
+	genSTLcommandCreatedEvent->add(&_genSTLCmdCreatedHandler);
 
 	Ptr<ToolbarControls> tbControls = tbPanel->controls();
 	if (runfrommenu)
