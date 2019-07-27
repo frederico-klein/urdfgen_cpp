@@ -2,7 +2,7 @@
 #include <Core/CoreAll.h>
 #include <Fusion/FusionAll.h>
 #include <CAM/CAMAll.h>
-
+#include "inc/tinyxml.h"
 
 using namespace adsk::core;
 using namespace adsk::fusion;
@@ -16,7 +16,61 @@ const bool runfrommenu = true; // this allowed to be run as script as well. TODO
 
 const double PI = 3.14159265359;
 
+class Limit
+{
+public:
+	std::string lower = "-1";
+	std::string upper = "1";
+	std::string effort = "0";
+	std::string velocity = "0";
+};
+
+class OrVec
+{
+public:
+	std::string xyz = "0 0 0";
+	std::string rpy = "0 0 0";
+	double x =0, y = 0, z = 0, r = 0, p = 0, yaw = 0;
+	bool isset = false;
+	/*OrVec() {
+		isset = false;
+		xyz = "0 0 0";
+		rpy = "0 0 0";
+	};*/
+	void setxyz(double xx, double yy, double zz)
+	{
+		x = xx;
+		y = yy;
+		z = zz;		
+		xyz = std::to_string(x/100) + " " + std::to_string(y/100) + " " + std::to_string(z/100);
+		// the internal representation of joint occurrences offsets seems to be in cm no matter what you change the units to be. this needs to be checked, but i think it is always like this. if you are reading this line and wondering if this is the reason why your assembly looks like it exploded, then I was wrong...
+		// there will be inconsistencies here and if you change the values below to be "right", then the translation part on .genlink will not work. be mindful when trying to fix it. 
+		isset = true;
+	}
+	void setrpy(double rr, double pp, double yy)
+	{
+		r = rr;
+		p = pp;
+		yaw = yy;
+		xyz = std::to_string(r / 180*PI) + " " + std::to_string(p / 180*PI) + " " + std::to_string(yaw / 180*PI);
+		// the internal representation of joint angles are in degrees, but the URDF is in radians...
+		//isset = true;
+	}
+};
+
+class Visual 
+{
+public:
+	OrVec origin;
+	std::string geometryfilename = "";
+	std::string materialfilename = "";
+	std::string color = "0.792156862745098 0.819607843137255 0.933333333333333 1";  // the colour that was being used in our other files.i am used to it, so i will keep it
+};
+
+
 //UI bits:
+
+
 
 // InputChange event handler.
 class UrdfGenOnInputChangedEventHander : public adsk::core::InputChangedEventHandler
@@ -127,9 +181,8 @@ public:
 				stlRootOptions->sendToPrintUtility(false);
 				exportMgr->execute(stlRootOptions);
 
-				//sadly messageBox does not accept streams
-				//ui->messageBox("File" << fileDlg->filename() << " saved successfully");
-				ui->messageBox("File saved successfully");
+				ui->messageBox("File " + fileDlg->filename() + " saved successfully");
+				
 			}
 			catch (const char* msg) {
 				ui->messageBox(msg);
