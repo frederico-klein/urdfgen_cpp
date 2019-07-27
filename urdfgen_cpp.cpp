@@ -91,7 +91,7 @@ public:
 	//missing! jtctrl lastjoint is maybe not a ujoint object?
 	UJoint lastjoint;
 	UrdfTree thistree;
-};
+} _ms;
 
 //////////////////////////////////////////////////////
 //UI bits:
@@ -123,6 +123,8 @@ class UrdfGenOnDestroyEventHandler : public adsk::core::CommandEventHandler
 public:
 	void notify(const Ptr<CommandEventArgs>& eventArgs) override
 	{
+		//if i had logging I would need to stop it here. probably just need to reset _ms
+		_ms = MotherShip();
 		adsk::terminate();
 	}
 };
@@ -147,6 +149,36 @@ public:
 				design = product;
 				if (!design)
 					throw "can't get current design.";
+
+				//
+				// Creates our simple GUI
+				//
+
+				// Get the command that was created.
+				Ptr<Command> command = eventArgs->command();
+				if (command)
+				{
+					// Connect to the command destroyed event.
+					Ptr<CommandEvent> onDestroy = command->destroy();
+					if (!onDestroy)
+						return;
+					bool isOk = onDestroy->add(&onDestroyHandler);
+					if (!isOk)
+						return;
+
+					// Connect to the input changed event.
+					Ptr<InputChangedEvent> onInputChanged = command->inputChanged();
+					if (!onInputChanged)
+						return;
+					isOk = onInputChanged->add(&onInputChangedHandler);
+					if (!isOk)
+						return;
+
+					// Get the CommandInputs collection associated with the command.
+					Ptr<CommandInputs> inputs = command->commandInputs();
+					if (!inputs)
+						return;
+				}
 			}
 			catch (const char* msg) {
 				ui->messageBox(msg);
