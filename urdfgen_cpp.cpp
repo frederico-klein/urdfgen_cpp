@@ -175,10 +175,10 @@ public:
 						return;
 
 					// Connect to the execute event.
-					Ptr<InputChangedEvent> onExecute = command->execute;//execute or doexecute?
+					Ptr<CommandEvent> onExecute = command->execute();//execute or doexecute?
 					if (!onInputChanged)
 						return;
-					isOk = onInputChanged->add(&onInputChangedHandler);
+					isOk = onExecute->add(&onExecuteHandler);
 					if (!isOk)
 						return;
 
@@ -198,6 +198,21 @@ public:
 
 					tab3ChildInputs->addStringValueInput("packagename", "Name of your URDF package", _ms.packagename);
 
+					// Create table input.
+					Ptr<TableCommandInput> tableInput = tab3ChildInputs->addTableCommandInput("table", "Table", 3, "1:2:3:1");
+					tableInput->maximumVisibleRows(20);
+					tableInput->minimumVisibleRows(10);
+
+					// Add inputs into the table.
+					Ptr<CommandInput> addLinkButtonInput = tab3ChildInputs->addBoolValueInput("tableLinkAdd", "Add Link", false, "", true);
+					tableInput->addToolbarCommandInput(addLinkButtonInput);
+					Ptr<CommandInput> addJointButtonInput = tab3ChildInputs->addBoolValueInput("tableJointAdd", "Add Joint", false, "", true);
+					tableInput->addToolbarCommandInput(addJointButtonInput);
+					Ptr<CommandInput> deleteButtonInput = tab3ChildInputs->addBoolValueInput("tableDelete", "Delete", false, "", true);
+					tableInput->addToolbarCommandInput(deleteButtonInput);
+
+					std::string messaged = "";
+					tab3ChildInputs->addTextBoxCommandInput("debugbox", "", messaged, 10, true);
 				}
 			}
 			catch (const char* msg) {
