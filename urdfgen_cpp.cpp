@@ -95,6 +95,12 @@ public:
 
 class JointControl 
 {
+	/*
+	This is a 6 degree of freedom control. I've seen this in fusion and it looks nicer, but I am not sure it made it into the API. 
+	Reiventing the wheel here; kind of in a time crunch, just porting this code, 
+	TODO: use the real control from Fusion. 
+	
+	*/
 public:
 	JointControl(Ptr<CommandInputs> jtctrl_)
 	{
@@ -176,6 +182,9 @@ public:
 	{
 		//if i had logging I would need to stop it here. probably just need to reset _ms
 		_ms = MotherShip();
+		//adsk::terminate(); terminate will unload it. i want to keep unloading it to test it, but uncomment next line before commiting to master
+		
+		//if (!runfrommenu)
 		adsk::terminate();
 	}
 };
@@ -278,10 +287,11 @@ public:
 					if (!linkGroupChildInputs)
 						return;
 
-					// Create a selection input.
+					// Create a selection input for the link.
 					Ptr<SelectionCommandInput> selectionInput1 = linkGroupChildInputs->addSelectionInput("linkselection", "Select Link Components", "Basic select command input");
 					selectionInput1->addSelectionFilter("Occurrences");
 					selectionInput1->setSelectionLimits(0);
+					selectionInput1->isEnabled(false); //not sure if this works
 
 					// Adds a group for the joint 
 				
@@ -293,6 +303,13 @@ public:
 					Ptr<CommandInputs> jointGroupChildInputs = jointGroupCmdInput->children();
 					if (!jointGroupChildInputs)
 						return;
+
+					// Create a selection input for the joint.
+					Ptr<SelectionCommandInput> selectionInput2 = jointGroupChildInputs->addSelectionInput("jointselection", "Select Joint", "Basic select command input");
+					selectionInput2->addSelectionFilter("Joints");
+					selectionInput2->setSelectionLimits(1);
+					selectionInput2->isEnabled(false); //not sure if this works..
+					selectionInput2->isVisible(true);
 
 					// Adds the joint offset control (maybe there is a built in version of this; the "move" command shows something like it)
 
