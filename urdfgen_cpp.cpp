@@ -99,7 +99,7 @@ public:
 	UrdfTree thistree;
 } _ms;
 
-class JointControl 
+class SixDegree : OrVec
 {
 	/*
 	This is a 6 degree of freedom control. I've seen this in fusion and it looks nicer, but I am not sure it made it into the API. 
@@ -108,9 +108,28 @@ class JointControl
 	
 	*/
 public:
-	JointControl(Ptr<CommandInputs> jtctrl_)
+	std::string name;
+	void setxyzrpy()
 	{
-		jtctrl = jtctrl_;
+
+	};
+	void interact()
+	{
+
+	};
+	void setdist(std::string var)
+	{
+		Ptr<DistanceValueCommandInput> distanceValueInput;
+	};
+	void setangle(std::string var)
+	{
+		Ptr<AngleValueCommandInput> angleValueInput;
+	};
+
+	SixDegree(Ptr<CommandInputs> ownctrl_, std::string name_)
+	{
+		name = name_;
+		ownctrl = ownctrl_;
 		//maybe it has a name. not sure I might need to use this to create offsets for links later. If everything works correctly this won't be necessary though.
 
 		// creates distance controls for X, Y, Z offsets
@@ -129,13 +148,13 @@ public:
 private:
 	bool allvisible = true;
 	bool allenabled = false;
-	Ptr<CommandInputs> jtctrl;
+	Ptr<CommandInputs> ownctrl;
 	std::vector<Ptr<DistanceValueCommandInput>> distVect;
 	std::vector<Ptr<AngleValueCommandInput>> angVect;
 
-	void addDistanceControl(std::string name, double x, double y, double z)
+	void addDistanceControl(std::string var, double x, double y, double z)
 	{
-		Ptr<DistanceValueCommandInput> distanceValueInput = jtctrl->addDistanceValueCommandInput("distanceValue"+name, name, ValueInput::createByReal(0));
+		Ptr<DistanceValueCommandInput> distanceValueInput = ownctrl->addDistanceValueCommandInput("distanceValue"+var, var, ValueInput::createByReal(0));
 		distanceValueInput->setManipulator(Point3D::create(0, 0, 0), Vector3D::create(x, y, z));
 		distanceValueInput->hasMinimumValue(false);
 		distanceValueInput->hasMaximumValue(false);
@@ -145,7 +164,7 @@ private:
 	}
 	void addAngleControl(std::string name, double x1, double y1, double z1, double x2, double y2, double z2)
 	{
-		Ptr<AngleValueCommandInput> angleValueInput = jtctrl->addAngleValueCommandInput("angleValue" + name, name, ValueInput::createByReal(0));
+		Ptr<AngleValueCommandInput> angleValueInput = ownctrl->addAngleValueCommandInput("angleValue" + name, name, ValueInput::createByReal(0));
 		angleValueInput->setManipulator(Point3D::create(0, 0, 0), Vector3D::create(x1, y1, z1), Vector3D::create(x2, y2, z2));
 		angleValueInput->hasMinimumValue(false);
 		angleValueInput->hasMaximumValue(false);
@@ -337,9 +356,11 @@ public:
 					selectionInput2->setSelectionLimits(0,1);
 					selectionInput2->isVisible(true);
 
+					//variant. doesn not set a single control, rather multiple ones and changes visibility.
+					
 					// Adds the joint offset control (maybe there is a built in version of this; the "move" command shows something like it)
 
-					JointControl jtctrl(jointGroupChildInputs);
+					//JointControl jtctrl(jointGroupChildInputs);
 
 					// Add parent and child controls for joint
 
