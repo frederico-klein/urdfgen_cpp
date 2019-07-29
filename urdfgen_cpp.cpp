@@ -71,7 +71,8 @@ class Collision
 };
 
 class ULink
-{};
+{
+};
 
 class Limit
 {
@@ -83,10 +84,38 @@ public:
 };
 
 class UJoint
-{};
+{
+public:
+	//properties
+	std::string name;
+	UJoint() {};
+	~UJoint() {};
+	//methods
+	//UJoint(std::string name_) 
+	//{
+	//	name = name_;
+	//};
+};
+
+class UElement {
+public:
+	enum DATATYPE { DT_UNDEF, DT_JOINT, DT_LINK } type;
+	union {
+		UJoint joint;
+		ULink link;
+	};	
+	UElement() {};
+	~UElement() {};
+	int row;
+	//std::string name;
+	//UElement() {
+	//	type = DT_UNDEF;
+	//};
+};
 
 class UrdfTree
 {
+public:
 };
 
 class MotherShip
@@ -97,6 +126,9 @@ public:
 	//missing! jtctrl lastjoint is maybe not a ujoint object?
 	UJoint lastjoint;
 	UrdfTree thistree;
+	void setCurrEl() {};
+	MotherShip() {};
+	~MotherShip() {};
 } _ms;
 
 class SixDegree : OrVec
@@ -175,9 +207,66 @@ private:
 
 };
 
+
 //////////////////////////////////////////////////////
 //UI bits:
 //////////////////////////////////////////////////////
+
+//Adds element to tree, i.e., row to table
+
+void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
+{
+	bool islink;
+	std::string elname;
+	if (!tableInput)
+		return;
+	// Get the CommandInputs object associated with the parent command.
+	Ptr<CommandInputs> cmdInputs = tableInput->commandInputs();
+
+	// Setting up controls to be added for each row
+	Ptr<CommandInput> elnnumInput = cmdInputs->addStringValueInput("elnum" + std::to_string(_ms.elnum), "elnumTable" + std::to_string(_ms.elnum), std::to_string(_ms.elnum));
+	elnnumInput->isEnabled(false);
+
+	if (LinkOrJoint == "" || LinkOrJoint == "Link")
+	{
+		islink = true;
+		_ms.numlinks += 1;
+		if (_ms.elnum == 0)
+			elname = "base";
+		else
+			elname = "link" + std::to_string(_ms.numlinks);
+	}
+	else if (LinkOrJoint == "Joint")
+	{
+		islink = false;
+		_ms.numjoints += 1;
+		elname = "joint" + std::to_string(_ms.numjoints);
+	}
+	Ptr<DropDownCommandInput> JorLInput = cmdInputs->addDropDownCommandInput("TableInput_value" + std::to_string(_ms.elnum), "JorLTable" + std::to_string(_ms.elnum), DropDownStyles::TextListDropDownStyle);
+	Ptr<ListItems> dropdownItems = JorLInput->listItems();
+	if (!dropdownItems)
+		return;
+	dropdownItems->add("Link", islink, "");
+	dropdownItems->add("Joint", !islink, "");
+
+	Ptr<CommandInput> stringInput = cmdInputs->addStringValueInput("TableInput_string" + std::to_string(_ms.elnum), "StringTable" + std::to_string(_ms.elnum), elname);
+	stringInput->isEnabled(false); //I'm disabling the ability to change element's name randomly...
+
+	Ptr<CommandInput> slbutInput = cmdInputs->addBoolValueInput("butselectClick" + std::to_string(_ms.elnum), "Select", false, "", true);
+
+    // Add the inputs to the table.
+	int row = tableInput->rowCount();
+	tableInput->addCommandInput(elnnumInput, row, 0);
+	tableInput->addCommandInput(JorLInput, row, 1);
+	tableInput->addCommandInput(stringInput, row, 2);
+	tableInput->addCommandInput(slbutInput, row, 2);
+
+	// Increment a counter used to make each row unique.
+
+	_ms.rowNumber = _ms.rowNumber + 1;
+	_ms.elnum += 1;
+
+};
 
 // InputChange event handler.
 class UrdfGenOnInputChangedEventHander : public adsk::core::InputChangedEventHandler
@@ -185,7 +274,37 @@ class UrdfGenOnInputChangedEventHander : public adsk::core::InputChangedEventHan
 public:
 	void notify(const Ptr<InputChangedEventArgs>& eventArgs) override
 	{
-		
+		std::string jointname;
+		Ptr<CommandInputs> inputs = eventArgs->inputs();
+		if (!inputs)
+			return;
+
+		Ptr<CommandInput> cmdInput = eventArgs->input();
+		if (!cmdInput)
+			return;
+
+		Ptr<TableCommandInput> tableInput = inputs->itemById("table");
+		if (!tableInput)
+			return;
+
+		if (cmdInput->id() == "tableLinkAdd") {
+			addRowToTable(tableInput, "Link");
+		}
+		else if (cmdInput->id() == "tableJointAdd") {
+			addRowToTable(tableInput, "Joint");
+			tableInput->getInputAtPosition(_ms.rowNumber - 1, 1)->isEnabled(false);
+			Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
+			jointname = thisstringinput->value();
+			_ms.thistree.addJoint(jointname, _ms.elnum - 1);
+		}
+		else if (cmdInput->id() == "tableDelete") {
+			if (tableInput->selectedRow() == -1) {
+				ui->messageBox("Select one row to delete.");
+			}
+			else {
+				tableInput->deleteRow(tableInput->selectedRow());
+			}
+		}
 	}
 };
 
