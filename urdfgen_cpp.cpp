@@ -93,6 +93,57 @@ public:
 	UrdfTree thistree;
 } _ms;
 
+class JointControl 
+{
+public:
+	JointControl(Ptr<CommandInputs> jtctrl_)
+	{
+		jtctrl = jtctrl_;
+		//maybe it has a name. not sure I might need to use this to create offsets for links later. If everything works correctly this won't be necessary though.
+
+		// creates distance controls for X, Y, Z offsets
+
+		addDistanceControl("X", 1, 0, 0);
+		addDistanceControl("Y", 0, 1, 0);
+		addDistanceControl("Z", 0, 0, 1);
+
+		//creates angle controls for Roll, Pitch and Yaw
+
+		addAngleControl("Roll"	, 0, 1, 0, 0, 0, 1);
+		addAngleControl("Pitch"	, 0, 0, 1, 1, 0, 0);
+		addAngleControl("Yaw"	, 1, 0, 0, 0, 1, 0);
+	};
+
+private:
+	bool allvisible = true;
+	bool allenabled = false;
+	Ptr<CommandInputs> jtctrl;
+	std::vector<Ptr<DistanceValueCommandInput>> distVect;
+	std::vector<Ptr<AngleValueCommandInput>> angVect;
+
+	void addDistanceControl(std::string name, double x, double y, double z)
+	{
+		Ptr<DistanceValueCommandInput> distanceValueInput = jtctrl->addDistanceValueCommandInput("distanceValue"+name, name, ValueInput::createByReal(0));
+		distanceValueInput->setManipulator(Point3D::create(0, 0, 0), Vector3D::create(x, y, z));
+		distanceValueInput->hasMinimumValue(false);
+		distanceValueInput->hasMaximumValue(false);
+		distanceValueInput->isVisible(allvisible);
+		distanceValueInput->isEnabled(allenabled);
+		distVect.push_back(distanceValueInput); //not sure if I will need this, but just in case
+	}
+	void addAngleControl(std::string name, double x1, double y1, double z1, double x2, double y2, double z2)
+	{
+		Ptr<AngleValueCommandInput> angleValueInput = jtctrl->addAngleValueCommandInput("angleValue" + name, name, ValueInput::createByReal(0));
+		angleValueInput->setManipulator(Point3D::create(0, 0, 0), Vector3D::create(x1, y1, z1), Vector3D::create(x2, y2, z2));
+		angleValueInput->hasMinimumValue(false);
+		angleValueInput->hasMaximumValue(false);
+		angleValueInput->isVisible(allvisible);
+		angleValueInput->isEnabled(allenabled);
+		angVect.push_back(angleValueInput); //not sure if I will need this, but just in case
+	}
+
+};
+
 //////////////////////////////////////////////////////
 //UI bits:
 //////////////////////////////////////////////////////
@@ -211,8 +262,23 @@ public:
 					Ptr<CommandInput> deleteButtonInput = tab3ChildInputs->addBoolValueInput("tableDelete", "Delete", false, "", true);
 					tableInput->addToolbarCommandInput(deleteButtonInput);
 
+					tab3ChildInputs->addBoolValueInput("createtree", "Create tree", false, "", true);
+
 					std::string messaged = "";
 					tab3ChildInputs->addTextBoxCommandInput("debugbox", "", messaged, 10, true);
+
+					// Adds a group for the joint offset control (maybe there is a built in version of this; the "move" command shows something like it)
+				
+					Ptr<GroupCommandInput> groupCmdInput = tab3ChildInputs->addGroupCommandInput("jointgroup", "Joint Stuff");
+					if (!groupCmdInput)
+						return;
+					groupCmdInput->isVisible(true);
+				
+					Ptr<CommandInputs> groupChildInputs = groupCmdInput->children();
+					if (!groupChildInputs)
+						return;
+
+					JointControl jtctrl(groupChildInputs);
 				}
 			}
 			catch (const char* msg) {
