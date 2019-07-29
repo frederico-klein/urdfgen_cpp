@@ -340,6 +340,12 @@ public:
 					// Adds the joint offset control (maybe there is a built in version of this; the "move" command shows something like it)
 
 					JointControl jtctrl(jointGroupChildInputs);
+
+					// Add parent and child controls for joint
+
+					Ptr<DropDownCommandInput> parentlinkin = jointGroupChildInputs->addDropDownCommandInput("parentlinkname", "Name of parent link", DropDownStyles::TextListDropDownStyle);
+
+					Ptr<DropDownCommandInput> childlinkin = jointGroupChildInputs->addDropDownCommandInput("childlinkname", "Name of child link", DropDownStyles::TextListDropDownStyle);
 				}
 			}
 			catch (const char* msg) {
