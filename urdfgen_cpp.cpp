@@ -267,18 +267,36 @@ public:
 					std::string messaged = "";
 					tab3ChildInputs->addTextBoxCommandInput("debugbox", "", messaged, 10, true);
 
-					// Adds a group for the joint offset control (maybe there is a built in version of this; the "move" command shows something like it)
-				
-					Ptr<GroupCommandInput> groupCmdInput = tab3ChildInputs->addGroupCommandInput("jointgroup", "Joint Stuff");
-					if (!groupCmdInput)
+					// Adds a group for the link 
+
+					Ptr<GroupCommandInput> linkGroupCmdInput = tab3ChildInputs->addGroupCommandInput("linkgroup", "Link Stuff");
+					if (!linkGroupCmdInput)
 						return;
-					groupCmdInput->isVisible(true);
-				
-					Ptr<CommandInputs> groupChildInputs = groupCmdInput->children();
-					if (!groupChildInputs)
+					linkGroupCmdInput->isVisible(true);
+
+					Ptr<CommandInputs> linkGroupChildInputs = linkGroupCmdInput->children();
+					if (!linkGroupChildInputs)
 						return;
 
-					JointControl jtctrl(groupChildInputs);
+					// Create a selection input.
+					Ptr<SelectionCommandInput> selectionInput1 = linkGroupChildInputs->addSelectionInput("linkselection", "Select Link Components", "Basic select command input");
+					selectionInput1->addSelectionFilter("Occurrences");
+					selectionInput1->setSelectionLimits(0);
+
+					// Adds a group for the joint 
+				
+					Ptr<GroupCommandInput> jointGroupCmdInput = tab3ChildInputs->addGroupCommandInput("jointgroup", "Joint Stuff");
+					if (!jointGroupCmdInput)
+						return;
+					jointGroupCmdInput->isVisible(true);
+				
+					Ptr<CommandInputs> jointGroupChildInputs = jointGroupCmdInput->children();
+					if (!jointGroupChildInputs)
+						return;
+
+					// Adds the joint offset control (maybe there is a built in version of this; the "move" command shows something like it)
+
+					JointControl jtctrl(jointGroupChildInputs);
 				}
 			}
 			catch (const char* msg) {
