@@ -113,7 +113,7 @@ class UrdfGenOnExecuteEventHander : public adsk::core::CommandEventHandler
 public:
 	void notify(const Ptr<CommandEventArgs>& eventArgs) override
 	{
-
+		ui->messageBox("Executing! ");
 	}
 };
 
@@ -174,10 +174,30 @@ public:
 					if (!isOk)
 						return;
 
+					// Connect to the execute event.
+					Ptr<InputChangedEvent> onExecute = command->execute;//execute or doexecute?
+					if (!onInputChanged)
+						return;
+					isOk = onInputChanged->add(&onInputChangedHandler);
+					if (!isOk)
+						return;
+
+
 					// Get the CommandInputs collection associated with the command.
 					Ptr<CommandInputs> inputs = command->commandInputs();
 					if (!inputs)
 						return;
+
+					// Create a tab input.
+					Ptr<TabCommandInput> tabCmdInput3 = inputs->addTabCommandInput("tab_1", "URDFGEN");
+					if (!tabCmdInput3)
+						return;
+					Ptr<CommandInputs> tab3ChildInputs = tabCmdInput3->children();
+					if (!tab3ChildInputs)
+						return;
+
+					tab3ChildInputs->addStringValueInput("packagename", "Name of your URDF package", _ms.packagename);
+
 				}
 			}
 			catch (const char* msg) {
