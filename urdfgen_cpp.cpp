@@ -4,6 +4,12 @@
 #include <CAM/CAMAll.h>
 #include "inc/tinyxml.h"
 
+//do I need these or is the reference guide outdated?
+#include <Core/UserInterface/Command.h>
+#include <Core/UserInterface/ValidateInputsEvent.h>
+#include <Core/UserInterface/ValidateInputsEventHandler.h>
+#include <Core/UserInterface/ValidateInputsEventArgs.h>
+
 using namespace adsk::core;
 using namespace adsk::fusion;
 using namespace adsk::cam;
@@ -189,6 +195,19 @@ public:
 	}
 };
 
+// Event handler for my custom validateInputs event.
+class UrdfGenValidateInputsEventHandler : public adsk::core::ValidateInputsEventHandler
+{
+public:
+	void notify(const Ptr<ValidateInputsEventArgs>& eventArgs) override
+	{
+		// Code to react to the event.
+
+		//this event is actually triggered all the time. not sure how to use it. 
+		//ui->messageBox("In UrdfGenValidateInputsEventHandler event handler.");
+	}
+} _validateInputs;
+
 // CommandCreated event handler.
 class UrdfGenCommandCreatedEventHandler : public adsk::core::CommandCreatedEventHandler
 {
@@ -242,6 +261,15 @@ public:
 					if (!isOk)
 						return;
 
+					//added later. trying for custom validation.
+					// Connect the handler function to the event.
+					Ptr<ValidateInputsEvent> validateInputsEvent = command->validateInputs();
+					if (!validateInputsEvent)
+						return;
+
+					isOk = validateInputsEvent->add(&_validateInputs);
+					if (!isOk)
+						return;
 
 					// Get the CommandInputs collection associated with the command.
 					Ptr<CommandInputs> inputs = command->commandInputs();
@@ -291,7 +319,6 @@ public:
 					Ptr<SelectionCommandInput> selectionInput1 = linkGroupChildInputs->addSelectionInput("linkselection", "Select Link Components", "Basic select command input");
 					selectionInput1->addSelectionFilter("Occurrences");
 					selectionInput1->setSelectionLimits(0);
-					selectionInput1->isEnabled(false); //not sure if this works
 
 					// Adds a group for the joint 
 				
@@ -307,8 +334,7 @@ public:
 					// Create a selection input for the joint.
 					Ptr<SelectionCommandInput> selectionInput2 = jointGroupChildInputs->addSelectionInput("jointselection", "Select Joint", "Basic select command input");
 					selectionInput2->addSelectionFilter("Joints");
-					selectionInput2->setSelectionLimits(1);
-					selectionInput2->isEnabled(false); //not sure if this works..
+					selectionInput2->setSelectionLimits(0,1);
 					selectionInput2->isVisible(true);
 
 					// Adds the joint offset control (maybe there is a built in version of this; the "move" command shows something like it)
