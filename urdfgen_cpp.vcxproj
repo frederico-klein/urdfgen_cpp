@@ -97,6 +97,9 @@
     <ClCompile Include="inc\tinyxml.cpp" />
     <ClCompile Include="inc\tinyxmlerror.cpp" />
     <ClCompile Include="inc\tinyxmlparser.cpp" />
+    <ClCompile Include="ujl.cpp" />
+    <ClCompile Include="urdftree.cpp" />
+    <ClCompile Include="urdftree.h" />
     <ClCompile Include="urdfgen_cpp.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -109,6 +112,7 @@
     </Text>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ujl.h" />
     <ClInclude Include="inc\tinystr.h" />
     <ClInclude Include="inc\tinyxml.h" />
   </ItemGroup>
