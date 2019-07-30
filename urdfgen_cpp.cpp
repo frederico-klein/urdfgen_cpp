@@ -72,6 +72,8 @@ class Collision
 
 class ULink
 {
+public:
+	std::string name;
 };
 
 class Limit
@@ -104,20 +106,33 @@ public:
 		UJoint joint;
 		ULink link;
 	};	
-	UElement() {};
+	UElement() {
+		type = DT_UNDEF;
+	};
+	void setElement(std::string eltype) 
+	{
+		if (eltype == "joint")
+		{
+			UJoint el;
+			type = DT_JOINT;
+		}
+		else if (eltype == "link")
+		{
+			ULink el;
+			type = DT_LINK;
+		}
+	};
 	~UElement() {};
 	int row;
 	//std::string name;
-	//UElement() {
-	//	type = DT_UNDEF;
-	//};
 };
 
 class UrdfTree
 {
 public:
 	//properties
-	std::vector<UElement> elementsDict;
+	typedef std::pair<int, UElement> DicElement; //defines something like a python keyed dictionary
+	std::vector<DicElement> elementsDict;
 	UElement currentEl;
 
 	// methods
