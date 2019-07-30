@@ -100,7 +100,7 @@ public:
 class UElement {
 public:
 	enum DATATYPE { DT_UNDEF, DT_JOINT, DT_LINK } type;
-	union {
+	union el {
 		UJoint joint;
 		ULink link;
 	};	
@@ -116,17 +116,18 @@ public:
 class UrdfTree
 {
 public:
-//	//properties
-//	std::vector<UElement> elementsDict;
-//	UElement currentEl;
-//
-//	// methods
-//	//void addLink(std::string name, int row) 
-//	//{
-//	//	UJoint thislink(name);
-//	//	UElement {thislink(name);
-//	//	thislink.row = row;
-//	//};
+	//properties
+	std::vector<UElement> elementsDict;
+	UElement currentEl;
+
+	// methods
+void addLink(std::string name, int row) 
+{
+	//UElement thislink(name);
+	//thislink.row = row;
+
+	//UElement {thislink(name);
+};
 void addJoint(std::string name, int row) {};
 //	void rmElement() {};
 //	void genTree() {};
@@ -136,10 +137,10 @@ void addJoint(std::string name, int row) {};
 //	void getEl() {};
 //	void getCurrentElDesc() {};
 //	void setCurrentEl() {};
-//	UrdfTree() {};
-//	~UrdfTree() {};
-//private:
-//	void gentreefindbase() {};
+	UrdfTree() {};
+	~UrdfTree() {};
+private:
+	void gentreefindbase() {};
 //	void gentreecore() {};
 //	void gentreecorecore() {};
 //	void genfatherjoint() {};
