@@ -105,7 +105,15 @@ public:
 	std::string getitems()
 	{
 		std::string items = "";
-
+		for (auto it = group.cbegin(); it != group.cend(); it++)
+		{
+			items = items + it->name + "\n";
+		}
+		return items;
+	};
+	void genfatherjoint(UJoint joint) 
+	{
+		coordinatesystem = joint.origin;
 	};
 private:
 	//groupmembers
@@ -125,6 +133,7 @@ class UJoint
 public:
 	//properties
 	std::string name = "";
+
 	UJoint() {};
 	~UJoint() {};
 	//methods
@@ -440,9 +449,6 @@ public:
 			jointselInput = inputs->itemById("jointselection");
 		else
 			jointselInput = jointgroupInput->children()->itemById("jointselection");
-
-
-		Ptr<Occurrence> a = jointselInput->selection(0)->entity;
 
 		if (cmdInput->id() == "tableLinkAdd") {
 			addRowToTable(tableInput, "Link");
