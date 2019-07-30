@@ -7,11 +7,13 @@ using namespace adsk::core;
 using namespace adsk::fusion;
 using namespace adsk::cam;
 
+typedef std::pair<int, UElement*> DicElement; //defines something like a python keyed dictionary
+
 class UrdfTree
 {
 public:
 	//properties
-	typedef std::pair<int, UElement*> DicElement; //defines something like a python keyed dictionary
+	
 	std::vector<DicElement> elementsDict;
 	UElement currentEl;
 
@@ -33,37 +35,22 @@ public:
 
 
 	};
-	//	void allLinks() {};
-	//	void allJoints() {};
-	//	void allElements() {};
-	//	void getEl() {};
-	//	void getCurrentElDesc() {};
-	//	void setCurrentEl() {};
+	void allLinks() ;
+	void allJoints() ;
+	void allElements() ;
+	void getEl() ;
+	void getCurrentElDesc() ;
+	void setCurrentEl() ;
 	UrdfTree() {};
 	UrdfTree(UrdfTree&) = default;
 	~UrdfTree() {};
 private:
-	std::pair<std::vector<DicElement>, std::vector<DicElement>> gentreefindbase(std::vector<DicElement> thiselementsdict) {
-		bool foundbase = false;
-		std::vector<DicElement> placedlinks;
-		for (auto el = elementsDict.cbegin(); el != elementsDict.cend(); el++)
-		{
-			//el is const_iterator
-			//need to check if element is link
-			if (el->second->type == UElement::DT_LINK && el->second->link.name == "base")
-			{
-				foundbase = true;
-
-			}
-		}
-		return { placedlinks,thiselementsdict };
-		//return std::make_tuple();
-	};
-	//	void gentreecore() {};
-	//	void gentreecorecore() {};
-	//	void genfatherjoint() {};
-	//	void findjointscore() {};
-	//	void findjoints() {};
-	//	void alllinks() {};
-	//	void alljoints() {};
+	std::pair<std::vector<DicElement>, std::vector<DicElement>> gentreefindbase(std::vector<DicElement> thiselementsdict);
+	void gentreecore() ;
+	void gentreecorecore() ;
+	void genfatherjoint() ;
+	void findjointscore() ;
+	void findjoints() ;
+	void alllinks() ;
+	void alljoints();
 };
