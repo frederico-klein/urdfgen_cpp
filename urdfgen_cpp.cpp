@@ -116,6 +116,37 @@ public:
 class UrdfTree
 {
 public:
+//	//properties
+//	std::vector<UElement> elementsDict;
+//	UElement currentEl;
+//
+//	// methods
+//	//void addLink(std::string name, int row) 
+//	//{
+//	//	UJoint thislink(name);
+//	//	UElement {thislink(name);
+//	//	thislink.row = row;
+//	//};
+void addJoint(std::string name, int row) {};
+//	void rmElement() {};
+//	void genTree() {};
+//	void allLinks() {};
+//	void allJoints() {};
+//	void allElements() {};
+//	void getEl() {};
+//	void getCurrentElDesc() {};
+//	void setCurrentEl() {};
+//	UrdfTree() {};
+//	~UrdfTree() {};
+//private:
+//	void gentreefindbase() {};
+//	void gentreecore() {};
+//	void gentreecorecore() {};
+//	void genfatherjoint() {};
+//	void findjointscore() {};
+//	void findjoints() {};
+//	void alllinks() {};
+//	void alljoints() {};
 };
 
 class MotherShip
