@@ -19,10 +19,9 @@ Ptr<Application> app;
 Ptr<UserInterface> ui;
 Ptr<Design> design;
 
+// this file has mostly gui things.
+
 const bool runfrommenu = true; // this allowed to be run as script as well. TODO: KEEP? 
-
-
-
 
 class MotherShip
 {
@@ -119,9 +118,7 @@ void UrdfTree::rmElement(int elnum)
 	_ms.rowNumber -= 1;
 };
 
-//////////////////////////////////////////////////////
-//UI bits:
-//////////////////////////////////////////////////////
+
 
 //Adds element to tree, i.e., row to table
 
@@ -277,7 +274,7 @@ public:
 	}
 } _validateInputs;
 
-// CommandCreated event handler.
+// CommandCreated event handlers.
 class UrdfGenCommandCreatedEventHandler : public adsk::core::CommandCreatedEventHandler
 {
 public:
