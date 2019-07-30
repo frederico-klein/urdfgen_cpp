@@ -70,10 +70,45 @@ class Collision
 	std::string geometryfilename = "";
 };
 
+class Inertia
+{
+	std::string ixx, ixy, ixz, iyy, iyz, izz;
+};
+
+class Inertial
+{
+public:
+	OrVec origin;
+	std::string mass;
+	Inertia inertia;
+};
+
+
 class ULink
 {
 public:
+	//properties
 	std::string name = "";
+	Inertial inertial;
+	Collision collision;
+	OrVec coordinatesystem;
+	bool isVirtual = true;
+	std::vector<Occurrence> group; //vector of what?
+
+	//what I think is unused
+	int level;
+	std::string parent;
+	//row is defined in element and here, this is weird/unnecessary/wrong!
+	int row;
+
+	//methods
+	std::string getitems()
+	{
+		std::string items = "";
+
+	};
+private:
+	//groupmembers
 };
 
 class Limit
@@ -142,17 +177,17 @@ public:
 	void rmElement(int elnum);
 	void genTree() 
 	{
-		bool foundbase = false;
-		for (auto el = elementsDict.cbegin(); el != elementsDict.cend(); el++)
+		
+		std::vector<DicElement> thiselementsdict = elementsDict;
+		//std::vector<DicElement> thiselementsdict;
+		//for some reason when I wrote this in python, deepcopy/copy didn't work, so I iterated over the dictionary and copied item per item
+		//I do not remember why i needed to do this, but I suppose a shallow copy should work
+		/*for (auto el = elementsDict.cbegin(); el != elementsDict.cend(); el++)
 		{
-			//el is const_iterator
-			//need to check if element is link
-			if (el->second->type == UElement::DT_LINK)
-			{
-				foundbase = true;
 
-			}
-		}
+		}*/
+
+
 	};
 //	void allLinks() {};
 //	void allJoints() {};
@@ -164,7 +199,22 @@ public:
 	UrdfTree(UrdfTree&) = default;
 	~UrdfTree() {};
 private:
-	void gentreefindbase() {};
+	std::pair<std::vector<DicElement>, std::vector<DicElement>> gentreefindbase(std::vector<DicElement> thiselementsdict) {
+		bool foundbase = false;
+		std::vector<DicElement> placedlinks;
+		for (auto el = elementsDict.cbegin(); el != elementsDict.cend(); el++)
+		{
+			//el is const_iterator
+			//need to check if element is link
+			if (el->second->type == UElement::DT_LINK && el->second->link.name == "base")
+			{
+				foundbase = true;
+
+			}
+		}
+		return {placedlinks,thiselementsdict };
+		//return std::make_tuple();
+	};
 //	void gentreecore() {};
 //	void gentreecorecore() {};
 //	void genfatherjoint() {};
@@ -370,6 +420,29 @@ public:
 		Ptr<TableCommandInput> tableInput = inputs->itemById("table");
 		if (!tableInput)
 			return;
+
+		Ptr<TextBoxCommandInput> debugInput = inputs->itemById("debugbox");
+
+		//define the groups first:
+		Ptr<GroupCommandInput> linkgroupInput = inputs->itemById("linkgroup");
+		Ptr<GroupCommandInput> jointgroupInput = inputs->itemById("jointgroup");
+
+		Ptr<SelectionCommandInput> linkselInput;
+		Ptr<SelectionCommandInput> jointselInput;
+		//inside the group, there is no group!
+		if (!linkgroupInput) // linkgroupInput is None:			
+			linkselInput = inputs->itemById("linkselection");
+		else
+			linkselInput = linkgroupInput->children()->itemById("linkselection");
+
+		//inside the group, there is no group!
+		if (!jointgroupInput) // linkgroupInput is None:			
+			jointselInput = inputs->itemById("jointselection");
+		else
+			jointselInput = jointgroupInput->children()->itemById("jointselection");
+
+
+		Ptr<Occurrence> a = jointselInput->selection(0)->entity;
 
 		if (cmdInput->id() == "tableLinkAdd") {
 			addRowToTable(tableInput, "Link");
