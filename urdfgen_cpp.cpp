@@ -73,7 +73,7 @@ class Collision
 class ULink
 {
 public:
-	std::string name;
+	std::string name = "";
 };
 
 class Limit
@@ -89,7 +89,7 @@ class UJoint
 {
 public:
 	//properties
-	std::string name;
+	std::string name = "";
 	UJoint() {};
 	~UJoint() {};
 	//methods
@@ -102,13 +102,14 @@ public:
 class UElement {
 public:
 	enum DATATYPE { DT_UNDEF, DT_JOINT, DT_LINK } type;
-	union el {
+	union {
 		UJoint joint;
 		ULink link;
 	};	
 	UElement() {
 		type = DT_UNDEF;
 	};
+	UElement(UElement&) = default;
 	void setElement(std::string eltype) 
 	{
 		if (eltype == "joint")
@@ -131,21 +132,28 @@ class UrdfTree
 {
 public:
 	//properties
-	typedef std::pair<int, UElement> DicElement; //defines something like a python keyed dictionary
+	typedef std::pair<int, UElement*> DicElement; //defines something like a python keyed dictionary
 	std::vector<DicElement> elementsDict;
 	UElement currentEl;
 
 	// methods
-void addLink(std::string name, int row) 
-{
-	//UElement thislink(name);
-	//thislink.row = row;
+	void addLink(std::string name, int row);
+	void addJoint(std::string name, int row);
+	void rmElement(int elnum);
+	void genTree() 
+	{
+		bool foundbase = false;
+		for (auto el = elementsDict.cbegin(); el != elementsDict.cend(); el++)
+		{
+			//el is const_iterator
+			//need to check if element is link
+			if (el->second->type == UElement::DT_LINK)
+			{
+				foundbase = true;
 
-	//UElement {thislink(name);
-};
-void addJoint(std::string name, int row) {};
-//	void rmElement() {};
-//	void genTree() {};
+			}
+		}
+	};
 //	void allLinks() {};
 //	void allJoints() {};
 //	void allElements() {};
@@ -153,6 +161,7 @@ void addJoint(std::string name, int row) {};
 //	void getCurrentElDesc() {};
 //	void setCurrentEl() {};
 	UrdfTree() {};
+	UrdfTree(UrdfTree&) = default;
 	~UrdfTree() {};
 private:
 	void gentreefindbase() {};
@@ -254,6 +263,34 @@ private:
 
 };
 
+//// I can't have recursive references, so I actually need to use this bloody syntax
+
+void UrdfTree::addLink(std::string name, int row)
+{
+	UElement thislink;
+	thislink.setElement("link");
+	thislink.link.name = name;
+	thislink.row = row;
+	DicElement thisElement = std::make_pair(row, &thislink);
+	elementsDict.push_back(thisElement);
+	//UElement {thislink(name);
+};
+
+void UrdfTree::addJoint(std::string name, int row)
+{
+	UElement thisjoint;
+	thisjoint.setElement("joint");
+	thisjoint.joint.name = name;
+	thisjoint.row = row;
+	DicElement thisElement = std::make_pair(row, &thisjoint);
+	elementsDict.push_back(thisElement);
+};
+
+void UrdfTree::rmElement(int elnum)
+{
+	elementsDict.erase(elementsDict.begin() + elnum);
+	_ms.rowNumber -= 1;
+};
 
 //////////////////////////////////////////////////////
 //UI bits:
@@ -372,7 +409,7 @@ public:
 	void notify(const Ptr<CommandEventArgs>& eventArgs) override
 	{
 		//if i had logging I would need to stop it here. probably just need to reset _ms
-		_ms = MotherShip();
+		MotherShip _ms;
 		//adsk::terminate(); terminate will unload it. i want to keep unloading it to test it, but uncomment next line before commiting to master
 		
 		//if (!runfrommenu)
