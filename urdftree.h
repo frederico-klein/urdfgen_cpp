@@ -16,7 +16,7 @@ public:
 	//properties
 	
 	std::vector<DicElement> elementsDict;
-	UElement currentEl;
+	UElement* currentEl;
 	Ptr<UserInterface> ui; // I kinda want to debug this.
 
 	// methods
@@ -39,10 +39,10 @@ public:
 	};
 	void allLinks() ;
 	void allJoints() ;
-	void allElements() ;
+	std::string allElements() ; //this is actually another custom std::pair :(
 	void getEl() ;
-	void getCurrentElDesc() ;
-	void setCurrentEl() ;
+	std::string getCurrentElDesc() ;
+	void setCurrentEl(int) ;
 	UrdfTree() {};
 	//UrdfTree(Ptr<UserInterface> ui_) { ui = ui_; };
 	UrdfTree(UrdfTree&) = default;

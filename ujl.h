@@ -68,11 +68,27 @@ public:
 	std::string velocity = "0";
 };
 
-class UJoint
+class UElement {
+public:
+	int row;
+	std::string name;
+	//perhaps unused
+	int level;
+
+	virtual void f() {}; // i mean
+	UElement() {};
+	UElement(UElement&) = default;
+	~UElement() {};
+
+	//std::string name;
+};
+
+
+class UJoint:public UElement
 {
 public:
 	//properties
-	std::string name;
+
 	std::string generatingjointname;
 	OrVec origin; //SixDegree origin;
 	OrVec realorigin;
@@ -83,9 +99,7 @@ public:
 	std::string type;
 	bool isset;
 
-
 	//perhaps unused?
-	int row;
 	int level;
 	Ptr<Joint> entity;
 
@@ -112,11 +126,10 @@ public:
 };
 
 
-class ULink
+class ULink:public UElement
 {
 public:
 	//properties
-	std::string name = "";
 	Inertial inertial;
 	Visual visual;
 	Collision collision;
@@ -125,10 +138,8 @@ public:
 	std::vector<Ptr<Occurrence>> group; //vector of what?
 
 	//what I think is unused
-	int level;
+
 	std::string parent;
-	//row is defined in element and here, this is weird/unnecessary/wrong!
-	int row;
 
 	//methods
 	std::string getitems();
@@ -140,23 +151,3 @@ private:
 
 
 
-class UElement {
-public:
-	enum DATATYPE { DT_UNDEF, DT_JOINT, DT_LINK } type;
-	UJoint joint;
-	ULink link;
-
-	//this was crashing all the time. 
-	//union {
-	//	UJoint joint;
-	//	ULink link;
-	//};
-	UElement() {
-		type = DT_UNDEF;
-	};
-	UElement(UElement&) = default;
-	void setElement(std::string eltype);
-	~UElement() {};
-	int row;
-	//std::string name;
-};

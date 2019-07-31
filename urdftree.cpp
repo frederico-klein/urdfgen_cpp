@@ -7,11 +7,10 @@ void UrdfTree::addLink(std::string name, int row)
 {
 	try {
 		
-		UElement thislink;
-		thislink.setElement("link");
-		thislink.link.name = name;
+		ULink thislink;
+		thislink.name = name;
 		thislink.row = row;
-		ui->messageBox(name);
+		//ui->messageBox(name);
 		DicElement thisElement = std::make_pair(row, &thislink);
 		elementsDict.push_back(thisElement);
 
@@ -25,13 +24,11 @@ void UrdfTree::addLink(std::string name, int row)
 void UrdfTree::addJoint(std::string name, int row)
 {
 	try {
-		UElement thisjoint;
-		thisjoint.setElement("joint");
+		UJoint thisjoint;
+		thisjoint.name = name;
 		thisjoint.row = row;
 		//ui->messageBox("this is okay");
-		ui->messageBox(name);
-		thisjoint.joint.name = name;
-
+		//ui->messageBox(name);
 		DicElement thisElement = std::make_pair(row, &thisjoint);
 		elementsDict.push_back(thisElement);
 	}
@@ -43,10 +40,18 @@ void UrdfTree::addJoint(std::string name, int row)
 
 void UrdfTree::allLinks() {};
 void UrdfTree::allJoints() {};
-void UrdfTree::allElements() {};
-void UrdfTree::getEl() {};
-void UrdfTree::getCurrentElDesc() {};
-void UrdfTree::setCurrentEl() {};
+std::string UrdfTree::allElements() 
+{
+	return "not implemented";
+};
+void UrdfTree::getEl() 
+{
+};
+std::string UrdfTree::getCurrentElDesc() 
+{
+	return "not implemented";
+};
+void UrdfTree::setCurrentEl(int) {};
 
 
 //private
@@ -58,9 +63,13 @@ std::pair<std::vector<DicElement>, std::vector<DicElement>> UrdfTree::gentreefin
 	{
 		//el is const_iterator
 		//need to check if element is link
-		if (el->second->type == UElement::DT_LINK && el->second->link.name == "base")
+		UElement* myel = el->second;
+		ui->messageBox(myel->name);
+		if (dynamic_cast<ULink*>(myel) && myel->name == "base")
+			//if (el->second->type == UElement::DT_LINK && el->second->link.name == "base")
 		{
 			foundbase = true;
+			ui->messageBox("hey found base!");
 
 		}
 	}

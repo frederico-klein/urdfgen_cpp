@@ -28,6 +28,8 @@ public:
 	void setCurrEl() {};
 	MotherShip() {};
 	~MotherShip() {};
+	void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint);
+	void setcurrel(int, Ptr<TextBoxCommandInput>, Ptr<SelectionCommandInput>, Ptr<SelectionCommandInput>);
 } _ms;
 
 class SixDegree : OrVec
@@ -113,11 +115,9 @@ void UrdfTree::rmElement(int elnum)
 };
 
 
-
-//Adds element to tree, i.e., row to table
-
-void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
+void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
 {
+	//Adds element to tree, i.e., row to table
 	bool islink;
 	std::string elname;
 	if (!tableInput)
@@ -126,35 +126,36 @@ void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
 	Ptr<CommandInputs> cmdInputs = tableInput->commandInputs();
 
 	// Setting up controls to be added for each row
-	Ptr<CommandInput> elnnumInput = cmdInputs->addStringValueInput("elnum" + std::to_string(_ms.elnum), "elnumTable" + std::to_string(_ms.elnum), std::to_string(_ms.elnum));
+	Ptr<CommandInput> elnnumInput = cmdInputs->addStringValueInput("elnum" + std::to_string(elnum), "elnumTable" + std::to_string(elnum), std::to_string(elnum));
 	elnnumInput->isEnabled(false);
 
 	if (LinkOrJoint == "" || LinkOrJoint == "Link")
 	{
 		islink = true;
-		_ms.numlinks += 1;
-		if (_ms.elnum == 0)
+		numlinks += 1;
+		if (elnum == 0)
 			elname = "base";
 		else
-			elname = "link" + std::to_string(_ms.numlinks);
+			elname = "link" + std::to_string(numlinks);
 	}
 	else if (LinkOrJoint == "Joint")
 	{
 		islink = false;
-		_ms.numjoints += 1;
-		elname = "joint" + std::to_string(_ms.numjoints);
+		numjoints += 1;
+		elname = "joint" + std::to_string(numjoints);
 	}
-	Ptr<DropDownCommandInput> JorLInput = cmdInputs->addDropDownCommandInput("TableInput_value" + std::to_string(_ms.elnum), "JorLTable" + std::to_string(_ms.elnum), DropDownStyles::TextListDropDownStyle);
+	Ptr<DropDownCommandInput> JorLInput = cmdInputs->addDropDownCommandInput("TableInput_value" + std::to_string(elnum), "JorLTable" + std::to_string(elnum), DropDownStyles::TextListDropDownStyle);
 	Ptr<ListItems> dropdownItems = JorLInput->listItems();
 	if (!dropdownItems)
 		return;
 	dropdownItems->add("Link", islink, "");
 	dropdownItems->add("Joint", !islink, "");
+	JorLInput->isEnabled(false);
 
-	Ptr<CommandInput> stringInput = cmdInputs->addStringValueInput("TableInput_string" + std::to_string(_ms.elnum), "StringTable" + std::to_string(_ms.elnum), elname);
+	Ptr<CommandInput> stringInput = cmdInputs->addStringValueInput("TableInput_string" + std::to_string(elnum), "StringTable" + std::to_string(elnum), elname);
 	stringInput->isEnabled(false); //I'm disabling the ability to change element's name randomly...
 
-	Ptr<CommandInput> slbutInput = cmdInputs->addBoolValueInput("butselectClick" + std::to_string(_ms.elnum), "Select", false, "", true);
+	Ptr<CommandInput> slbutInput = cmdInputs->addBoolValueInput("butselectClick" + std::to_string(elnum), "Select", false, "", true);
 
     // Add the inputs to the table.
 	int row = tableInput->rowCount();
@@ -165,8 +166,43 @@ void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
 
 	// Increment a counter used to make each row unique.
 
-	_ms.rowNumber = _ms.rowNumber + 1;
-	_ms.elnum += 1;
+	rowNumber = rowNumber + 1;
+	elnum += 1;
+
+};
+
+void MotherShip::setcurrel(int elementtobedefined, Ptr<TextBoxCommandInput> debugInput, Ptr<SelectionCommandInput> linkselInput, Ptr<SelectionCommandInput> jointselInput) 
+{
+	//this updates the UI and the debugbox
+	thistree.setCurrentEl(elementtobedefined);
+	if (thistree.currentEl)
+	{
+		int row = thistree.currentEl->row;
+		if (row != oldrow)
+		{
+			linkselInput->clearSelection();
+			jointselInput->clearSelection();
+			//now if it is a link, i want to show the appropriate stored selection
+			//first check, is it a link?
+			ULink* currLink = dynamic_cast<ULink*>(thistree.currentEl);
+			if (currLink)
+			{				
+				std::vector<Ptr<Occurrence>> group = currLink->group;
+				for (auto it = group.cbegin(); it != group.cend(); it++)
+				{
+					linkselInput->addSelection(*it);
+				}
+			}
+			//same for joints
+			UJoint* currJoint = dynamic_cast<UJoint*>(thistree.currentEl);
+			if (currJoint)
+			{
+				jointselInput->addSelection(currJoint->entity);
+			}
+
+		}
+	}
+	debugInput->text("current element: " + thistree.getCurrentElDesc() + "\n" + thistree.allElements());
 
 };
 
@@ -213,12 +249,42 @@ public:
 		else
 			jointselInput = jointgroupInput->children()->itemById("jointselection");
 
+		ui->messageBox(cmdInput->id());
+		//wait, things from the group are not calling this!
+
+		if (tableInput)
+		{
+			int currrow = tableInput->selectedRow();
+			//ui->messageBox("0");
+
+			Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(currrow, 0);
+			//ui->messageBox("1");
+			if (thisstringinput)
+				int elementtobedefined = std::stoi(thisstringinput->value());
+		}
+		//ui->messageBox("2");
+
+
+		// Reactions
 		if (cmdInput->id() == "tableLinkAdd") {
-			addRowToTable(tableInput, "Link");
+			try {
+				_ms.addRowToTable(tableInput, "Link");
+				tableInput->getInputAtPosition(_ms.rowNumber - 1, 1)->isEnabled(false);
+				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
+				jointname = thisstringinput->value();
+				//ui -> messageBox(jointname);
+				//otherfunc(jointname);
+				//_ms.thistree.addJoint("but this?", _ms.elnum - 1);
+				_ms.thistree.addLink(jointname, _ms.elnum - 1);
+			}
+			catch (...)
+			{
+				ui->messageBox("issues adding joint!");
+			}
 		}
 		else if (cmdInput->id() == "tableJointAdd") {
 			try {
-				addRowToTable(tableInput, "Joint");
+				_ms.addRowToTable(tableInput, "Joint");
 				tableInput->getInputAtPosition(_ms.rowNumber - 1, 1)->isEnabled(false);
 				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
 				jointname = thisstringinput->value();
@@ -240,6 +306,26 @@ public:
 				tableInput->deleteRow(tableInput->selectedRow());
 			}
 		}
+		else if (cmdInput->id() == "linkselection") 
+		{
+		
+		}
+		else if (cmdInput->id() == "jointselection") {}
+		else if (cmdInput->id() == "parentlinkname") {}
+		else if (cmdInput->id() == "childlinkname") {}
+		else if (cmdInput->id() == "createtree") {}
+
+		else if (cmdInput->id() == "butselectClick") {}
+		else if (cmdInput->id() == "packagename")
+		{
+			//true I only need to instantiate the variables before if they are needed in more than one place...
+			Ptr<StringValueCommandInput> thisstringinput = inputs->itemById("packagename");
+			_ms.packagename = thisstringinput->value();
+		}
+
+		// SO I am missing all of the things for the joint control...
+
+		//else if (cmdInput->id() == "") {}
 	}
 };
 
@@ -278,6 +364,9 @@ public:
 
 		//this event is actually triggered all the time. not sure how to use it. 
 		//ui->messageBox("In UrdfGenValidateInputsEventHandler event handler.");
+
+		// if the tree is empty, then just quit?
+
 	}
 } _validateInputs;
 
