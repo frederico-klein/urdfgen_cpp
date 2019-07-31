@@ -5,12 +5,6 @@
 #include "urdftree.h"
 #include "ujl.h"
 
-//do I need these or is the reference guide outdated?
-#include <Core/UserInterface/Command.h>
-#include <Core/UserInterface/ValidateInputsEvent.h>
-#include <Core/UserInterface/ValidateInputsEventHandler.h>
-#include <Core/UserInterface/ValidateInputsEventArgs.h>
-
 using namespace adsk::core;
 using namespace adsk::fusion;
 using namespace adsk::cam;
@@ -167,13 +161,17 @@ void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
 	tableInput->addCommandInput(elnnumInput, row, 0);
 	tableInput->addCommandInput(JorLInput, row, 1);
 	tableInput->addCommandInput(stringInput, row, 2);
-	tableInput->addCommandInput(slbutInput, row, 2);
+	tableInput->addCommandInput(slbutInput, row, 3);
 
 	// Increment a counter used to make each row unique.
 
 	_ms.rowNumber = _ms.rowNumber + 1;
 	_ms.elnum += 1;
 
+};
+
+void otherfunc(std::string o) {
+	ui->messageBox("from otherfunc:"+o);
 };
 
 // InputChange event handler.
@@ -219,11 +217,20 @@ public:
 			addRowToTable(tableInput, "Link");
 		}
 		else if (cmdInput->id() == "tableJointAdd") {
-			addRowToTable(tableInput, "Joint");
-			tableInput->getInputAtPosition(_ms.rowNumber - 1, 1)->isEnabled(false);
-			Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
-			jointname = thisstringinput->value();
-			_ms.thistree.addJoint(jointname, _ms.elnum - 1);
+			try {
+				addRowToTable(tableInput, "Joint");
+				tableInput->getInputAtPosition(_ms.rowNumber - 1, 1)->isEnabled(false);
+				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
+				jointname = thisstringinput->value();
+				//ui -> messageBox(jointname);
+				//otherfunc(jointname);
+				//_ms.thistree.addJoint("but this?", _ms.elnum - 1);
+				_ms.thistree.addJoint(jointname, _ms.elnum - 1);
+			}
+			catch (...)
+			{
+				ui->messageBox("issues adding joint!");
+			}
 		}
 		else if (cmdInput->id() == "tableDelete") {
 			if (tableInput->selectedRow() == -1) {
@@ -504,6 +511,9 @@ extern "C" XI_EXPORT bool run(const char* context)
 	ui = app->userInterface();
 	if (!ui)
 		return false;
+
+	//don't be dumb
+	_ms.thistree.ui = ui;
 
 	Ptr<Product> product = app->activeProduct();
 	if (!product)

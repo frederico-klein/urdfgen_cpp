@@ -72,16 +72,16 @@ class UJoint
 {
 public:
 	//properties
-	std::string name = "";
-	std::string generatingjointname = "";
+	std::string name;
+	std::string generatingjointname;
 	OrVec origin; //SixDegree origin;
 	OrVec realorigin;
 	std::string parentlink;
 	std::string childlink;
-	std::string axis = "0 0 0";
+	std::string axis;
 	Limit limit;
 	std::string type;
-	bool isset = false;
+	bool isset;
 
 
 	//perhaps unused?
@@ -90,7 +90,12 @@ public:
 	Ptr<Joint> entity;
 
 	//methods
-	UJoint() {};
+	UJoint() {
+		name = "";
+		generatingjointname = "";
+		axis = "0 0 0";
+		isset = false;
+	};
 	~UJoint() {};
 	std::string setjoint(Ptr<Joint> joint); ////////// this is super incomplete as far as logging goes. we need a solution. either a shared object to collect errors (sounds more obnoxious than setting up logging, really...)
 	void setrealorigin(OrVec);
@@ -113,10 +118,11 @@ public:
 	//properties
 	std::string name = "";
 	Inertial inertial;
+	Visual visual;
 	Collision collision;
 	OrVec coordinatesystem;
 	bool isVirtual = true;
-	std::vector<Occurrence> group; //vector of what?
+	std::vector<Ptr<Occurrence>> group; //vector of what?
 
 	//what I think is unused
 	int level;
@@ -137,10 +143,14 @@ private:
 class UElement {
 public:
 	enum DATATYPE { DT_UNDEF, DT_JOINT, DT_LINK } type;
-	union {
-		UJoint joint;
-		ULink link;
-	};
+	UJoint joint;
+	ULink link;
+
+	//this was crashing all the time. 
+	//union {
+	//	UJoint joint;
+	//	ULink link;
+	//};
 	UElement() {
 		type = DT_UNDEF;
 	};
