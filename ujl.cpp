@@ -146,3 +146,18 @@ void UJoint::setjoint(Ptr<Joint> joint, Ptr<CommandInput> cmdInput, Ptr<CommandI
 {
 	//not implemented
 };
+
+void UJoint::setrealorigin(OrVec fathercoordinatesystem)
+{
+	assert(fathercoordinatesystem.isset);
+	realorigin.setxyz(origin.x-fathercoordinatesystem.x, origin.y - fathercoordinatesystem.y, origin.z - fathercoordinatesystem.z);
+};
+
+std::string UJoint::getitems()
+{
+
+};
+
+void UJoint::makexml(UrdfRoot urdfroot)
+{
+};

@@ -2,7 +2,6 @@
 #include <Core/CoreAll.h>
 #include <Fusion/FusionAll.h>
 #include <CAM/CAMAll.h>
-#include "inc/tinyxml.h"
 #include "urdftree.h"
 #include "ujl.h"
 

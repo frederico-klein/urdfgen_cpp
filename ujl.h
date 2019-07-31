@@ -2,12 +2,18 @@
 #include <Core/CoreAll.h>
 #include <Fusion/FusionAll.h>
 #include <CAM/CAMAll.h>
+#include "inc/tinyxml.h"
 
 const double PI = 3.14159265359;
 
 using namespace adsk::core;
 using namespace adsk::fusion;
 using namespace adsk::cam;
+
+class UrdfRoot
+{
+public:
+};
 
 class OrVec
 {
@@ -84,9 +90,14 @@ public:
 	//methods
 	UJoint() {};
 	~UJoint() {};
-	std::string setjoint(Ptr<Joint> joint);
+	std::string setjoint(Ptr<Joint> joint); ////////// this is super incomplete as far as logging goes. we need a solution. either a shared object to collect errors (sounds more obnoxious than setting up logging, really...)
+	void setrealorigin(OrVec);
+	std::string getitems();
+	void makexml(UrdfRoot);
+
 	// when sixdegree is working!
 	void setjoint(Ptr<Joint> joint, Ptr<CommandInput> cmdInput, Ptr<CommandInputs> inputs);
+
 	//UJoint(std::string name_) 
 	//{
 	//	name = name_;
