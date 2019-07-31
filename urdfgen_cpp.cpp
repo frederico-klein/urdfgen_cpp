@@ -114,11 +114,9 @@ void UrdfTree::rmElement(int elnum)
 };
 
 
-
-//Adds element to tree, i.e., row to table
-
-void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
+void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
 {
+	//Adds element to tree, i.e., row to table
 	bool islink;
 	std::string elname;
 	if (!tableInput)
@@ -127,26 +125,35 @@ void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
 	Ptr<CommandInputs> cmdInputs = tableInput->commandInputs();
 
 	// Setting up controls to be added for each row
+	Ptr<CommandInput> elnnumInput = cmdInputs->addStringValueInput("elnum" + std::to_string(elnum), "elnumTable" + std::to_string(elnum), std::to_string(elnum));
 	elnnumInput->isEnabled(false);
 
 	if (LinkOrJoint == "" || LinkOrJoint == "Link")
 	{
 		islink = true;
+		numlinks += 1;
+		if (elnum == 0)
 			elname = "base";
 		else
+			elname = "link" + std::to_string(numlinks);
 	}
 	else if (LinkOrJoint == "Joint")
 	{
 		islink = false;
+		numjoints += 1;
+		elname = "joint" + std::to_string(numjoints);
 	}
+	Ptr<DropDownCommandInput> JorLInput = cmdInputs->addDropDownCommandInput("TableInput_value" + std::to_string(elnum), "JorLTable" + std::to_string(elnum), DropDownStyles::TextListDropDownStyle);
 	Ptr<ListItems> dropdownItems = JorLInput->listItems();
 	if (!dropdownItems)
 		return;
 	dropdownItems->add("Link", islink, "");
 	dropdownItems->add("Joint", !islink, "");
 
+	Ptr<CommandInput> stringInput = cmdInputs->addStringValueInput("TableInput_string" + std::to_string(elnum), "StringTable" + std::to_string(elnum), elname);
 	stringInput->isEnabled(false); //I'm disabling the ability to change element's name randomly...
 
+	Ptr<CommandInput> slbutInput = cmdInputs->addBoolValueInput("butselectClick" + std::to_string(elnum), "Select", false, "", true);
 
     // Add the inputs to the table.
 	int row = tableInput->rowCount();
@@ -157,6 +164,8 @@ void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
 
 	// Increment a counter used to make each row unique.
 
+	rowNumber = rowNumber + 1;
+	elnum += 1;
 
 };
 
@@ -204,9 +213,11 @@ public:
 			jointselInput = jointgroupInput->children()->itemById("jointselection");
 
 		if (cmdInput->id() == "tableLinkAdd") {
+			_ms.addRowToTable(tableInput, "Link");
 		}
 		else if (cmdInput->id() == "tableJointAdd") {
 			try {
+				_ms.addRowToTable(tableInput, "Joint");
 				tableInput->getInputAtPosition(_ms.rowNumber - 1, 1)->isEnabled(false);
 				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
 				jointname = thisstringinput->value();
@@ -228,6 +239,17 @@ public:
 				tableInput->deleteRow(tableInput->selectedRow());
 			}
 		}
+		else if (cmdInput->id() == "linkselection") 
+		{
+		
+		}
+		else if (cmdInput->id() == "jointselection") {}
+		else if (cmdInput->id() == "parentlinkname") {}
+		else if (cmdInput->id() == "childlinkname") {}
+		else if (cmdInput->id() == "createtree") {}
+		// SO I am missing all of the things for the joint control...
+
+		//else if (cmdInput->id() == "") {}
 	}
 };
 
