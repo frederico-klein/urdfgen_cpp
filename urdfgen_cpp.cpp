@@ -269,17 +269,39 @@ public:
 		if (cmdInput->id() == "tableLinkAdd") {
 			try {
 				_ms.addRowToTable(tableInput, "Link");
-				tableInput->getInputAtPosition(_ms.rowNumber - 1, 1)->isEnabled(false);
+				ui->messageBox("1");
+				{
+					//actually I changed addrow and removed the add element button, so I don't really need to do this.
+					Ptr<DropDownCommandInput> JorLInput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 1);
+					if (!JorLInput) {
+						std::string thiserror = "error getting dropdown command box in position" + std::to_string(_ms.rowNumber - 1);
+						throw thiserror;
+					}
+						
+					JorLInput->isEnabled(false); 
+				}
+				ui->messageBox("2");
 				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
+				if (!thisstringinput)
+					throw "error getting row!";
+				ui->messageBox("3");
 				jointname = thisstringinput->value();
+				ui->messageBox("4");
 				//ui -> messageBox(jointname);
 				//otherfunc(jointname);
 				//_ms.thistree.addJoint("but this?", _ms.elnum - 1);
 				_ms.thistree.addLink(jointname, _ms.elnum - 1);
+				ui->messageBox("5");
+			}
+			catch (const char* msg) {
+				ui->messageBox(msg);
+			}
+			catch (std::string msg) {
+				ui->messageBox(msg);
 			}
 			catch (...)
 			{
-				ui->messageBox("issues adding joint!");
+				ui->messageBox("issues adding link!");
 			}
 		}
 		else if (cmdInput->id() == "tableJointAdd") {
@@ -287,12 +309,18 @@ public:
 				_ms.addRowToTable(tableInput, "Joint");
 				tableInput->getInputAtPosition(_ms.rowNumber - 1, 1)->isEnabled(false);
 				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
+				if (!thisstringinput)
+					throw "error getting row!";
 				jointname = thisstringinput->value();
 				//ui -> messageBox(jointname);
 				//otherfunc(jointname);
 				//_ms.thistree.addJoint("but this?", _ms.elnum - 1);
 				_ms.thistree.addJoint(jointname, _ms.elnum - 1);
 			}
+			catch (const char* msg) {
+				ui->messageBox(msg);
+			}
+
 			catch (...)
 			{
 				ui->messageBox("issues adding joint!");
@@ -304,6 +332,8 @@ public:
 			}
 			else {
 				tableInput->deleteRow(tableInput->selectedRow());
+				//and attempt
+				_ms.rowNumber -= 1;
 			}
 		}
 		else if (cmdInput->id() == "linkselection") 

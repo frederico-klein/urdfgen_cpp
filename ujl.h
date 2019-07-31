@@ -148,6 +148,3 @@ public:
 private:
 	//groupmembers
 };
-
-
-

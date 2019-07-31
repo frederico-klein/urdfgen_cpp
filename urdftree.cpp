@@ -10,7 +10,7 @@ void UrdfTree::addLink(std::string name, int row)
 		ULink thislink;
 		thislink.name = name;
 		thislink.row = row;
-		//ui->messageBox(name);
+		ui->messageBox(name);
 		DicElement thisElement = std::make_pair(row, &thislink);
 		elementsDict.push_back(thisElement);
 
@@ -28,7 +28,7 @@ void UrdfTree::addJoint(std::string name, int row)
 		thisjoint.name = name;
 		thisjoint.row = row;
 		//ui->messageBox("this is okay");
-		//ui->messageBox(name);
+		ui->messageBox(name);
 		DicElement thisElement = std::make_pair(row, &thisjoint);
 		elementsDict.push_back(thisElement);
 	}
