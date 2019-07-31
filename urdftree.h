@@ -1,3 +1,4 @@
+#pragma once
 #include <Core/CoreAll.h>
 #include <Fusion/FusionAll.h>
 #include <CAM/CAMAll.h>

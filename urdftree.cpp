@@ -1,4 +1,3 @@
-#pragma once
 #include "urdftree.h"
 #include "ujl.h"
 

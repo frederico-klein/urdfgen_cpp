@@ -4,6 +4,7 @@
 #include <CAM/CAMAll.h>
 #include "inc/tinyxml.h"
 #include "urdftree.h"
+#include "ujl.h"
 
 //do I need these or is the reference guide outdated?
 #include <Core/UserInterface/Command.h>

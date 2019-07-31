@@ -67,12 +67,26 @@ class UJoint
 public:
 	//properties
 	std::string name = "";
-	int origin; //its not int!
+	std::string generatingjointname = "";
+	OrVec origin; //SixDegree origin;
+	OrVec realorigin;
+	std::string parentlink;
+	std::string childlink;
+	std::string axis = "0 0 0";
+	Limit limit;
+	std::string type;
+	//perhaps unused?
+	int row;
+	int level;
+	bool isset = false;
+	Ptr<Joint> entity;
 
-
+	//methods
 	UJoint() {};
 	~UJoint() {};
-	//methods
+	std::string setjoint(Ptr<Joint> joint);
+	// when sixdegree is working!
+	void setjoint(Ptr<Joint> joint, Ptr<CommandInput> cmdInput, Ptr<CommandInputs> inputs);
 	//UJoint(std::string name_) 
 	//{
 	//	name = name_;
