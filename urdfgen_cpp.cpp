@@ -29,6 +29,7 @@ public:
 	MotherShip() {};
 	~MotherShip() {};
 	void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint);
+	void setcurrel(int, Ptr<TextBoxCommandInput>, Ptr<SelectionCommandInput>, Ptr<SelectionCommandInput>);
 } _ms;
 
 class SixDegree : OrVec
@@ -149,6 +150,7 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 		return;
 	dropdownItems->add("Link", islink, "");
 	dropdownItems->add("Joint", !islink, "");
+	JorLInput->isEnabled(false);
 
 	Ptr<CommandInput> stringInput = cmdInputs->addStringValueInput("TableInput_string" + std::to_string(elnum), "StringTable" + std::to_string(elnum), elname);
 	stringInput->isEnabled(false); //I'm disabling the ability to change element's name randomly...
@@ -166,6 +168,12 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 
 	rowNumber = rowNumber + 1;
 	elnum += 1;
+
+};
+
+void MotherShip::setcurrel(int elementtobedefined, Ptr<TextBoxCommandInput> debugInput, Ptr<SelectionCommandInput> linkselInput, Ptr<SelectionCommandInput> jointselInput) 
+{
+
 
 };
 
@@ -212,6 +220,21 @@ public:
 		else
 			jointselInput = jointgroupInput->children()->itemById("jointselection");
 
+		ui->messageBox(cmdInput->id());
+		if (tableInput)
+		{
+			int currrow = tableInput->selectedRow();
+			//ui->messageBox("0");
+
+			Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(currrow, 0);
+			//ui->messageBox("1");
+			if (thisstringinput)
+				int elementtobedefined = std::stoi(thisstringinput->value());
+		}
+		//ui->messageBox("2");
+
+
+		// Reactions
 		if (cmdInput->id() == "tableLinkAdd") {
 			_ms.addRowToTable(tableInput, "Link");
 		}
@@ -247,6 +270,9 @@ public:
 		else if (cmdInput->id() == "parentlinkname") {}
 		else if (cmdInput->id() == "childlinkname") {}
 		else if (cmdInput->id() == "createtree") {}
+
+		else if (cmdInput->id() == "butselectClick") {}
+
 		// SO I am missing all of the things for the joint control...
 
 		//else if (cmdInput->id() == "") {}
