@@ -57,10 +57,12 @@ std::pair<std::vector<DicElement>, std::vector<DicElement>> UrdfTree::gentreefin
 		//el is const_iterator
 		//need to check if element is link
 		UElement* myel = el->second;
+		ui->messageBox(myel->name);
 		if (dynamic_cast<ULink*>(myel) && myel->name == "base")
 			//if (el->second->type == UElement::DT_LINK && el->second->link.name == "base")
 		{
 			foundbase = true;
+			ui->messageBox("hey found base!");
 
 		}
 	}

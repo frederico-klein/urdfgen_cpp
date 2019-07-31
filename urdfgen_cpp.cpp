@@ -28,6 +28,7 @@ public:
 	void setCurrEl() {};
 	MotherShip() {};
 	~MotherShip() {};
+	void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint);
 } _ms;
 
 class SixDegree : OrVec
@@ -126,35 +127,26 @@ void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
 	Ptr<CommandInputs> cmdInputs = tableInput->commandInputs();
 
 	// Setting up controls to be added for each row
-	Ptr<CommandInput> elnnumInput = cmdInputs->addStringValueInput("elnum" + std::to_string(_ms.elnum), "elnumTable" + std::to_string(_ms.elnum), std::to_string(_ms.elnum));
 	elnnumInput->isEnabled(false);
 
 	if (LinkOrJoint == "" || LinkOrJoint == "Link")
 	{
 		islink = true;
-		_ms.numlinks += 1;
-		if (_ms.elnum == 0)
 			elname = "base";
 		else
-			elname = "link" + std::to_string(_ms.numlinks);
 	}
 	else if (LinkOrJoint == "Joint")
 	{
 		islink = false;
-		_ms.numjoints += 1;
-		elname = "joint" + std::to_string(_ms.numjoints);
 	}
-	Ptr<DropDownCommandInput> JorLInput = cmdInputs->addDropDownCommandInput("TableInput_value" + std::to_string(_ms.elnum), "JorLTable" + std::to_string(_ms.elnum), DropDownStyles::TextListDropDownStyle);
 	Ptr<ListItems> dropdownItems = JorLInput->listItems();
 	if (!dropdownItems)
 		return;
 	dropdownItems->add("Link", islink, "");
 	dropdownItems->add("Joint", !islink, "");
 
-	Ptr<CommandInput> stringInput = cmdInputs->addStringValueInput("TableInput_string" + std::to_string(_ms.elnum), "StringTable" + std::to_string(_ms.elnum), elname);
 	stringInput->isEnabled(false); //I'm disabling the ability to change element's name randomly...
 
-	Ptr<CommandInput> slbutInput = cmdInputs->addBoolValueInput("butselectClick" + std::to_string(_ms.elnum), "Select", false, "", true);
 
     // Add the inputs to the table.
 	int row = tableInput->rowCount();
@@ -165,8 +157,6 @@ void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
 
 	// Increment a counter used to make each row unique.
 
-	_ms.rowNumber = _ms.rowNumber + 1;
-	_ms.elnum += 1;
 
 };
 
@@ -214,11 +204,9 @@ public:
 			jointselInput = jointgroupInput->children()->itemById("jointselection");
 
 		if (cmdInput->id() == "tableLinkAdd") {
-			addRowToTable(tableInput, "Link");
 		}
 		else if (cmdInput->id() == "tableJointAdd") {
 			try {
-				addRowToTable(tableInput, "Joint");
 				tableInput->getInputAtPosition(_ms.rowNumber - 1, 1)->isEnabled(false);
 				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
 				jointname = thisstringinput->value();
