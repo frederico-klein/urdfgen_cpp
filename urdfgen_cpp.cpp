@@ -173,7 +173,36 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 
 void MotherShip::setcurrel(int elementtobedefined, Ptr<TextBoxCommandInput> debugInput, Ptr<SelectionCommandInput> linkselInput, Ptr<SelectionCommandInput> jointselInput) 
 {
+	//this updates the UI and the debugbox
+	thistree.setCurrentEl(elementtobedefined);
+	if (thistree.currentEl)
+	{
+		int row = thistree.currentEl->row;
+		if (row != oldrow)
+		{
+			linkselInput->clearSelection();
+			jointselInput->clearSelection();
+			//now if it is a link, i want to show the appropriate stored selection
+			//first check, is it a link?
+			ULink* currLink = dynamic_cast<ULink*>(thistree.currentEl);
+			if (currLink)
+			{				
+				std::vector<Ptr<Occurrence>> group = currLink->group;
+				for (auto it = group.cbegin(); it != group.cend(); it++)
+				{
+					linkselInput->addSelection(*it);
+				}
+			}
+			//same for joints
+			UJoint* currJoint = dynamic_cast<UJoint*>(thistree.currentEl);
+			if (currJoint)
+			{
+				jointselInput->addSelection(currJoint->entity);
+			}
 
+		}
+	}
+	debugInput->text("current element: " + thistree.getCurrentElDesc() + "\n" + thistree.allElements());
 
 };
 
@@ -221,6 +250,8 @@ public:
 			jointselInput = jointgroupInput->children()->itemById("jointselection");
 
 		ui->messageBox(cmdInput->id());
+		//wait, things from the group are not calling this!
+
 		if (tableInput)
 		{
 			int currrow = tableInput->selectedRow();
@@ -236,7 +267,20 @@ public:
 
 		// Reactions
 		if (cmdInput->id() == "tableLinkAdd") {
-			_ms.addRowToTable(tableInput, "Link");
+			try {
+				_ms.addRowToTable(tableInput, "Link");
+				tableInput->getInputAtPosition(_ms.rowNumber - 1, 1)->isEnabled(false);
+				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
+				jointname = thisstringinput->value();
+				//ui -> messageBox(jointname);
+				//otherfunc(jointname);
+				//_ms.thistree.addJoint("but this?", _ms.elnum - 1);
+				_ms.thistree.addLink(jointname, _ms.elnum - 1);
+			}
+			catch (...)
+			{
+				ui->messageBox("issues adding joint!");
+			}
 		}
 		else if (cmdInput->id() == "tableJointAdd") {
 			try {
@@ -272,6 +316,12 @@ public:
 		else if (cmdInput->id() == "createtree") {}
 
 		else if (cmdInput->id() == "butselectClick") {}
+		else if (cmdInput->id() == "packagename")
+		{
+			//true I only need to instantiate the variables before if they are needed in more than one place...
+			Ptr<StringValueCommandInput> thisstringinput = inputs->itemById("packagename");
+			_ms.packagename = thisstringinput->value();
+		}
 
 		// SO I am missing all of the things for the joint control...
 

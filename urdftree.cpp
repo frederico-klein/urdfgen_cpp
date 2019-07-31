@@ -10,7 +10,7 @@ void UrdfTree::addLink(std::string name, int row)
 		ULink thislink;
 		thislink.name = name;
 		thislink.row = row;
-		ui->messageBox(name);
+		//ui->messageBox(name);
 		DicElement thisElement = std::make_pair(row, &thislink);
 		elementsDict.push_back(thisElement);
 
@@ -25,11 +25,10 @@ void UrdfTree::addJoint(std::string name, int row)
 {
 	try {
 		UJoint thisjoint;
+		thisjoint.name = name;
 		thisjoint.row = row;
 		//ui->messageBox("this is okay");
-		ui->messageBox(name);
-		thisjoint.name = name;
-
+		//ui->messageBox(name);
 		DicElement thisElement = std::make_pair(row, &thisjoint);
 		elementsDict.push_back(thisElement);
 	}
@@ -41,10 +40,18 @@ void UrdfTree::addJoint(std::string name, int row)
 
 void UrdfTree::allLinks() {};
 void UrdfTree::allJoints() {};
-void UrdfTree::allElements() {};
-void UrdfTree::getEl() {};
-void UrdfTree::getCurrentElDesc() {};
-void UrdfTree::setCurrentEl() {};
+std::string UrdfTree::allElements() 
+{
+	return "not implemented";
+};
+void UrdfTree::getEl() 
+{
+};
+std::string UrdfTree::getCurrentElDesc() 
+{
+	return "not implemented";
+};
+void UrdfTree::setCurrentEl(int) {};
 
 
 //private
