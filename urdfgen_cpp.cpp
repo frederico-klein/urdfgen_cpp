@@ -2,7 +2,8 @@
 #include <Core/CoreAll.h>
 #include <Fusion/FusionAll.h>
 #include <CAM/CAMAll.h>
-#include "inc/tinyxml.h"
+#include "urdftree.h"
+#include "ujl.h"
 
 //do I need these or is the reference guide outdated?
 #include <Core/UserInterface/Command.h>
@@ -18,76 +19,9 @@ Ptr<Application> app;
 Ptr<UserInterface> ui;
 Ptr<Design> design;
 
+// this file has mostly gui things.
+
 const bool runfrommenu = true; // this allowed to be run as script as well. TODO: KEEP? 
-
-const double PI = 3.14159265359;
-
-class OrVec
-{
-public:
-	std::string xyz = "0 0 0";
-	std::string rpy = "0 0 0";
-	double x =0, y = 0, z = 0, r = 0, p = 0, yaw = 0;
-	bool isset = false;
-	/*OrVec() {
-		isset = false;
-		xyz = "0 0 0";
-		rpy = "0 0 0";
-	};*/
-	void setxyz(double xx, double yy, double zz)
-	{
-		x = xx;
-		y = yy;
-		z = zz;		
-		xyz = std::to_string(x/100) + " " + std::to_string(y/100) + " " + std::to_string(z/100);
-		// the internal representation of joint occurrences offsets seems to be in cm no matter what you change the units to be. this needs to be checked, but i think it is always like this. if you are reading this line and wondering if this is the reason why your assembly looks like it exploded, then I was wrong...
-		// there will be inconsistencies here and if you change the values below to be "right", then the translation part on .genlink will not work. be mindful when trying to fix it. 
-		isset = true;
-	}
-	void setrpy(double rr, double pp, double yy)
-	{
-		r = rr;
-		p = pp;
-		yaw = yy;
-		xyz = std::to_string(r / 180*PI) + " " + std::to_string(p / 180*PI) + " " + std::to_string(yaw / 180*PI);
-		// the internal representation of joint angles are in degrees, but the URDF is in radians...
-		//isset = true;
-	}
-};
-
-class Visual 
-{
-public:
-	OrVec origin;
-	std::string geometryfilename = "";
-	std::string materialfilename = "";
-	std::string color = "0.792156862745098 0.819607843137255 0.933333333333333 1";  // the colour that was being used in our other files.i am used to it, so i will keep it
-};
-
-class Collision
-{
-	OrVec origin;
-	std::string geometryfilename = "";
-};
-
-class ULink
-{};
-
-class Limit
-{
-public:
-	std::string lower = "-1";
-	std::string upper = "1";
-	std::string effort = "0";
-	std::string velocity = "0";
-};
-
-class UJoint
-{};
-
-class UrdfTree
-{
-};
 
 class MotherShip
 {
@@ -97,9 +31,12 @@ public:
 	//missing! jtctrl lastjoint is maybe not a ujoint object?
 	UJoint lastjoint;
 	UrdfTree thistree;
+	void setCurrEl() {};
+	MotherShip() {};
+	~MotherShip() {};
 } _ms;
 
-class JointControl 
+class SixDegree : OrVec
 {
 	/*
 	This is a 6 degree of freedom control. I've seen this in fusion and it looks nicer, but I am not sure it made it into the API. 
@@ -108,9 +45,28 @@ class JointControl
 	
 	*/
 public:
-	JointControl(Ptr<CommandInputs> jtctrl_)
+	std::string name;
+	void setxyzrpy()
 	{
-		jtctrl = jtctrl_;
+
+	};
+	void interact()
+	{
+
+	};
+	void setdist(std::string var)
+	{
+		Ptr<DistanceValueCommandInput> distanceValueInput;
+	};
+	void setangle(std::string var)
+	{
+		Ptr<AngleValueCommandInput> angleValueInput;
+	};
+
+	SixDegree(Ptr<CommandInputs> ownctrl_, std::string name_)
+	{
+		name = name_;
+		ownctrl = ownctrl_;
 		//maybe it has a name. not sure I might need to use this to create offsets for links later. If everything works correctly this won't be necessary though.
 
 		// creates distance controls for X, Y, Z offsets
@@ -129,13 +85,13 @@ public:
 private:
 	bool allvisible = true;
 	bool allenabled = false;
-	Ptr<CommandInputs> jtctrl;
+	Ptr<CommandInputs> ownctrl;
 	std::vector<Ptr<DistanceValueCommandInput>> distVect;
 	std::vector<Ptr<AngleValueCommandInput>> angVect;
 
-	void addDistanceControl(std::string name, double x, double y, double z)
+	void addDistanceControl(std::string var, double x, double y, double z)
 	{
-		Ptr<DistanceValueCommandInput> distanceValueInput = jtctrl->addDistanceValueCommandInput("distanceValue"+name, name, ValueInput::createByReal(0));
+		Ptr<DistanceValueCommandInput> distanceValueInput = ownctrl->addDistanceValueCommandInput("distanceValue"+var, var, ValueInput::createByReal(0));
 		distanceValueInput->setManipulator(Point3D::create(0, 0, 0), Vector3D::create(x, y, z));
 		distanceValueInput->hasMinimumValue(false);
 		distanceValueInput->hasMaximumValue(false);
@@ -145,7 +101,7 @@ private:
 	}
 	void addAngleControl(std::string name, double x1, double y1, double z1, double x2, double y2, double z2)
 	{
-		Ptr<AngleValueCommandInput> angleValueInput = jtctrl->addAngleValueCommandInput("angleValue" + name, name, ValueInput::createByReal(0));
+		Ptr<AngleValueCommandInput> angleValueInput = ownctrl->addAngleValueCommandInput("angleValue" + name, name, ValueInput::createByReal(0));
 		angleValueInput->setManipulator(Point3D::create(0, 0, 0), Vector3D::create(x1, y1, z1), Vector3D::create(x2, y2, z2));
 		angleValueInput->hasMinimumValue(false);
 		angleValueInput->hasMaximumValue(false);
@@ -156,9 +112,69 @@ private:
 
 };
 
-//////////////////////////////////////////////////////
-//UI bits:
-//////////////////////////////////////////////////////
+void UrdfTree::rmElement(int elnum)
+{
+	elementsDict.erase(elementsDict.begin() + elnum);
+	_ms.rowNumber -= 1;
+};
+
+
+
+//Adds element to tree, i.e., row to table
+
+void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
+{
+	bool islink;
+	std::string elname;
+	if (!tableInput)
+		return;
+	// Get the CommandInputs object associated with the parent command.
+	Ptr<CommandInputs> cmdInputs = tableInput->commandInputs();
+
+	// Setting up controls to be added for each row
+	Ptr<CommandInput> elnnumInput = cmdInputs->addStringValueInput("elnum" + std::to_string(_ms.elnum), "elnumTable" + std::to_string(_ms.elnum), std::to_string(_ms.elnum));
+	elnnumInput->isEnabled(false);
+
+	if (LinkOrJoint == "" || LinkOrJoint == "Link")
+	{
+		islink = true;
+		_ms.numlinks += 1;
+		if (_ms.elnum == 0)
+			elname = "base";
+		else
+			elname = "link" + std::to_string(_ms.numlinks);
+	}
+	else if (LinkOrJoint == "Joint")
+	{
+		islink = false;
+		_ms.numjoints += 1;
+		elname = "joint" + std::to_string(_ms.numjoints);
+	}
+	Ptr<DropDownCommandInput> JorLInput = cmdInputs->addDropDownCommandInput("TableInput_value" + std::to_string(_ms.elnum), "JorLTable" + std::to_string(_ms.elnum), DropDownStyles::TextListDropDownStyle);
+	Ptr<ListItems> dropdownItems = JorLInput->listItems();
+	if (!dropdownItems)
+		return;
+	dropdownItems->add("Link", islink, "");
+	dropdownItems->add("Joint", !islink, "");
+
+	Ptr<CommandInput> stringInput = cmdInputs->addStringValueInput("TableInput_string" + std::to_string(_ms.elnum), "StringTable" + std::to_string(_ms.elnum), elname);
+	stringInput->isEnabled(false); //I'm disabling the ability to change element's name randomly...
+
+	Ptr<CommandInput> slbutInput = cmdInputs->addBoolValueInput("butselectClick" + std::to_string(_ms.elnum), "Select", false, "", true);
+
+    // Add the inputs to the table.
+	int row = tableInput->rowCount();
+	tableInput->addCommandInput(elnnumInput, row, 0);
+	tableInput->addCommandInput(JorLInput, row, 1);
+	tableInput->addCommandInput(stringInput, row, 2);
+	tableInput->addCommandInput(slbutInput, row, 2);
+
+	// Increment a counter used to make each row unique.
+
+	_ms.rowNumber = _ms.rowNumber + 1;
+	_ms.elnum += 1;
+
+};
 
 // InputChange event handler.
 class UrdfGenOnInputChangedEventHander : public adsk::core::InputChangedEventHandler
@@ -166,7 +182,57 @@ class UrdfGenOnInputChangedEventHander : public adsk::core::InputChangedEventHan
 public:
 	void notify(const Ptr<InputChangedEventArgs>& eventArgs) override
 	{
-		
+		std::string jointname;
+		Ptr<CommandInputs> inputs = eventArgs->inputs();
+		if (!inputs)
+			return;
+
+		Ptr<CommandInput> cmdInput = eventArgs->input();
+		if (!cmdInput)
+			return;
+
+		Ptr<TableCommandInput> tableInput = inputs->itemById("table");
+		if (!tableInput)
+			return;
+
+		Ptr<TextBoxCommandInput> debugInput = inputs->itemById("debugbox");
+
+		//define the groups first:
+		Ptr<GroupCommandInput> linkgroupInput = inputs->itemById("linkgroup");
+		Ptr<GroupCommandInput> jointgroupInput = inputs->itemById("jointgroup");
+
+		Ptr<SelectionCommandInput> linkselInput;
+		Ptr<SelectionCommandInput> jointselInput;
+		//inside the group, there is no group!
+		if (!linkgroupInput) // linkgroupInput is None:			
+			linkselInput = inputs->itemById("linkselection");
+		else
+			linkselInput = linkgroupInput->children()->itemById("linkselection");
+
+		//inside the group, there is no group!
+		if (!jointgroupInput) // linkgroupInput is None:			
+			jointselInput = inputs->itemById("jointselection");
+		else
+			jointselInput = jointgroupInput->children()->itemById("jointselection");
+
+		if (cmdInput->id() == "tableLinkAdd") {
+			addRowToTable(tableInput, "Link");
+		}
+		else if (cmdInput->id() == "tableJointAdd") {
+			addRowToTable(tableInput, "Joint");
+			tableInput->getInputAtPosition(_ms.rowNumber - 1, 1)->isEnabled(false);
+			Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
+			jointname = thisstringinput->value();
+			_ms.thistree.addJoint(jointname, _ms.elnum - 1);
+		}
+		else if (cmdInput->id() == "tableDelete") {
+			if (tableInput->selectedRow() == -1) {
+				ui->messageBox("Select one row to delete.");
+			}
+			else {
+				tableInput->deleteRow(tableInput->selectedRow());
+			}
+		}
 	}
 };
 
@@ -187,7 +253,7 @@ public:
 	void notify(const Ptr<CommandEventArgs>& eventArgs) override
 	{
 		//if i had logging I would need to stop it here. probably just need to reset _ms
-		_ms = MotherShip();
+		MotherShip _ms;
 		//adsk::terminate(); terminate will unload it. i want to keep unloading it to test it, but uncomment next line before commiting to master
 		
 		//if (!runfrommenu)
@@ -208,7 +274,7 @@ public:
 	}
 } _validateInputs;
 
-// CommandCreated event handler.
+// CommandCreated event handlers.
 class UrdfGenCommandCreatedEventHandler : public adsk::core::CommandCreatedEventHandler
 {
 public:
@@ -337,9 +403,11 @@ public:
 					selectionInput2->setSelectionLimits(0,1);
 					selectionInput2->isVisible(true);
 
+					//variant. doesn not set a single control, rather multiple ones and changes visibility.
+					
 					// Adds the joint offset control (maybe there is a built in version of this; the "move" command shows something like it)
 
-					JointControl jtctrl(jointGroupChildInputs);
+					//JointControl jtctrl(jointGroupChildInputs);
 
 					// Add parent and child controls for joint
 
