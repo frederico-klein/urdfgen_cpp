@@ -278,6 +278,9 @@ public:
 
 		//this event is actually triggered all the time. not sure how to use it. 
 		//ui->messageBox("In UrdfGenValidateInputsEventHandler event handler.");
+
+		// if the tree is empty, then just quit?
+
 	}
 } _validateInputs;
 

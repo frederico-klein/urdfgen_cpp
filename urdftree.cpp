@@ -7,9 +7,8 @@ void UrdfTree::addLink(std::string name, int row)
 {
 	try {
 		
-		UElement thislink;
-		thislink.setElement("link");
-		thislink.link.name = name;
+		ULink thislink;
+		thislink.name = name;
 		thislink.row = row;
 		ui->messageBox(name);
 		DicElement thisElement = std::make_pair(row, &thislink);
@@ -25,12 +24,11 @@ void UrdfTree::addLink(std::string name, int row)
 void UrdfTree::addJoint(std::string name, int row)
 {
 	try {
-		UElement thisjoint;
-		thisjoint.setElement("joint");
+		UJoint thisjoint;
 		thisjoint.row = row;
 		//ui->messageBox("this is okay");
 		ui->messageBox(name);
-		thisjoint.joint.name = name;
+		thisjoint.name = name;
 
 		DicElement thisElement = std::make_pair(row, &thisjoint);
 		elementsDict.push_back(thisElement);
@@ -58,7 +56,9 @@ std::pair<std::vector<DicElement>, std::vector<DicElement>> UrdfTree::gentreefin
 	{
 		//el is const_iterator
 		//need to check if element is link
-		if (el->second->type == UElement::DT_LINK && el->second->link.name == "base")
+		UElement* myel = el->second;
+		if (dynamic_cast<ULink*>(myel) && myel->name == "base")
+			//if (el->second->type == UElement::DT_LINK && el->second->link.name == "base")
 		{
 			foundbase = true;
 

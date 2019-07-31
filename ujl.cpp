@@ -18,23 +18,6 @@ void ULink::genfatherjoint(UJoint joint)
 	//coordinatesystem = joint.origin;
 };
 
-void UElement::setElement(std::string eltype)
-{
-	if (eltype == "joint")
-	{
-		//there is probably a more compact way of doing this...
-		//UJoint thisjoint;
-		//joint = thisjoint;
-		type = DT_JOINT;
-	}
-	else if (eltype == "link")
-	{
-		//ULink thislink;
-		//link = thislink;
-		type = DT_LINK;
-	}
-};
-
 void OrVec::setxyz(double xx, double yy, double zz)
 {
 	x = xx;
