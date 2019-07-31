@@ -1,4 +1,5 @@
 #include "ujl.h"
+#include "inc/tinyxml.h"
 
 std::string ULink::getitems()
 {
@@ -155,9 +156,11 @@ void UJoint::setrealorigin(OrVec fathercoordinatesystem)
 
 std::string UJoint::getitems()
 {
-
+	std::string items = "genjn:" + generatingjointname + "\n" + "parent:" + parentlink + "\t" + "child:" + childlink;
+	return items;
 };
 
 void UJoint::makexml(UrdfRoot urdfroot)
 {
+	//todo: 
 };

@@ -81,10 +81,12 @@ public:
 	std::string axis = "0 0 0";
 	Limit limit;
 	std::string type;
+	bool isset = false;
+
+
 	//perhaps unused?
 	int row;
 	int level;
-	bool isset = false;
 	Ptr<Joint> entity;
 
 	//methods
