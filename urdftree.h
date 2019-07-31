@@ -17,6 +17,7 @@ public:
 	
 	std::vector<DicElement> elementsDict;
 	UElement currentEl;
+	Ptr<UserInterface> ui; // I kinda want to debug this.
 
 	// methods
 	void addLink(std::string name, int row);
@@ -43,6 +44,7 @@ public:
 	void getCurrentElDesc() ;
 	void setCurrentEl() ;
 	UrdfTree() {};
+	//UrdfTree(Ptr<UserInterface> ui_) { ui = ui_; };
 	UrdfTree(UrdfTree&) = default;
 	~UrdfTree() {};
 private:

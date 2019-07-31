@@ -6,7 +6,8 @@ std::string ULink::getitems()
 	std::string items = "";
 	for (auto it = group.cbegin(); it != group.cend(); it++)
 	{
-		items = items + it->name() + "\n";
+		Ptr<Occurrence> thisocc = *it;
+		items = items + thisocc->name() + "\n";
 	}
 	return items;
 };
@@ -21,12 +22,15 @@ void UElement::setElement(std::string eltype)
 {
 	if (eltype == "joint")
 	{
-		UJoint el;
+		//there is probably a more compact way of doing this...
+		//UJoint thisjoint;
+		//joint = thisjoint;
 		type = DT_JOINT;
 	}
 	else if (eltype == "link")
 	{
-		ULink el;
+		//ULink thislink;
+		//link = thislink;
 		type = DT_LINK;
 	}
 };

@@ -5,23 +5,40 @@
 
 void UrdfTree::addLink(std::string name, int row)
 {
-	UElement thislink;
-	thislink.setElement("link");
-	thislink.link.name = name;
-	thislink.row = row;
-	DicElement thisElement = std::make_pair(row, &thislink);
-	elementsDict.push_back(thisElement);
-	//UElement {thislink(name);
+	try {
+		
+		UElement thislink;
+		thislink.setElement("link");
+		thislink.link.name = name;
+		thislink.row = row;
+		ui->messageBox(name);
+		DicElement thisElement = std::make_pair(row, &thislink);
+		elementsDict.push_back(thisElement);
+
+	}
+	catch (...)
+	{
+		ui->messageBox("urdf::addlink failed!");
+	};
 };
 
 void UrdfTree::addJoint(std::string name, int row)
 {
-	UElement thisjoint;
-	thisjoint.setElement("joint");
-	thisjoint.joint.name = name;
-	thisjoint.row = row;
-	DicElement thisElement = std::make_pair(row, &thisjoint);
-	elementsDict.push_back(thisElement);
+	try {
+		UElement thisjoint;
+		thisjoint.setElement("joint");
+		thisjoint.row = row;
+		//ui->messageBox("this is okay");
+		ui->messageBox(name);
+		thisjoint.joint.name = name;
+
+		DicElement thisElement = std::make_pair(row, &thisjoint);
+		elementsDict.push_back(thisElement);
+	}
+	catch (...)
+	{
+		ui->messageBox("urdf::addjoint failed!");
+	};
 };
 
 void UrdfTree::allLinks() {};
