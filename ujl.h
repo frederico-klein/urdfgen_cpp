@@ -74,7 +74,7 @@ public:
 	std::string name;
 	//perhaps unused
 	int level;
-
+	virtual std::string getitems() { return "not implemented"; };
 	virtual void makexml() {}; 
 	UElement() {};
 	//UElement(UElement&) = default;

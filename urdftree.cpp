@@ -18,7 +18,6 @@ void UrdfTree::addLink(std::string name, int row)
 		ui->messageBox("urdf::addlink failed!");
 	};
 };
-
 void UrdfTree::addJoint(std::string name, int row)
 {
 	try {
@@ -36,20 +35,34 @@ void UrdfTree::addJoint(std::string name, int row)
 	};
 };
 
+UElement* UrdfTree::getEl(int i) 
+{
+	UElement* thisEl;
 
-std::string UrdfTree::allElements() 
-{
-	return "not implemented";
-};
-void UrdfTree::getEl() 
-{
+	for (auto el : elementsDict) // I need this because my list may have holes, due to deleted items. 
+	{
+		if (el.first == i)
+		{
+			thisEl = el.second;
+			break;
+		}
+	}
+
+	return thisEl;
 };
 std::string UrdfTree::getCurrentElDesc() 
 {
-	return "not implemented";
+	if (currentEl)
+		return currentEl->name + "\n" + currentEl->getitems();
+	else
+		return "no current element";
 };
-void UrdfTree::setCurrentEl(int) {};
-
+void UrdfTree::setCurrentEl(int i) 
+{
+	UElement* thisEl = getEl(i);
+	if (thisEl)
+		currentEl = thisEl;
+};
 pair<string, ULinkList> UrdfTree::allLinks()
 {
 	pair<pair<string, ULinkList>, vector<string>> alllinksout = alllinks(elementsDict);
@@ -60,7 +73,15 @@ pair<string, UJointList> UrdfTree::allJoints()
 	pair<pair<string, UJointList>, vector<string>> alljointsout = alljoints(elementsDict);
 	return alljointsout.first;
 };
+pair<string, vector<UElement>> UrdfTree::allElements()
+{
+	string exstr;
+	bool noels = true;
+	vector<UElement> allels;
+	vector<string> allelnames;
 
+	return make_pair(exstr,allels);
+};
 void UrdfTree::genTree()
 {
 
@@ -251,7 +272,6 @@ DicElement UrdfTree::findjointscore(TwoDic placed_and_this)
 	DicElement myJointElement = make_pair(el_row,myjoint);
 	return myJointElement;
 };
-
 std::pair<UJointList, TwoDic> UrdfTree::findjoints(TwoDic placed_and_this)
 {
 	//finds all the joints that can be placed, i.e., whose parent links are already placed
@@ -283,10 +303,21 @@ std::pair<UJointList, TwoDic> UrdfTree::findjoints(TwoDic placed_and_this)
 
 };
 pair<pair<string, ULinkList>, vector<string>> UrdfTree::alllinks(vector<DicElement> someeldic) {
+	string exstr;
+	bool nolinks = true;
+	ULinkList alllinks;
+	vector<string> alllinknames;
 
+	return make_pair(make_pair(exstr, alllinks), alllinknames); //hmm...
 
 };
 pair<pair<string, UJointList>, vector<string>> UrdfTree::alljoints(vector<DicElement> someeldic) {
+	string exstr;
+	bool nojoints = true;
+	UJointList alljoints;
+	vector<string> alljointnames;
+
+	return make_pair(make_pair(exstr, alljoints), alljointnames);
 
 };
 

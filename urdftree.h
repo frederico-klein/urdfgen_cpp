@@ -30,8 +30,8 @@ public:
 	void genTree();
 	pair<string, ULinkList> allLinks() ;
 	pair<string, UJointList> allJoints() ;
-	string allElements() ; //this is actually another custom std::pair :(
-	void getEl() ;
+	pair<string, vector<UElement>> allElements() ;
+	UElement* getEl(int) ;
 	string getCurrentElDesc() ;
 	void setCurrentEl(int) ;
 	UrdfTree() {};

@@ -202,7 +202,8 @@ void MotherShip::setcurrel(int elementtobedefined, Ptr<TextBoxCommandInput> debu
 
 		}
 	}
-	debugInput->text("current element: " + thistree.getCurrentElDesc() + "\n" + thistree.allElements());
+	std::pair<string, vector<UElement>> alllinkstrpair = thistree.allElements();
+	debugInput->text("current element: " + thistree.getCurrentElDesc() + "\n" + alllinkstrpair.first);
 
 };
 
