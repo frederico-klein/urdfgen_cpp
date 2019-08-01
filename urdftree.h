@@ -21,7 +21,7 @@ public:
 	
 	vector<DicElement> elementsDict;
 	UElement* currentEl;
-	Ptr<UserInterface> ui; // I kinda want to debug this.
+	Ptr<UserInterface> ui; // Poorman's debug tool. consider removing after either: (1) you implement proper debugging (2) everything mostly works.
 
 	// methods
 	void addLink(string name, int row);
@@ -35,7 +35,6 @@ public:
 	string getCurrentElDesc() ;
 	void setCurrentEl(int) ;
 	UrdfTree() {};
-	//UrdfTree(Ptr<UserInterface> ui_) { ui = ui_; };
 	UrdfTree(UrdfTree&) = default;
 	~UrdfTree() {};
 private:
