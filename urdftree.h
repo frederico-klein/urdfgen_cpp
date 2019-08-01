@@ -9,6 +9,8 @@ using namespace adsk::fusion;
 using namespace adsk::cam;
 
 typedef std::pair<int, UElement*> DicElement; //defines something like a python keyed dictionary
+typedef std::pair<std::vector<DicElement>, std::vector<DicElement>> TwoDic;
+typedef std::vector<UJoint> UJointList;
 
 class UrdfTree
 {
@@ -23,20 +25,7 @@ public:
 	void addLink(std::string name, int row);
 	void addJoint(std::string name, int row);
 	void rmElement(int elnum);
-	void genTree()
-	{
-
-		std::vector<DicElement> thiselementsdict = elementsDict;
-		//std::vector<DicElement> thiselementsdict;
-		//for some reason when I wrote this in python, deepcopy/copy didn't work, so I iterated over the dictionary and copied item per item
-		//I do not remember why i needed to do this, but I suppose a shallow copy should work
-		/*for (auto el = elementsDict.cbegin(); el != elementsDict.cend(); el++)
-		{
-
-		}*/
-
-
-	};
+	void genTree();
 	void allLinks() ;
 	void allJoints() ;
 	std::string allElements() ; //this is actually another custom std::pair :(
@@ -48,12 +37,12 @@ public:
 	UrdfTree(UrdfTree&) = default;
 	~UrdfTree() {};
 private:
-	std::pair<std::vector<DicElement>, std::vector<DicElement>> gentreefindbase(std::vector<DicElement> thiselementsdict);
-	void gentreecore() ;
-	void gentreecorecore() ;
+	TwoDic gentreefindbase(std::vector<DicElement>);
+	TwoDic gentreecore(std::pair<UJointList, TwoDic>) ;
+	void gentreecorecore(std::pair<UJointList, TwoDic>, UJoint) ;
 	void genfatherjoint() ;
 	void findjointscore() ;
-	void findjoints() ;
+	std::pair<UJointList,TwoDic> findjoints(TwoDic) ;
 	void alllinks() ;
 	void alljoints();
 };
