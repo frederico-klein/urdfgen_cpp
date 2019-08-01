@@ -77,7 +77,7 @@ public:
 
 	virtual void makexml() {}; 
 	UElement() {};
-	UElement(UElement&) = default;
+	//UElement(UElement&) = default;
 	~UElement() {};
 
 	//std::string name;
