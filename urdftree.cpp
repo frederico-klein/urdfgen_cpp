@@ -8,6 +8,7 @@ void UrdfTree::addLink(std::string name, int row)
 		ULink thislink;
 		thislink.name = name;
 		thislink.row = row;
+		//remove!
 		ui->messageBox(name);
 		DicElement thisElement = std::make_pair(row, &thislink);
 		elementsDict.push_back(thisElement);
@@ -24,7 +25,7 @@ void UrdfTree::addJoint(std::string name, int row)
 		UJoint thisjoint;
 		thisjoint.name = name;
 		thisjoint.row = row;
-		//ui->messageBox("this is okay");
+		//remove!
 		ui->messageBox(name);
 		DicElement thisElement = std::make_pair(row, &thisjoint);
 		elementsDict.push_back(thisElement);
@@ -37,6 +38,7 @@ void UrdfTree::addJoint(std::string name, int row)
 
 UElement* UrdfTree::getEl(int i) 
 {
+	ui->messageBox("UrdfTree::getEl reached");
 	UElement* thisEl;
 
 	for (auto el : elementsDict) // I need this because my list may have holes, due to deleted items. 
@@ -44,11 +46,13 @@ UElement* UrdfTree::getEl(int i)
 		if (el.first == i)
 		{
 			thisEl = el.second;
+			ui->messageBox("found element!");
 			break;
 		}
 	}
-
+	ui->messageBox("UrdfTree::getEl ended");
 	return thisEl;
+
 };
 std::string UrdfTree::getCurrentElDesc() 
 {
@@ -59,9 +63,15 @@ std::string UrdfTree::getCurrentElDesc()
 };
 void UrdfTree::setCurrentEl(int i) 
 {
+	ui->messageBox("UrdfTree::setCurrentEl reached");
 	UElement* thisEl = getEl(i);
 	if (thisEl)
+	{
 		currentEl = thisEl;
+		ui->messageBox("current element set to" + currentEl->name);
+	}
+	ui->messageBox("UrdfTree::setCurrentEl ended");
+
 };
 pair<string, ULinkList> UrdfTree::allLinks()
 {

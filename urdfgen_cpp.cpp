@@ -25,7 +25,6 @@ public:
 	//missing! jtctrl lastjoint is maybe not a ujoint object?
 	UJoint lastjoint;
 	UrdfTree thistree;
-	void setCurrEl() {};
 	MotherShip() {};
 	~MotherShip() {};
 	void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint);
@@ -173,42 +172,67 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 
 void MotherShip::setcurrel(int elementtobedefined, Ptr<TextBoxCommandInput> debugInput, Ptr<SelectionCommandInput> linkselInput, Ptr<SelectionCommandInput> jointselInput) 
 {
+	ui->messageBox("1");
 	//this updates the UI and the debugbox
 	thistree.setCurrentEl(elementtobedefined);
+	ui->messageBox("2");
 	if (thistree.currentEl)
 	{
+		ui->messageBox("3");
+
 		int row = thistree.currentEl->row;
+		ui->messageBox("4");
+
 		if (row != oldrow)
 		{
+			ui->messageBox("5");
+
 			linkselInput->clearSelection();
+			ui->messageBox("6");
+
 			jointselInput->clearSelection();
+			ui->messageBox("6.5");
 			//now if it is a link, i want to show the appropriate stored selection
 			//first check, is it a link?
 			ULink* currLink = dynamic_cast<ULink*>(thistree.currentEl);
+			ui->messageBox("7");
+
 			if (currLink)
 			{				
+				ui->messageBox("8");
+
 				std::vector<Ptr<Occurrence>> group = currLink->group;
+				ui->messageBox("9");
+
 				for (auto it = group.cbegin(); it != group.cend(); it++)
 				{
+					ui->messageBox("10");
+
 					linkselInput->addSelection(*it);
 				}
 			}
 			//same for joints
+			ui->messageBox("11");
+
 			UJoint* currJoint = dynamic_cast<UJoint*>(thistree.currentEl);
+			ui->messageBox("12");
+
 			if (currJoint)
 			{
+				ui->messageBox("13");
+
 				jointselInput->addSelection(currJoint->entity);
 			}
 
 		}
 	}
+	ui->messageBox("14");
+
 	std::pair<string, vector<UElement>> alllinkstrpair = thistree.allElements();
+	ui->messageBox("15");
+
 	debugInput->text("current element: " + thistree.getCurrentElDesc() + "\n" + alllinkstrpair.first);
-
-};
-
-void otherfunc(std::string o) {
-	ui->messageBox("from otherfunc:"+o);
+	ui->messageBox("16");
 };
 
 // InputChange event handler.
@@ -270,7 +294,7 @@ public:
 		if (cmdInput->id() == "tableLinkAdd") {
 			try {
 				_ms.addRowToTable(tableInput, "Link");
-				ui->messageBox("1");
+				//ui->messageBox("1");
 				{
 					//actually I changed addrow and removed the add element button, so I don't really need to do this.
 					Ptr<DropDownCommandInput> JorLInput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 1);
@@ -281,18 +305,18 @@ public:
 						
 					JorLInput->isEnabled(false); 
 				}
-				ui->messageBox("2");
+				//ui->messageBox("2");
 				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
 				if (!thisstringinput)
 					throw "error getting row!";
-				ui->messageBox("3");
+				//ui->messageBox("3");
 				jointname = thisstringinput->value();
-				ui->messageBox("4");
+				//ui->messageBox("4");
 				//ui -> messageBox(jointname);
 				//otherfunc(jointname);
 				//_ms.thistree.addJoint("but this?", _ms.elnum - 1);
 				_ms.thistree.addLink(jointname, _ms.elnum - 1);
-				ui->messageBox("5");
+				//ui->messageBox("5");
 			}
 			catch (const char* msg) {
 				ui->messageBox(msg);
@@ -346,7 +370,34 @@ public:
 		else if (cmdInput->id() == "childlinkname") {}
 		else if (cmdInput->id() == "createtree") {}
 
-		else if (cmdInput->id() == "butselectClick") {}
+		else if (cmdInput->id().find("butselectClick") != std::string::npos) {
+		//one liner with a nameless object. I am trying to see if that string is in the name of the command (because I append numbers to those controls, so that they are unique; also, not my idea, came with the fusion example code)
+			ui->messageBox("worked!");
+			//I want to update the debug message text here. 
+			//first we set current element
+			if (tableInput)
+			{
+				std::string num_str = cmdInput->id().substr(14); // I used to get the value of the index from the control of the selected row. I guess I can double check
+				if (tableInput->selectedRow() != -1)
+				{
+					Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(tableInput->selectedRow(), 0);
+					if (thisstringinput)
+					{
+						std::string num_str2 = thisstringinput->value();
+						//assert(num_str2 == num_str); 
+						if (num_str2 != num_str)
+						{
+							//actually, getting the number from the controlname string is better, since the value of the selected row will only change after this input events are processed!
+							//ui->messageBox("numstr:" + num_str + "\nnumstr2:" + num_str2);
+							debugInput->text("numstr:" + num_str + "\nnumstr2:" + num_str2);
+						}
+					}
+				}
+				//ui->messageBox(num_str);
+				_ms.setcurrel(std::stoi(num_str), debugInput, linkselInput, jointselInput);
+			}
+		}
+		//else if (cmdInput->id() == "butselectClick") {}
 		else if (cmdInput->id() == "packagename")
 		{
 			//true I only need to instantiate the variables before if they are needed in more than one place...
