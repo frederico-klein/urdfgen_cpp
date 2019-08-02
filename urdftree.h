@@ -11,8 +11,8 @@ using namespace std;
 
 typedef pair<int, UElement*> DicElement; //defines something like a python keyed dictionary
 typedef pair<vector<DicElement>, vector<DicElement>> TwoDic;
-typedef vector<UJoint> UJointList;
-typedef vector<ULink> ULinkList;
+typedef vector<UJoint*> UJointList;
+typedef vector<ULink*> ULinkList;
 
 class UrdfTree
 {
@@ -30,7 +30,7 @@ public:
 	void genTree();
 	pair<string, ULinkList> allLinks() ;
 	pair<string, UJointList> allJoints() ;
-	pair<string, vector<UElement>> allElements() ;
+	pair<string, vector<UElement*>> allElements() ;
 	UElement* getEl(int) ;
 	string getCurrentElDesc() ;
 	void setCurrentEl(int) ;
@@ -40,8 +40,8 @@ public:
 private:
 	TwoDic gentreefindbase(vector<DicElement>);
 	TwoDic gentreecore(pair<UJointList, TwoDic>) ;
-	TwoDic gentreecorecore(TwoDic, UJoint, bool*) ;
-	void genfatherjoint(string, UJoint) ;
+	TwoDic gentreecorecore(TwoDic, UJoint*, bool*) ;
+	void genfatherjoint(string, UJoint*) ;
 	DicElement findjointscore(TwoDic) ;
 	pair<UJointList,TwoDic> findjoints(TwoDic) ;
 	pair<pair<string, ULinkList>, vector<string>> alllinks(vector<DicElement>) ;

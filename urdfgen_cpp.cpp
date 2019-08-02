@@ -211,71 +211,71 @@ void MotherShip::setcurrel(int elementtobedefined, Ptr<TextBoxCommandInput> debu
 {
 	try {
 
-		test();
+		//test();
 
 		//this updates the UI and the debugbox
 		thistree.setCurrentEl(elementtobedefined);
 		//return;
-		ui->messageBox("2");
+		//ui->messageBox("2");
 		if (thistree.currentEl)
 		{
-			ui->messageBox("3");
+			//ui->messageBox("3");
 
 			int row = thistree.currentEl->row;
-			ui->messageBox("4");
+			//ui->messageBox("4");
 
 			if (row != oldrow)
 			{
-				ui->messageBox("5");
+				//ui->messageBox("5");
 
 				linkselInput->clearSelection();
-				ui->messageBox("6");
+				//ui->messageBox("6");
 
 				jointselInput->clearSelection();
-				ui->messageBox("6.5");
+				//ui->messageBox("6.5");
 				//now if it is a link, i want to show the appropriate stored selection
 				//first check, is it a link?
 
 				ULink* currLink = dynamic_cast<ULink*>(thistree.currentEl);
 				//ULink* currLink = dynamic_cast<ULink*>(thistree.currentEl);
-				ui->messageBox("7");
+				//ui->messageBox("7");
 
 				if (currLink)
 				{
-					ui->messageBox("8");
+					//ui->messageBox("8");
 
 					std::vector<Ptr<Occurrence>> group = currLink->group;
-					ui->messageBox("9");
+					//ui->messageBox("9");
 
 					for (auto it = group.cbegin(); it != group.cend(); it++)
 					{
-						ui->messageBox("10");
+						//ui->messageBox("10");
 
 						linkselInput->addSelection(*it);
 					}
 				}
 				//same for joints
-				ui->messageBox("11");
+				//ui->messageBox("11");
 
 				UJoint* currJoint = dynamic_cast<UJoint*>(thistree.currentEl);
-				ui->messageBox("12");
+				//ui->messageBox("12");
 
 				if (currJoint)
 				{
-					ui->messageBox("13");
+					//ui->messageBox("13");
 
 					jointselInput->addSelection(currJoint->entity);
 				}
 
 			}
 		}
-		ui->messageBox("14");
+		//ui->messageBox("14");
 
-		std::pair<string, vector<UElement>> alllinkstrpair = thistree.allElements();
-		ui->messageBox("15");
+		std::pair<string, vector<UElement*>> alllinkstrpair = thistree.allElements();
+		//ui->messageBox("15");
 
 		debugInput->text("current element: " + thistree.getCurrentElDesc() + "\n" + alllinkstrpair.first);
-		ui->messageBox("16");
+		//ui->messageBox("16");
 	}
 	catch (std::exception& e)
 	{

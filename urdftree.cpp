@@ -86,12 +86,37 @@ pair<string, UJointList> UrdfTree::allJoints()
 	pair<pair<string, UJointList>, vector<string>> alljointsout = alljoints(elementsDict);
 	return alljointsout.first;
 };
-pair<string, vector<UElement>> UrdfTree::allElements()
+pair<string, vector<UElement*>> UrdfTree::allElements()
 {
 	string exstr;
 	bool noels = true;
-	vector<UElement> allels;
+	vector<UElement*> allels;
 	vector<string> allelnames;
+
+	for (auto el : elementsDict)
+	{
+		std::string namename = "";
+		ULink* currLink = dynamic_cast<ULink*>(el.second);
+		if (currLink)
+		{
+			namename = "link: " + currLink->name+"\n";
+		}
+		UJoint* currJoint = dynamic_cast<UJoint*>(el.second);
+		if (currJoint)
+		{
+			namename = "joint: " + currJoint->name + "\n";
+		}
+		if (!currLink && !currJoint)
+		{
+			namename = "unk!\n";
+		}
+		exstr = exstr + namename;
+		allels.push_back(el.second);
+		noels = false;
+	}
+	if (noels)
+		exstr = "no elements!";
+	//ui->messageBox("not implemented");
 
 	return make_pair(exstr,allels);
 };
@@ -191,7 +216,7 @@ TwoDic UrdfTree::gentreecore(std::pair<UJointList, TwoDic> joints_placed_this)
 {
 	TwoDic placed_and_this = joints_placed_this.second;
 	//for (auto it = joints_placed_this.first.cbegin(); it != joints_placed_this.first.cend(); it++)
-	for (UJoint joint :joints_placed_this.first)		
+	for (UJoint* joint :joints_placed_this.first)		
 	{
 		bool* stillmerging = new bool;
 		*stillmerging = true;
@@ -203,7 +228,7 @@ TwoDic UrdfTree::gentreecore(std::pair<UJointList, TwoDic> joints_placed_this)
 	}
 	return placed_and_this;
 };
-TwoDic UrdfTree::gentreecorecore(TwoDic placed_and_this, UJoint joint, bool* stillmerging)
+TwoDic UrdfTree::gentreecorecore(TwoDic placed_and_this, UJoint* joint, bool* stillmerging)
 {
 	//unpacking...
 	//actually, not using pointers here will have also affect speed
@@ -216,7 +241,7 @@ TwoDic UrdfTree::gentreecorecore(TwoDic placed_and_this, UJoint joint, bool* sti
 	for (DicElement el: thiseldic)
 	{
 		ULink* currLink = dynamic_cast<ULink*>(el.second);
-		if (currLink && currLink->name == joint.childlink)
+		if (currLink && currLink->name == joint->childlink)
 		{
 			DicElement placeel = std::make_pair(placedeldic.size(), currLink);
 			placedeldic.push_back(placeel);
@@ -229,13 +254,13 @@ TwoDic UrdfTree::gentreecorecore(TwoDic placed_and_this, UJoint joint, bool* sti
 	return std::make_pair(placedeldic, thiseldic);
 
 };
-void  UrdfTree::genfatherjoint(std::string name_, UJoint joint) 
+void  UrdfTree::genfatherjoint(std::string name_, UJoint* joint) 
 {
 	for (DicElement dicEl : elementsDict)
 	{
 		ULink* currLink = dynamic_cast<ULink*>(dicEl.second);
 		if (currLink && currLink->name == name_) //this should be a link, perhaps I should check as well, in case i have a joint and a link with the same name!
-			currLink->genfatherjoint(joint);			
+			currLink->genfatherjoint(*joint);			
 	}
 };
 DicElement UrdfTree::findjointscore(TwoDic placed_and_this) 
@@ -300,7 +325,7 @@ std::pair<UJointList, TwoDic> UrdfTree::findjoints(TwoDic placed_and_this)
 
 		if (joint)
 		{
-			foundjoints.push_back(*joint);
+			foundjoints.push_back(joint);
 			thiselementsdict.erase(thiselementsdict.begin() + jointDicElement.first);
 			DicElement DEJoint = make_pair(placedelements.size(),joint);
 			placedelements.push_back(DEJoint);
@@ -320,6 +345,7 @@ pair<pair<string, ULinkList>, vector<string>> UrdfTree::alllinks(vector<DicEleme
 	bool nolinks = true;
 	ULinkList alllinks;
 	vector<string> alllinknames;
+	ui->messageBox("not implemented");
 
 	return make_pair(make_pair(exstr, alllinks), alllinknames); //hmm...
 
@@ -329,6 +355,7 @@ pair<pair<string, UJointList>, vector<string>> UrdfTree::alljoints(vector<DicEle
 	bool nojoints = true;
 	UJointList alljoints;
 	vector<string> alljointnames;
+	ui->messageBox("not implemented");
 
 	return make_pair(make_pair(exstr, alljoints), alljointnames);
 
