@@ -170,69 +170,113 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 
 };
 
+class MyBase
+{
+public:
+	std::string name;
+	virtual void test() {}
+};
+class MyChild : public MyBase {};
+
 void MotherShip::setcurrel(int elementtobedefined, Ptr<TextBoxCommandInput> debugInput, Ptr<SelectionCommandInput> linkselInput, Ptr<SelectionCommandInput> jointselInput) 
 {
-	ui->messageBox("1");
-	//this updates the UI and the debugbox
-	thistree.setCurrentEl(elementtobedefined);
-	ui->messageBox("2");
-	if (thistree.currentEl)
-	{
-		ui->messageBox("3");
+	try {
+		ui->messageBox("1");
+		//lets try a bunch of stuff
 
-		int row = thistree.currentEl->row;
-		ui->messageBox("4");
+		MyChild* child = new MyChild();
+		child->name = "aneme";
+		MyBase* base = dynamic_cast<MyBase*>(child); // ok
+		ui->messageBox("first test okay" + base->name);
 
-		if (row != oldrow)
+
+		ULink* myel = new ULink();
+		myel->name = "lolo2";
+		UElement* currLink2 = dynamic_cast<UElement*>(myel); //dunno
+		ui->messageBox("second test okay" + currLink2->name);
+
+		UElement* elele = myel;
+		ui->messageBox("third test okay" + elele->name);
+		return;
+
+		UJoint myjoint;
+		myjoint.name = "lolo3";
+		ULink* currLink3 = dynamic_cast<ULink*>(&myjoint); //i think should fail
+		ui->messageBox("third test okay" + currLink3->name);
+
+		//////////////////
+
+		//this updates the UI and the debugbox
+		thistree.setCurrentEl(elementtobedefined);
+		ui->messageBox("2");
+		if (thistree.currentEl)
 		{
-			ui->messageBox("5");
+			ui->messageBox("3");
 
-			linkselInput->clearSelection();
-			ui->messageBox("6");
+			int row = thistree.currentEl->row;
+			ui->messageBox("4");
 
-			jointselInput->clearSelection();
-			ui->messageBox("6.5");
-			//now if it is a link, i want to show the appropriate stored selection
-			//first check, is it a link?
-			ULink* currLink = dynamic_cast<ULink*>(thistree.currentEl);
-			ui->messageBox("7");
-
-			if (currLink)
-			{				
-				ui->messageBox("8");
-
-				std::vector<Ptr<Occurrence>> group = currLink->group;
-				ui->messageBox("9");
-
-				for (auto it = group.cbegin(); it != group.cend(); it++)
-				{
-					ui->messageBox("10");
-
-					linkselInput->addSelection(*it);
-				}
-			}
-			//same for joints
-			ui->messageBox("11");
-
-			UJoint* currJoint = dynamic_cast<UJoint*>(thistree.currentEl);
-			ui->messageBox("12");
-
-			if (currJoint)
+			if (row != oldrow)
 			{
-				ui->messageBox("13");
+				ui->messageBox("5");
 
-				jointselInput->addSelection(currJoint->entity);
+				linkselInput->clearSelection();
+				ui->messageBox("6");
+
+				jointselInput->clearSelection();
+				ui->messageBox("6.5");
+				//now if it is a link, i want to show the appropriate stored selection
+				//first check, is it a link?
+
+				ULink* currLink = dynamic_cast<ULink*>(thistree.currentEl);
+				//ULink* currLink = dynamic_cast<ULink*>(thistree.currentEl);
+				ui->messageBox("7");
+
+				if (currLink)
+				{
+					ui->messageBox("8");
+
+					std::vector<Ptr<Occurrence>> group = currLink->group;
+					ui->messageBox("9");
+
+					for (auto it = group.cbegin(); it != group.cend(); it++)
+					{
+						ui->messageBox("10");
+
+						linkselInput->addSelection(*it);
+					}
+				}
+				//same for joints
+				ui->messageBox("11");
+
+				UJoint* currJoint = dynamic_cast<UJoint*>(thistree.currentEl);
+				ui->messageBox("12");
+
+				if (currJoint)
+				{
+					ui->messageBox("13");
+
+					jointselInput->addSelection(currJoint->entity);
+				}
+
 			}
-
 		}
+		ui->messageBox("14");
+
+		std::pair<string, vector<UElement>> alllinkstrpair = thistree.allElements();
+		ui->messageBox("15");
+
+		debugInput->text("current element: " + thistree.getCurrentElDesc() + "\n" + alllinkstrpair.first);
+		ui->messageBox("16");
 	}
-	ui->messageBox("14");
-
-	std::pair<string, vector<UElement>> alllinkstrpair = thistree.allElements();
-	ui->messageBox("15");
-
-	debugInput->text("current element: " + thistree.getCurrentElDesc() + "\n" + alllinkstrpair.first);
-	ui->messageBox("16");
+	catch (std::exception& e)
+	{
+		ui->messageBox("UrdfTree::getEl" + *e.what());
+	}
+	catch (...)
+	{
+		ui->messageBox("UrdfTree::getEl failed");
+	}
 };
 
 // InputChange event handler.
