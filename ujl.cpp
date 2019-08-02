@@ -9,6 +9,8 @@ std::string ULink::getitems()
 		Ptr<Occurrence> thisocc = *it;
 		items = items + thisocc->name() + "\n";
 	}
+	if (items == "")
+		return "no occurrences assigned to link!\n";
 	return items;
 };
 

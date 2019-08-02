@@ -38,7 +38,7 @@ void UrdfTree::addJoint(std::string name, int row)
 
 UElement* UrdfTree::getEl(int i) 
 {
-	ui->messageBox("UrdfTree::getEl reached");
+	//ui->messageBox("UrdfTree::getEl reached");
 	UElement* thisEl;
 
 	for (auto el : elementsDict) // I need this because the list index does not correspont to how many items are there in the dic. 
@@ -49,11 +49,11 @@ UElement* UrdfTree::getEl(int i)
 			//i don't like this, lets try it the simpler way
 			//thisEl = dynamic_cast<UElement*>(el.second);
 			thisEl = el.second;
-			ui->messageBox("found element!"+thisEl->name);
+			//ui->messageBox("found element!"+thisEl->name);
 			break;
 		}
 	}
-	ui->messageBox("UrdfTree::getEl ended");
+	//ui->messageBox("UrdfTree::getEl ended");
 	return thisEl;
 
 };
@@ -66,14 +66,14 @@ std::string UrdfTree::getCurrentElDesc()
 };
 void UrdfTree::setCurrentEl(int i) 
 {
-	ui->messageBox("UrdfTree::setCurrentEl reached");
+	//ui->messageBox("UrdfTree::setCurrentEl reached");
 	UElement* thisEl = getEl(i);
 	if (thisEl)
 	{
 		currentEl = thisEl;
-		ui->messageBox("current element set to" + currentEl->name);
+		//ui->messageBox("current element set to" + currentEl->name);
 	}
-	ui->messageBox("UrdfTree::setCurrentEl ended");
+	//ui->messageBox("UrdfTree::setCurrentEl ended");
 
 };
 pair<string, ULinkList> UrdfTree::allLinks()
