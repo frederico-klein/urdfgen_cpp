@@ -18,7 +18,7 @@ class UrdfTree
 {
 public:
 	//properties
-	
+	std::string report;
 	vector<DicElement> elementsDict;
 	UElement* currentEl;
 	Ptr<UserInterface> ui; // Poorman's debug tool. consider removing after either: (1) you implement proper debugging (2) everything mostly works.
@@ -27,8 +27,9 @@ public:
 	void addLink(string name, int row);
 	void addJoint(string name, int row);
 	void rmElement(int elnum);
-	void genTree();
+	std::string genTree();
 	pair<string, ULinkList> allLinks() ;
+	vector<string> allLinksvec();
 	pair<string, UJointList> allJoints() ;
 	pair<string, vector<UElement*>> allElements() ;
 	UElement* getEl(int) ;
@@ -43,7 +44,7 @@ private:
 	TwoDic gentreecore(pair<UJointList, TwoDic>) ;
 	TwoDic gentreecorecore(TwoDic, UJoint*, bool*) ;
 	void genfatherjoint(string, UJoint*) ;
-	DicElement findjointscore(TwoDic) ;
+	DicElement findjointscore(vector<DicElement>, vector<DicElement>) ;
 	pair<UJointList,TwoDic> findjoints(TwoDic) ;
 	pair<pair<string, ULinkList>, vector<string>> alllinks(vector<DicElement>) ;
 	pair<pair<string, UJointList>, vector<string>> alljoints(vector<DicElement>);

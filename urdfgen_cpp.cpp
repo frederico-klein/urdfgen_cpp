@@ -28,7 +28,6 @@ public:
 	MotherShip() {};
 	~MotherShip() {};
 	void addRowToTable(Ptr<TableCommandInput>, std::string);
-	void setcurrel(int, Ptr<SelectionCommandInput>, Ptr<SelectionCommandInput>, Ptr<GroupCommandInput>, Ptr<GroupCommandInput>);
 } _ms;
 
 class SixDegree : OrVec
@@ -200,101 +199,17 @@ void test()
 };
 
 
-void MotherShip::setcurrel(int elementtobedefined, Ptr<SelectionCommandInput> linkselInput, Ptr<SelectionCommandInput> jointselInput, Ptr<GroupCommandInput> linkgroupInput, Ptr<GroupCommandInput> jointgroupInput)
-{
-	try {
-
-		//test();
-
-		//this updates the UI and the debugbox
-		thistree.setCurrentEl(elementtobedefined);
-		//return;
-		//ui->messageBox("2");
-		if (thistree.currentEl)
-		{
-			//ui->messageBox("3");
-
-			int row = thistree.currentEl->row;
-			//ui->messageBox("4");
-
-			if (row != oldrow)
-			{
-				//ui->messageBox("5");
-
-				linkselInput->clearSelection();
-				//ui->messageBox("6");
-
-				jointselInput->clearSelection();
-				//ui->messageBox("6.5");
-				//now if it is a link, i want to show the appropriate stored selection
-				//first check, is it a link?
-
-				ULink* currLink = dynamic_cast<ULink*>(thistree.currentEl);
-				//ULink* currLink = dynamic_cast<ULink*>(thistree.currentEl);
-				//ui->messageBox("7");
-
-				if (currLink)
-				{
-					//ui->messageBox("8");
-
-					std::vector<Ptr<Occurrence>> group = currLink->group;
-					//ui->messageBox("9");
-
-					for (auto it = group.cbegin(); it != group.cend(); it++)
-					{
-						//ui->messageBox("10");
-
-						linkselInput->addSelection(*it);
-					}
-					//we hide the joint selection
-					linkgroupInput->isVisible(true);
-					jointgroupInput->isVisible(false);
-				}
-				//same for joints
-				//ui->messageBox("11");
-
-				UJoint* currJoint = dynamic_cast<UJoint*>(thistree.currentEl);
-				//ui->messageBox("12");
-
-				if (currJoint)
-				{
-					//ui->messageBox("13");
-
-					jointselInput->addSelection(currJoint->entity);
-					linkgroupInput->isVisible(false);
-					jointgroupInput->isVisible(true);
-				}
-
-			}
-		}
-		//ui->messageBox("14");
-
-
-	}
-	catch (std::exception& e)
-	{
-		ui->messageBox("UrdfTree::getEl" + *e.what());
-	}
-	catch (...)
-	{
-		ui->messageBox("UrdfTree::getEl failed");
-	}
-};
-//
-//std::pair<string, vector<UElement*>> alllinkstrpair = thistree.allElements();
-////ui->messageBox("15");
-//
-//debugInput->text("current element: " + thistree.getCurrentElDesc() + "\n" + alllinkstrpair.first);
-////ui->messageBox("16");
-
-
-
 // InputChange event handler.
 class UrdfGenOnInputChangedEventHander : public adsk::core::InputChangedEventHandler
 {
 public:
 	void notify(const Ptr<InputChangedEventArgs>& eventArgs) override
 	{
+		bool rows_differ = false;
+		//not efficient check, but
+		if (_ms.oldrow !=_ms.rowNumber)
+			rows_differ = true;
+
 		std::string jointname;
 		Ptr<CommandInputs> inputs = eventArgs->inputs();
 		if (!inputs)
@@ -310,9 +225,15 @@ public:
 
 		Ptr<TextBoxCommandInput> debugInput = inputs->itemById("debugbox");
 
+
+
+
 		//define the groups first:
 		Ptr<GroupCommandInput> linkgroupInput = inputs->itemById("linkgroup");
 		Ptr<GroupCommandInput> jointgroupInput = inputs->itemById("jointgroup");
+
+		Ptr<DropDownCommandInput> cln = jointgroupInput->children()->itemById("childlinkname");
+		Ptr<DropDownCommandInput> pln = jointgroupInput->children()->itemById("parentlinkname");
 
 		Ptr<SelectionCommandInput> linkselInput;
 		Ptr<SelectionCommandInput> jointselInput;
@@ -328,8 +249,7 @@ public:
 		else
 			jointselInput = jointgroupInput->children()->itemById("jointselection");
 
-		ui->messageBox(cmdInput->id());
-		//wait, things from the group are not calling this!
+		//ui->messageBox(cmdInput->id());
 
 		if (tableInput)
 		{
@@ -423,12 +343,12 @@ public:
 				if (thisstringinput)
 				{
 					std::string oneaboveorbelownumstr = thisstringinput->value();
-					_ms.setcurrel(std::stoi(oneaboveorbelownumstr), linkselInput, jointselInput, linkgroupInput, jointgroupInput);
+					_ms.thistree.setCurrentEl(std::stoi(oneaboveorbelownumstr));
 				}
 				else
 				{
 					//table is empty
-					_ms.setcurrel(-1, linkselInput, jointselInput, linkgroupInput, jointgroupInput);
+					_ms.thistree.setCurrentEl(-1);
 				}
 
 				//now I can delete the row
@@ -453,29 +373,33 @@ public:
 		else if (cmdInput->id() == "parentlinkname") 
 		{
 			//since I changed the visibility of controls I know current element is a joint, if this is accessible
-			Ptr<DropDownCommandInput> pln= inputs->itemById("parentlinkname");
 			UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
 			if (thisjoint)
-				thisjoint->parentlink = pln->selectedItem.name();
+			{
+				Ptr<ListItem> dropdown_parent = pln->selectedItem();
+				thisjoint->parentlink = dropdown_parent->name();
+			}
 		}
 		else if (cmdInput->id() == "childlinkname") 
 		{
 			//since I changed the visibility of controls I know current element is a joint, if this is accessible
-			Ptr<DropDownCommandInput> cln = inputs->itemById("childlinkname");
 			UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
 			if (thisjoint)
-				thisjoint->childlink = cln->selectedItem.name();
+			{
+				Ptr<ListItem> dropdown_child = cln->selectedItem();
+				thisjoint->childlink = dropdown_child->name();
+			}
 		}
 		else if (cmdInput->id() == "createtree") 
 		{
 			linkgroupInput->isVisible(false);
 			jointgroupInput->isVisible(false);
-			_ms.thistree.genTree();
-		}
-
-		else if (cmdInput->id().find("butselectClick") != std::string::npos) {
+			ui->messageBox(_ms.thistree.genTree());
+		}		
+		else if (cmdInput->id().find("butselectClick") != std::string::npos) ///// TODO: add all other controls from table here, if we ever want to make them selectable/changeable then how it is, will break!
+		{
 		//one liner with a nameless object. I am trying to see if that string is in the name of the command (because I append numbers to those controls, so that they are unique; also, not my idea, came with the fusion example code)
-			ui->messageBox("worked!");
+			//ui->messageBox("worked!");
 			//I want to update the debug message text here. 
 			//first we set current element
 			if (tableInput)
@@ -490,14 +414,19 @@ public:
 						//assert(num_str2 == num_str); 
 						if (num_str2 != num_str)
 						{
+							rows_differ = true;
 							//actually, getting the number from the controlname string is better, since the value of the selected row will only change after this input events are processed!
 							//ui->messageBox("numstr:" + num_str + "\nnumstr2:" + num_str2);
 							debugInput->text("numstr:" + num_str + "\nnumstr2:" + num_str2);
+							_ms.oldrow = std::stoi(num_str);
+							_ms.rowNumber = std::stoi(num_str2);
 						}
 					}
 				}
 				//ui->messageBox(num_str);
-				_ms.setcurrel(std::stoi(num_str), linkselInput, jointselInput, linkgroupInput, jointgroupInput);
+				//ui->messageBox("worked!1");
+				_ms.thistree.setCurrentEl(std::stoi(num_str));
+				//ui->messageBox("worked!2");
 				debugInput->text(_ms.thistree.getdebugtext());
 			}
 		}
@@ -512,6 +441,79 @@ public:
 		// SO I am missing all of the things for the joint control...
 
 		//else if (cmdInput->id() == "") {}
+
+		//checks current element and updates all things!
+		try {
+			if (_ms.thistree.currentEl)
+			{
+				if (rows_differ)
+				{
+					linkselInput->clearSelection();
+					jointselInput->clearSelection();
+					//is it a link?
+					//ui->messageBox("ffs");
+					ULink* currLink = dynamic_cast<ULink*>(_ms.thistree.currentEl);
+					if (currLink)
+					{
+						std::vector<Ptr<Occurrence>> group = currLink->group;
+						for (auto it = group.cbegin(); it != group.cend(); it++)
+						{
+							linkselInput->addSelection(*it);
+						}
+						//we hide the joint selection
+						linkgroupInput->isVisible(true);
+						jointgroupInput->isVisible(false);
+					}
+					//same for joints
+					//ui->messageBox("ffs2");
+					UJoint* currJoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+					if (currJoint)
+					{
+						//ui->messageBox("ffs3");
+
+						jointselInput->addSelection(currJoint->entity);
+						//ui->messageBox("ffs4");
+
+						//we hide the link selection
+						//ui->messageBox("ffs5");
+
+						linkgroupInput->isVisible(false);
+						jointgroupInput->isVisible(true);
+						//ui->messageBox("ffs6");
+
+						//we set the controls for parent and child links
+
+						vector<string> alllinkgr = _ms.thistree.allLinksvec();
+						//ui->messageBox("ffs7");
+
+						cln->listItems()->clear();
+						pln->listItems()->clear();
+						//ui->messageBox("ffs8");
+
+						for (auto linknamestr: alllinkgr)
+						{
+							cln->listItems()->add(linknamestr, false, "");
+							pln->listItems()->add(linknamestr, false, "");
+						}
+						//ui->messageBox("ffs9");
+
+					}
+
+				}
+			}
+			else 
+			{
+				//ui->messageBox("could not resolve _ms.thistree.currentEl");
+			}
+		}
+		catch (std::exception& e)
+		{
+			ui->messageBox("the update region bit failed...\n" + *e.what());
+		}
+		catch (...) // is there an exception that is not derived from std::exception?
+		{
+			ui->messageBox("Error: the update region bit failed hard!");
+		}
 	}
 };
 
