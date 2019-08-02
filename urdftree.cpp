@@ -345,7 +345,20 @@ pair<pair<string, ULinkList>, vector<string>> UrdfTree::alllinks(vector<DicEleme
 	bool nolinks = true;
 	ULinkList alllinks;
 	vector<string> alllinknames;
-	ui->messageBox("not implemented");
+
+	for (auto el : elementsDict)
+	{
+		ULink* currLink = dynamic_cast<ULink*>(el.second);
+		if (currLink)
+		{
+			exstr = exstr + "link: " + currLink->name + "\n";
+			alllinks.push_back(currLink);
+			alllinknames.push_back(currLink->name);
+			nolinks = false;
+		}
+	}
+	if (nolinks)
+		exstr = "no links!";
 
 	return make_pair(make_pair(exstr, alllinks), alllinknames); //hmm...
 
@@ -355,8 +368,21 @@ pair<pair<string, UJointList>, vector<string>> UrdfTree::alljoints(vector<DicEle
 	bool nojoints = true;
 	UJointList alljoints;
 	vector<string> alljointnames;
-	ui->messageBox("not implemented");
 
+	for (auto el : elementsDict)
+	{
+		UJoint* currJoint = dynamic_cast<UJoint*>(el.second);
+		if (currJoint)
+		{
+			exstr = exstr + "joint: " + currJoint->name + "\n";
+			alljoints.push_back(currJoint);
+			alljointnames.push_back(currJoint->name);
+			nojoints = false;
+		}
+	}
+	if (nojoints)
+		exstr = "no joints!";
+	
 	return make_pair(make_pair(exstr, alljoints), alljointnames);
 
 };
