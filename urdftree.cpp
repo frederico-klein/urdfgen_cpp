@@ -39,7 +39,7 @@ void UrdfTree::addJoint(std::string name, int row)
 UElement* UrdfTree::getEl(int i) 
 {
 	//ui->messageBox("UrdfTree::getEl reached");
-	UElement* thisEl;
+	UElement* thisEl{0};
 
 	for (auto el : elementsDict) // I need this because the list index does not correspont to how many items are there in the dic. 
 	{
@@ -72,6 +72,12 @@ void UrdfTree::setCurrentEl(int i)
 	{
 		currentEl = thisEl;
 		//ui->messageBox("current element set to" + currentEl->name);
+	}
+	// if I set i to -1, I get a null pointer
+	if (i == -1)
+	{
+		UElement* nullEl{ 0 };
+		currentEl = nullEl;
 	}
 	//ui->messageBox("UrdfTree::setCurrentEl ended");
 
@@ -259,7 +265,7 @@ void  UrdfTree::genfatherjoint(std::string name_, UJoint* joint)
 	for (DicElement dicEl : elementsDict)
 	{
 		ULink* currLink = dynamic_cast<ULink*>(dicEl.second);
-		if (currLink && currLink->name == name_) //this should be a link, perhaps I should check as well, in case i have a joint and a link with the same name!
+		if (currLink && currLink->name == name_) 
 			currLink->genfatherjoint(*joint);			
 	}
 };
@@ -387,3 +393,17 @@ pair<pair<string, UJointList>, vector<string>> UrdfTree::alljoints(vector<DicEle
 
 };
 
+void UrdfTree::rmElement(int elnum)
+{
+	elementsDict.erase(elementsDict.begin() + elnum);
+};
+
+
+std::string UrdfTree::getdebugtext()
+{
+	std::pair<string, vector<UElement*>> alllinkstrpair = allElements();
+	//ui->messageBox("15");
+
+	return "current element: " + getCurrentElDesc() + "\n" + alllinkstrpair.first;
+	//ui->messageBox("16");
+};

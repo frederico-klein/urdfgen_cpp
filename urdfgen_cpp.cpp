@@ -28,7 +28,7 @@ public:
 	MotherShip() {};
 	~MotherShip() {};
 	void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint);
-	void setcurrel(int, Ptr<TextBoxCommandInput>, Ptr<SelectionCommandInput>, Ptr<SelectionCommandInput>);
+	void setcurrel(int, Ptr<SelectionCommandInput>, Ptr<SelectionCommandInput>);
 } _ms;
 
 class SixDegree : OrVec
@@ -106,13 +106,6 @@ private:
 	}
 
 };
-
-void UrdfTree::rmElement(int elnum)
-{
-	elementsDict.erase(elementsDict.begin() + elnum);
-	_ms.rowNumber -= 1;
-};
-
 
 void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
 {
@@ -207,7 +200,7 @@ void test()
 };
 
 
-void MotherShip::setcurrel(int elementtobedefined, Ptr<TextBoxCommandInput> debugInput, Ptr<SelectionCommandInput> linkselInput, Ptr<SelectionCommandInput> jointselInput) 
+void MotherShip::setcurrel(int elementtobedefined, Ptr<SelectionCommandInput> linkselInput, Ptr<SelectionCommandInput> jointselInput) 
 {
 	try {
 
@@ -271,11 +264,7 @@ void MotherShip::setcurrel(int elementtobedefined, Ptr<TextBoxCommandInput> debu
 		}
 		//ui->messageBox("14");
 
-		std::pair<string, vector<UElement*>> alllinkstrpair = thistree.allElements();
-		//ui->messageBox("15");
 
-		debugInput->text("current element: " + thistree.getCurrentElDesc() + "\n" + alllinkstrpair.first);
-		//ui->messageBox("16");
 	}
 	catch (std::exception& e)
 	{
@@ -286,6 +275,14 @@ void MotherShip::setcurrel(int elementtobedefined, Ptr<TextBoxCommandInput> debu
 		ui->messageBox("UrdfTree::getEl failed");
 	}
 };
+//
+//std::pair<string, vector<UElement*>> alllinkstrpair = thistree.allElements();
+////ui->messageBox("15");
+//
+//debugInput->text("current element: " + thistree.getCurrentElDesc() + "\n" + alllinkstrpair.first);
+////ui->messageBox("16");
+
+
 
 // InputChange event handler.
 class UrdfGenOnInputChangedEventHander : public adsk::core::InputChangedEventHandler
@@ -408,9 +405,36 @@ public:
 				ui->messageBox("Select one row to delete.");
 			}
 			else {
-				tableInput->deleteRow(tableInput->selectedRow());
-				//and attempt
+				int elementtobedeleted = tableInput->selectedRow();
+				//first I set the current link to the one above it
+				Ptr<StringValueCommandInput> thisstringinput;
+				if (tableInput->selectedRow() != 0)
+					thisstringinput = tableInput->getInputAtPosition(tableInput->selectedRow()-1, 0);
+				else
+				{
+					//if it is the first row, we can't get the one above it
+					thisstringinput = tableInput->getInputAtPosition( 1, 0);
+				}
+				if (thisstringinput)
+				{
+					std::string oneaboveorbelownumstr = thisstringinput->value();
+					_ms.setcurrel(std::stoi(oneaboveorbelownumstr), linkselInput, jointselInput);
+				}
+				else
+				{
+					//table is empty
+					_ms.setcurrel(-1, linkselInput, jointselInput);
+				}
+
+				//now I can delete the row
+				tableInput->deleteRow(elementtobedeleted);
+				//and delete the element
+				_ms.thistree.rmElement(elementtobedeleted);
 				_ms.rowNumber -= 1;
+				
+
+				//I also want to update the debug message text!
+				debugInput->text(_ms.thistree.getdebugtext());
 			}
 		}
 		else if (cmdInput->id() == "linkselection") 
@@ -446,7 +470,8 @@ public:
 					}
 				}
 				//ui->messageBox(num_str);
-				_ms.setcurrel(std::stoi(num_str), debugInput, linkselInput, jointselInput);
+				_ms.setcurrel(std::stoi(num_str), linkselInput, jointselInput);
+				debugInput->text(_ms.thistree.getdebugtext());
 			}
 		}
 		//else if (cmdInput->id() == "butselectClick") {}

@@ -34,6 +34,7 @@ public:
 	UElement* getEl(int) ;
 	string getCurrentElDesc() ;
 	void setCurrentEl(int) ;
+	std::string UrdfTree::getdebugtext();
 	UrdfTree() {};
 	UrdfTree(UrdfTree&) = default;
 	~UrdfTree() {};
