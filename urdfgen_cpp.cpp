@@ -15,7 +15,7 @@ Ptr<Design> design;
 
 // this file has mostly gui things.
 
-const bool runfrommenu = true; // this allowed to be run as script as well. TODO: KEEP? 
+const bool runfrommenu = false; // this allowed to be run as script as well. TODO: KEEP? 
 
 class MotherShip
 {
@@ -178,36 +178,44 @@ public:
 };
 class MyChild : public MyBase {};
 
+void test()
+{
+	ui->messageBox("1");
+	//lets try a bunch of stuff
+
+	MyChild* child = new MyChild();
+	child->name = "aneme";
+	MyBase* base = dynamic_cast<MyBase*>(child); // ok
+	ui->messageBox("first test okay" + base->name);
+
+
+	ULink* myel = new ULink();
+	myel->name = "lolo2";
+	UElement* currLink2 = dynamic_cast<UElement*>(myel); //dunno
+	ui->messageBox("second test okay" + currLink2->name);
+
+	UElement* elele = myel;
+	ui->messageBox("third test okay" + elele->name);
+
+
+	//UJoint myjoint;
+	//myjoint.name = "lolo3";
+	//ULink* currLink3 = dynamic_cast<ULink*>(&myjoint); //i think should fail
+	//ui->messageBox("third test okay" + currLink3->name);
+
+	//////////////////
+};
+
+
 void MotherShip::setcurrel(int elementtobedefined, Ptr<TextBoxCommandInput> debugInput, Ptr<SelectionCommandInput> linkselInput, Ptr<SelectionCommandInput> jointselInput) 
 {
 	try {
-		ui->messageBox("1");
-		//lets try a bunch of stuff
 
-		MyChild* child = new MyChild();
-		child->name = "aneme";
-		MyBase* base = dynamic_cast<MyBase*>(child); // ok
-		ui->messageBox("first test okay" + base->name);
-
-
-		ULink* myel = new ULink();
-		myel->name = "lolo2";
-		UElement* currLink2 = dynamic_cast<UElement*>(myel); //dunno
-		ui->messageBox("second test okay" + currLink2->name);
-
-		UElement* elele = myel;
-		ui->messageBox("third test okay" + elele->name);
-		return;
-
-		UJoint myjoint;
-		myjoint.name = "lolo3";
-		ULink* currLink3 = dynamic_cast<ULink*>(&myjoint); //i think should fail
-		ui->messageBox("third test okay" + currLink3->name);
-
-		//////////////////
+		test();
 
 		//this updates the UI and the debugbox
 		thistree.setCurrentEl(elementtobedefined);
+		//return;
 		ui->messageBox("2");
 		if (thistree.currentEl)
 		{

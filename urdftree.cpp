@@ -5,12 +5,12 @@ void UrdfTree::addLink(std::string name, int row)
 {
 	try {
 		
-		ULink thislink;
-		thislink.name = name;
-		thislink.row = row;
+		ULink* thislink = new ULink();
+		thislink->name = name;
+		thislink->row = row;
 		//remove!
 		ui->messageBox(name);
-		DicElement thisElement = std::make_pair(row, &thislink);
+		DicElement thisElement = std::make_pair(row, thislink);
 		elementsDict.push_back(thisElement);
 
 	}
@@ -22,12 +22,12 @@ void UrdfTree::addLink(std::string name, int row)
 void UrdfTree::addJoint(std::string name, int row)
 {
 	try {
-		UJoint thisjoint;
-		thisjoint.name = name;
-		thisjoint.row = row;
+		UJoint* thisjoint = new UJoint();
+		thisjoint->name = name;
+		thisjoint->row = row;
 		//remove!
 		ui->messageBox(name);
-		DicElement thisElement = std::make_pair(row, &thisjoint);
+		DicElement thisElement = std::make_pair(row, thisjoint);
 		elementsDict.push_back(thisElement);
 	}
 	catch (...)
@@ -41,12 +41,15 @@ UElement* UrdfTree::getEl(int i)
 	ui->messageBox("UrdfTree::getEl reached");
 	UElement* thisEl;
 
-	for (auto el : elementsDict) // I need this because my list may have holes, due to deleted items. 
+	for (auto el : elementsDict) // I need this because the list index does not correspont to how many items are there in the dic. 
 	{
+		//ui->messageBox(std::to_string(el.first));
 		if (el.first == i)
 		{
+			//i don't like this, lets try it the simpler way
+			//thisEl = dynamic_cast<UElement*>(el.second);
 			thisEl = el.second;
-			ui->messageBox("found element!");
+			ui->messageBox("found element!"+thisEl->name);
 			break;
 		}
 	}
