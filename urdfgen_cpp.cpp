@@ -27,8 +27,8 @@ public:
 	UrdfTree thistree;
 	MotherShip() {};
 	~MotherShip() {};
-	void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint);
-	void setcurrel(int, Ptr<SelectionCommandInput>, Ptr<SelectionCommandInput>);
+	void addRowToTable(Ptr<TableCommandInput>, std::string);
+	void setcurrel(int, Ptr<SelectionCommandInput>, Ptr<SelectionCommandInput>, Ptr<GroupCommandInput>, Ptr<GroupCommandInput>);
 } _ms;
 
 class SixDegree : OrVec
@@ -200,7 +200,7 @@ void test()
 };
 
 
-void MotherShip::setcurrel(int elementtobedefined, Ptr<SelectionCommandInput> linkselInput, Ptr<SelectionCommandInput> jointselInput) 
+void MotherShip::setcurrel(int elementtobedefined, Ptr<SelectionCommandInput> linkselInput, Ptr<SelectionCommandInput> jointselInput, Ptr<GroupCommandInput> linkgroupInput, Ptr<GroupCommandInput> jointgroupInput)
 {
 	try {
 
@@ -246,6 +246,9 @@ void MotherShip::setcurrel(int elementtobedefined, Ptr<SelectionCommandInput> li
 
 						linkselInput->addSelection(*it);
 					}
+					//we hide the joint selection
+					linkgroupInput->isVisible(true);
+					jointgroupInput->isVisible(false);
 				}
 				//same for joints
 				//ui->messageBox("11");
@@ -258,6 +261,8 @@ void MotherShip::setcurrel(int elementtobedefined, Ptr<SelectionCommandInput> li
 					//ui->messageBox("13");
 
 					jointselInput->addSelection(currJoint->entity);
+					linkgroupInput->isVisible(false);
+					jointgroupInput->isVisible(true);
 				}
 
 			}
@@ -418,12 +423,12 @@ public:
 				if (thisstringinput)
 				{
 					std::string oneaboveorbelownumstr = thisstringinput->value();
-					_ms.setcurrel(std::stoi(oneaboveorbelownumstr), linkselInput, jointselInput);
+					_ms.setcurrel(std::stoi(oneaboveorbelownumstr), linkselInput, jointselInput, linkgroupInput, jointgroupInput);
 				}
 				else
 				{
 					//table is empty
-					_ms.setcurrel(-1, linkselInput, jointselInput);
+					_ms.setcurrel(-1, linkselInput, jointselInput, linkgroupInput, jointgroupInput);
 				}
 
 				//now I can delete the row
@@ -441,10 +446,32 @@ public:
 		{
 		
 		}
-		else if (cmdInput->id() == "jointselection") {}
-		else if (cmdInput->id() == "parentlinkname") {}
-		else if (cmdInput->id() == "childlinkname") {}
-		else if (cmdInput->id() == "createtree") {}
+		else if (cmdInput->id() == "jointselection") 
+		{
+		
+		}
+		else if (cmdInput->id() == "parentlinkname") 
+		{
+			//since I changed the visibility of controls I know current element is a joint, if this is accessible
+			Ptr<DropDownCommandInput> pln= inputs->itemById("parentlinkname");
+			UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+			if (thisjoint)
+				thisjoint->parentlink = pln->selectedItem.name();
+		}
+		else if (cmdInput->id() == "childlinkname") 
+		{
+			//since I changed the visibility of controls I know current element is a joint, if this is accessible
+			Ptr<DropDownCommandInput> cln = inputs->itemById("childlinkname");
+			UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+			if (thisjoint)
+				thisjoint->childlink = cln->selectedItem.name();
+		}
+		else if (cmdInput->id() == "createtree") 
+		{
+			linkgroupInput->isVisible(false);
+			jointgroupInput->isVisible(false);
+			_ms.thistree.genTree();
+		}
 
 		else if (cmdInput->id().find("butselectClick") != std::string::npos) {
 		//one liner with a nameless object. I am trying to see if that string is in the name of the command (because I append numbers to those controls, so that they are unique; also, not my idea, came with the fusion example code)
@@ -470,7 +497,7 @@ public:
 					}
 				}
 				//ui->messageBox(num_str);
-				_ms.setcurrel(std::stoi(num_str), linkselInput, jointselInput);
+				_ms.setcurrel(std::stoi(num_str), linkselInput, jointselInput, linkgroupInput, jointgroupInput);
 				debugInput->text(_ms.thistree.getdebugtext());
 			}
 		}
