@@ -4,6 +4,26 @@
 
 const int MAX_OP = 10;
 
+void UrdfTree::removeElementByName(vector<DicElement>* thiselementsdict, string name)
+{
+	size_t i;
+	bool thisshouldprobablybeamethodfromadictionaryclass_foundmyelement = false;
+	for (i = 0; i < thiselementsdict->size(); i++)
+	{
+		if (name == (*thiselementsdict)[i].second->name)
+		{
+			thisshouldprobablybeamethodfromadictionaryclass_foundmyelement = true;
+			break;
+		}
+	}
+	assert(thisshouldprobablybeamethodfromadictionaryclass_foundmyelement);
+	LOG(INFO) << "trying to remove item:" + std::to_string(i) + "\nelement i think i am removing:" + (*thiselementsdict)[i].second->name;
+	/*ui->messageBox("trying to remove item:" + std::to_string(jointDicElement.first));
+	ui->messageBox("element i think i am removing:" + thiselementsdict[jointDicElement.first].second->name);*/
+	thiselementsdict->erase(thiselementsdict->begin() + i);
+
+};
+
 void UrdfTree::addLink(std::string name, int row)
 {
 	try {
@@ -112,6 +132,9 @@ pair<string, vector<UElement*>> UrdfTree::allElements()
 
 std::string UrdfTree::genTree()
 {
+	LOG(INFO) << "==========================================================\n=============================================================================";
+	LOG(INFO) << "========  Starting genTree              ==================================";
+	LOG(INFO) << "==========================================================\n=============================================================================";
 	report = "Report:\n";
 	std::vector<DicElement> placedlinks, thiselementsdict = elementsDict;
 	TwoDic placed_and_this;
@@ -178,6 +201,9 @@ std::string UrdfTree::genTree()
 		report += "reached maximum number of operations. unexpected. check code!";
 	}
 	LOG(INFO) << report;
+	LOG(INFO) << "==========================================================\n=============================================================================";
+	LOG(INFO) << "========  Finishing genTree              ==================================";
+	LOG(INFO) << "==========================================================\n=============================================================================";
 	return report;
 }
 void UrdfTree::rmElement(int elnum)
@@ -268,7 +294,12 @@ TwoDic UrdfTree::gentreecorecore(TwoDic placed_and_this, UJoint* joint, bool* st
 			placedeldic.push_back(placeel);
 			genfatherjoint(el.second->name, joint);
 			*stillmerging = true;
-			thiseldic.erase(thiseldic.begin() + el.first); //I changed this a bit, hopefully it doesn't break
+			
+			//it did break!
+			//thiseldic.erase(thiseldic.begin() + el.first); //I changed this a bit, hopefully it doesn't break
+			//now I don't want to reimplement a python dictionary in cpp, i just want this to work. 
+			removeElementByName(&thiseldic, currLink->name);
+
 			report += "placed a link named:" + el.second->name + " because joint named:" + joint->name + "told me to!\n";
 			LOG(DEBUG) << "report so far:\n" + report;
 			break;
@@ -304,6 +335,7 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 
 	UJoint* myjoint = new UJoint();
 
+	bool foundjoint = false;
 	int el_row;
 	//unpacking twodic
 	//vector<DicElement> placedeldic = placed_and_this.first, thiselementsdict=placed_and_this.second;
@@ -315,7 +347,7 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 		myjoint = dynamic_cast<UJoint*>(el.second);
 		LOG(DEBUG) << "findjointscore dyncast okay!";
 		if (myjoint)
-		{
+		{			
 			LOG(DEBUG) << "findjointscore found an element that is a joint!";
 			el_row = el.first;
 			//check if joint's parent is in allplacedlinks
@@ -328,6 +360,7 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 					ULink* mylink = dynamic_cast<ULink*>(elel.second);
 					if (mylink && mylink->name == myjoint->parentlink)
 					{
+						foundjoint = true;
 						//found a link of which I can have the real coordinate system
 						//that is, up to this part in the chain, all the offsets are accounted for.
 						LOG(DEBUG) << "findjointscore::so far so good. checking assertion";
@@ -345,6 +378,9 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 			//}
 		}
 	}
+
+	if (!foundjoint)
+		myjoint = nullptr;
 	DicElement myJointElement = make_pair(el_row,myjoint);
 	return myJointElement;
 };
@@ -370,7 +406,7 @@ std::pair<UJointList, TwoDic> UrdfTree::findjoints(TwoDic placed_and_this)
 		LOG(DEBUG) << "findjoint: size of thiselementsdict:" +std::to_string(thiselementsdict.size())+"\nplaced elements\n" + allplacedelements + "\nremaining elements" + allremainingelements;
 
 		//}end debug things!
-		jointDicElement = findjointscore(&placedelements, &thiselementsdict);// this is incorrect!
+		jointDicElement = findjointscore(&placedelements, &thiselementsdict);
 		//casting...
 		UJoint* joint = dynamic_cast<UJoint*>(jointDicElement.second);
 		//ui->messageBox("findjoint: casting was okay");
@@ -382,21 +418,9 @@ std::pair<UJointList, TwoDic> UrdfTree::findjoints(TwoDic placed_and_this)
 			foundjoints.push_back(joint);
 			//alright there is something fishy here, it is not working as the python script was, so I definitely made an indexing error!
 			//this is because we didn't really implement a dictionary, so I guess there are hidden for loops everywhere.. 
-			size_t i;
-			bool thisshouldprobablybeamethodfromadictionaryclass_foundmyelement = false;
-			for (i = 0; i < thiselementsdict.size(); i++)
-			{
-				if (joint->name == thiselementsdict[i].second->name)
-				{
-					thisshouldprobablybeamethodfromadictionaryclass_foundmyelement = true;
-					break;
-				}
-			}
-			assert(thisshouldprobablybeamethodfromadictionaryclass_foundmyelement);
-			LOG(INFO) << "trying to remove item:" + std::to_string(i) +"\nelement i think i am removing:" + thiselementsdict[i].second->name;
-			/*ui->messageBox("trying to remove item:" + std::to_string(jointDicElement.first));
-			ui->messageBox("element i think i am removing:" + thiselementsdict[jointDicElement.first].second->name);*/
-			thiselementsdict.erase(thiselementsdict.begin() + i);
+
+			removeElementByName(&thiselementsdict, joint->name);
+					   			 
 			DicElement DEJoint = make_pair(placedelements.size(),joint);
 			placedelements.push_back(DEJoint);
 			report += "placed joint:" + joint->name + "\n";

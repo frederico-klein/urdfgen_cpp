@@ -24,6 +24,7 @@ public:
 	UElement* currentEl;
 	Ptr<UserInterface> ui; // Poorman's debug tool. consider removing after either: (1) you implement proper debugging (2) everything mostly works.
 	// methods
+	void removeElementByName(vector<DicElement>*, string);
 	void addLink(string name, int row);
 	void addJoint(string name, int row);
 	void rmElement(int elnum);

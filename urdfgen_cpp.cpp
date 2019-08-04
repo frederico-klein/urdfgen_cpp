@@ -605,6 +605,7 @@ public:
 	void notify(const Ptr<CommandEventArgs>& eventArgs) override
 	{
 		ui->messageBox("Executing! ");
+		LOG(INFO) << "Executing! ";
 	}
 };
 
@@ -619,6 +620,7 @@ public:
 		//adsk::terminate(); terminate will unload it. i want to keep unloading it to test it, but uncomment next line before commiting to master
 		
 		//if (!runfrommenu)
+		LOG(INFO) << "Bye bye!";
 		adsk::terminate();
 	}
 };
@@ -635,7 +637,7 @@ public:
 		//ui->messageBox("In UrdfGenValidateInputsEventHandler event handler.");
 
 		// if the tree is empty, then just quit?
-
+		LOG(DEBUG) << "Validating inputs";
 	}
 } _validateInputs;
 
@@ -961,8 +963,8 @@ extern "C" XI_EXPORT bool run(const char* context)
 		urdfGenCmdDef->execute();
 	}
 
-
-	ui->messageBox("Hello addin");
+	//ui->messageBox("Hello addin");
+	LOG(INFO) << "run finished";
 
 	return true;
 }
@@ -997,10 +999,10 @@ extern "C" XI_EXPORT bool stop(const char* context)
 
 	if (ui)
 	{
-		ui->messageBox("Stop addin");
+		//ui->messageBox("Stop addin");
 		ui = nullptr;
 	}
-
+	LOG(INFO) << "stop finished";
 	return true;
 }
 
