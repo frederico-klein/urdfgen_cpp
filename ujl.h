@@ -74,6 +74,7 @@ class UElement {
 public:
 	int row;
 	std::string name;
+
 	//perhaps unused
 	int level;
 	virtual std::string getitems() { return "not implemented"; };
@@ -146,6 +147,8 @@ public:
 	//methods
 	std::string getitems();
 	void genfatherjoint(UJoint joint);
+	void makexml(UrdfRoot);
+	void genlink(std::string, std::string);
 
 private:
 	//groupmembers

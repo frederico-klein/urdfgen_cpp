@@ -2,9 +2,11 @@
 #include "inc/tinyxml.h"
 #include "inc/easylogging/easylogging++.h"
 
+//ulink stuff
 std::string ULink::getitems()
 {
-	std::string items = "";
+	std::string iss = (coordinatesystem.isset) ? "Yes" : "No";
+	std::string items = "isset:" + iss;
 	for (auto it = group.cbegin(); it != group.cend(); it++)
 	{
 		Ptr<Occurrence> thisocc = *it;
@@ -17,8 +19,22 @@ std::string ULink::getitems()
 
 void ULink::genfatherjoint(UJoint joint)
 {
-	//this is not it...
-	//coordinatesystem = joint.origin;
+	if (!joint.isset)
+		LOG(ERROR) << "tried to set displacement for link:" + name + ",but joint " + joint.name + " is not set!";
+	else
+	{
+		coordinatesystem = joint.origin;
+	}
+};
+
+void ULink::makexml(UrdfRoot urdfroot)
+{
+	LOG(ERROR) << "not implemented!";
+}
+
+void ULink::genlink(std::string meshes_directory, std::string components_directory)
+{
+	LOG(ERROR) << "not implemented!";
 };
 
 void OrVec::setxyz(double xx, double yy, double zz)
@@ -41,6 +57,7 @@ void OrVec::setrpy(double rr, double pp, double yy)
 	//isset = true;
 };
 
+//ujoint stuff
 std::string UJoint::setjoint(Ptr<Joint> joint)
 {
 
@@ -135,6 +152,7 @@ std::string UJoint::setjoint(Ptr<Joint> joint)
 //when sixdegree is working
 void UJoint::setjoint(Ptr<Joint> joint, Ptr<CommandInput> cmdInput, Ptr<CommandInputs> inputs)
 {
+	LOG(ERROR) << "not implemented!";
 	//not implemented
 };
 
@@ -146,11 +164,13 @@ void UJoint::setrealorigin(OrVec fathercoordinatesystem)
 
 std::string UJoint::getitems()
 {
-	std::string items = "genjn:" + generatingjointname + "\n" + "parent:" + parentlink + "\t" + "child:" + childlink;
+	std::string iss = (isset) ? "Yes" : "No";
+	std::string items = "isset:" + iss + "\tgenjn:" + generatingjointname + "\n" + "parent:" + parentlink + "\t" + "child:" + childlink + "\n";
 	return items;
 };
 
 void UJoint::makexml(UrdfRoot urdfroot)
 {
 	//todo: 
+	LOG(ERROR) << "not implemented!";
 };

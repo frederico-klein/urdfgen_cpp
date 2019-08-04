@@ -504,98 +504,115 @@ public:
 		//else if (cmdInput->id() == "") {}
 
 		//checks current element and updates all things!
+
 		LOG(DEBUG) << "entering the old setcurrelement from Mothership that, because of the multiple pointers needed to be passed came back here";
-		try {
-			if (_ms.thistree.currentEl)
-			{
-				if (rows_differ)
+		//this is not the nicest piece of code, but it will have to do. 
+		bool runonce = true;
+		while (runonce) {
+			runonce = false;
+			try {
+				if (_ms.thistree.currentEl)
 				{
-					if (!linkselInput || !jointselInput)
-						throw "either linkselInput or jointselInput are null. this will fail, aborting";
-					if (!linkgroupInput || !jointgroupInput)
-						throw "either linkgroupInput or jointgroupInput are null. this will fail, aborting";
-					linkselInput->clearSelection();
-					jointselInput->clearSelection();
-					//is it a link?
-					ULink* currLink = dynamic_cast<ULink*>(_ms.thistree.currentEl);
-					if (currLink)
+					if (rows_differ)
 					{
-						std::vector<Ptr<Occurrence>> group = currLink->group;
-						LOG(DEBUG) << "repopulating link selection";
-						for (auto it = group.cbegin(); it != group.cend(); it++)
+						if (!linkselInput || !jointselInput)
 						{
-							linkselInput->addSelection(*it);
+							//no need to throw an error here, this happens in harmless situations. i'll just break out
+							break;
+							//throw "either linkselInput or jointselInput are null. this will fail, aborting";
 						}
-						//we hide the joint selection
-						linkgroupInput->isVisible(true);
-						jointgroupInput->isVisible(false);
-					}
-					//same for joints
-					//ui->messageBox("ffs2");
-					UJoint* currJoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
-					if (currJoint)
-					{
-						//ui->messageBox("ffs3");
-						LOG(DEBUG) << "repopulating joint selection";
-						jointselInput->addSelection(currJoint->entity);
-						//ui->messageBox("ffs4");
-
-						//we hide the link selection
-						//ui->messageBox("ffs5");
-
-						linkgroupInput->isVisible(false);
-						jointgroupInput->isVisible(true);
-						//ui->messageBox("ffs6");
-
-						//we set the controls for parent and child links
-
-						vector<string> alllinkgr = _ms.thistree.allLinksvec();
-						//ui->messageBox("ffs7");
-
-						if (!cln || !pln)
-							throw "either cln or pln (or both!) don't exist. this will fail, aborting";
-
-						cln->listItems()->clear();
-						pln->listItems()->clear();
-						//ui->messageBox("ffs8");
-
-						LOG(DEBUG) << "repopulating joint names";
-						for (auto linknamestr: alllinkgr)
+						if (!linkgroupInput || !jointgroupInput)
 						{
-							bool isthischildselected = linknamestr == currJoint->childlink;
-							bool isthisparentselected = linknamestr==currJoint->parentlink;
-							cln->listItems()->add(linknamestr, isthischildselected);
-							pln->listItems()->add(linknamestr, isthisparentselected);
-							//cln->listItems()->add(linknamestr, false, "");
-							//pln->listItems()->add(linknamestr, false, "");
+							//no need to throw an error here, this happens in harmless situations. i'll just break out
+							break;
+							//throw "either linkgroupInput or jointgroupInput are null. this will fail, aborting";
 						}
-						//ui->messageBox("ffs9");
+						linkselInput->clearSelection();
+						jointselInput->clearSelection();
+						//is it a link?
+						ULink* currLink = dynamic_cast<ULink*>(_ms.thistree.currentEl);
+						if (currLink)
+						{
+							std::vector<Ptr<Occurrence>> group = currLink->group;
+							LOG(DEBUG) << "repopulating link selection";
+							for (auto it = group.cbegin(); it != group.cend(); it++)
+							{
+								linkselInput->addSelection(*it);
+							}
+							//we hide the joint selection
+							linkgroupInput->isVisible(true);
+							jointgroupInput->isVisible(false);
+						}
+						//same for joints
+						//ui->messageBox("ffs2");
+						UJoint* currJoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+						if (currJoint)
+						{
+							//ui->messageBox("ffs3");
+							LOG(DEBUG) << "repopulating joint selection";
+							jointselInput->addSelection(currJoint->entity);
+							//ui->messageBox("ffs4");
+
+							//we hide the link selection
+							//ui->messageBox("ffs5");
+
+							linkgroupInput->isVisible(false);
+							jointgroupInput->isVisible(true);
+							//ui->messageBox("ffs6");
+
+							//we set the controls for parent and child links
+
+							vector<string> alllinkgr = _ms.thistree.allLinksvec();
+							//ui->messageBox("ffs7");
+
+							if (!cln || !pln)
+								throw "either cln or pln (or both!) don't exist. this will fail, aborting";
+
+							cln->listItems()->clear();
+							pln->listItems()->clear();
+							//ui->messageBox("ffs8");
+
+							cln->listItems()->add(">>>>not set<<<<", true);
+							pln->listItems()->add(">>>>not set<<<<", true);
+
+							LOG(DEBUG) << "repopulating joint names";
+							for (auto linknamestr : alllinkgr)
+							{
+								bool isthischildselected = linknamestr == currJoint->childlink;
+								bool isthisparentselected = linknamestr == currJoint->parentlink;
+								cln->listItems()->add(linknamestr, isthischildselected);
+								pln->listItems()->add(linknamestr, isthisparentselected);
+								//cln->listItems()->add(linknamestr, false, "");
+								//pln->listItems()->add(linknamestr, false, "");
+							}
+							//ui->messageBox("ffs9");
+
+						}
 
 					}
-
+				}
+				else
+				{
+					LOG(WARNING) << "could not resolve _ms.thistree.currentEl\nThis happens if there is no selected row and can usually be ignored.";
 				}
 			}
-			else 
-			{
-				LOG(WARNING) << "could not resolve _ms.thistree.currentEl\nThis happens if there is no selected row and can usually be ignored.";
+			catch (const char* msg) {
+				LOG(ERROR) << msg;
+				ui->messageBox(msg);
 			}
-		}
-		catch (const char* msg) {
-			LOG(ERROR) << msg;
-			ui->messageBox(msg);
-		}
 
-		catch (std::exception& e)
-		{
-			std::string errormsg = "the update region bit failed...\n" + *e.what();
-			LOG(ERROR) << errormsg;
-			ui->messageBox(errormsg);
-		}
-		catch (...) // is there an exception that is not derived from std::exception?
-		{
-			std::string errormsg = "Error: the update region bit failed hard!";
-			LOG(ERROR) << errormsg;
-			ui->messageBox(errormsg);
+			catch (std::exception& e)
+			{
+				std::string errormsg = "the update region bit failed...\n" + *e.what();
+				LOG(ERROR) << errormsg;
+				ui->messageBox(errormsg);
+			}
+			catch (...) // is there an exception that is not derived from std::exception?
+			{
+				std::string errormsg = "Error: the update region bit failed hard!";
+				LOG(ERROR) << errormsg;
+				ui->messageBox(errormsg);
+			}
 		}
 	}
 };

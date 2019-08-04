@@ -256,12 +256,13 @@ TwoDic UrdfTree::gentreecore(std::pair<UJointList, TwoDic> joints_placed_this)
 
 	for (UJoint* joint :joints_placed_this.first)		
 	{
-		bool* stillmerging = new bool;
-		*stillmerging = true;
-		while (&stillmerging&&num_op<max_op)
+		bool stillmerging = true;
+		/*bool* stillmerging = new bool;
+		*stillmerging = true;*/
+		while (stillmerging&&num_op<max_op)
 		{
 			num_op++;
-			placed_and_this = gentreecorecore(placed_and_this ,joint, stillmerging);
+			placed_and_this = gentreecorecore(placed_and_this ,joint, &stillmerging);
 		}
 
 	}
