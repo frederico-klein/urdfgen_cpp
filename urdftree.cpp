@@ -132,9 +132,10 @@ pair<string, vector<UElement*>> UrdfTree::allElements()
 
 std::string UrdfTree::genTree()
 {
-	LOG(INFO) << "==========================================================\n=============================================================================";
-	LOG(INFO) << "========  Starting genTree              ==================================";
-	LOG(INFO) << "==========================================================\n=============================================================================";
+	string lotsofequals ="=============================================================================";
+	LOG(INFO) << "\n"+lotsofequals+"\n"+lotsofequals + "\n"+ " starting gentree " + "\n" + lotsofequals + "\n" + lotsofequals + "\n";
+
+
 	report = "Report:\n";
 	std::vector<DicElement> placedlinks, thiselementsdict = elementsDict;
 	TwoDic placed_and_this;
@@ -201,9 +202,7 @@ std::string UrdfTree::genTree()
 		report += "reached maximum number of operations. unexpected. check code!";
 	}
 	LOG(INFO) << report;
-	LOG(INFO) << "==========================================================\n=============================================================================";
-	LOG(INFO) << "========  Finishing genTree              ==================================";
-	LOG(INFO) << "==========================================================\n=============================================================================";
+	LOG(INFO) << "\n" + lotsofequals + "\n" + lotsofequals + "\n" + " finishing gentree " + "\n" + lotsofequals + "\n" + lotsofequals + "\n";
 	return report;
 }
 void UrdfTree::rmElement(int elnum)
