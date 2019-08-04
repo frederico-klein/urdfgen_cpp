@@ -232,12 +232,22 @@ vector<fs::path> createpaths(string _ms_packagename)
 
 	LOG(DEBUG) << "called createpaths";
 	vector<fs::path> returnvectstr;
-	fs::path userdir = getenv("USER");
+	fs::path userdir = "";// getenv("USER");
+	char* buf = nullptr;
+	size_t sz = 0;
+	if (_dupenv_s(&buf, &sz, "USER") == 0 && buf != nullptr)
+	{
+		ui->messageBox("EnvVarName = %s\n", buf);
+		userdir = buf;
+		free(buf);
+	}
+
+
 	auto folderDlg = ui->createFolderDialog();
 	folderDlg->title("Choose location to save your URDF new package");
 	folderDlg->initialDirectory(userdir.string());
 	auto dlgResult = folderDlg->showDialog();
-	if (!dlgResult)
+	if (dlgResult ==DialogResults::DialogError)
 		LOG(ERROR) << "failed to create dialog";
 	if (dlgResult != DialogResults::DialogOK );
 	{
