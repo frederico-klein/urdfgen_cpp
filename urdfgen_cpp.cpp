@@ -562,8 +562,10 @@ public:
 						LOG(DEBUG) << "repopulating joint names";
 						for (auto linknamestr: alllinkgr)
 						{
-							cln->listItems()->add(linknamestr, false);
-							pln->listItems()->add(linknamestr, false);
+							bool isthischildselected = linknamestr == currJoint->childlink;
+							bool isthisparentselected = linknamestr==currJoint->parentlink;
+							cln->listItems()->add(linknamestr, isthischildselected);
+							pln->listItems()->add(linknamestr, isthisparentselected);
 							//cln->listItems()->add(linknamestr, false, "");
 							//pln->listItems()->add(linknamestr, false, "");
 						}
