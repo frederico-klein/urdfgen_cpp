@@ -5,6 +5,12 @@
 #include "urdftree.h"
 #include "ujl.h"
 
+#include <filesystem>
+
+#include <iostream>
+#include <fstream>
+
+
 #include "inc/easylogging/easylogging++.h"
 
 INITIALIZE_EASYLOGGINGPP;
@@ -12,6 +18,7 @@ INITIALIZE_EASYLOGGINGPP;
 using namespace adsk::core;
 using namespace adsk::fusion;
 using namespace adsk::cam;
+namespace fs = std::filesystem;
 
 Ptr<Application> app;
 Ptr<UserInterface> ui;
@@ -200,6 +207,84 @@ void test()
 	//ui->messageBox("third test okay" + currLink3->name);
 
 	//////////////////
+};
+
+bool replace(std::string& str, const std::string& from, const std::string& to) {
+	size_t start_pos = str.find(from);
+	if (start_pos == std::string::npos)
+		return false;
+	str.replace(start_pos, from.length(), to);
+	return true;
+}
+
+void replaceAll(std::string& str, const std::string& from, const std::string& to) { //thnx stoverflow
+	if (from.empty())
+		return;
+	size_t start_pos = 0;
+	while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+		str.replace(start_pos, from.length(), to);
+		start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+	}
+}
+
+vector<fs::path> createpaths(string _ms_packagename)
+{
+
+	LOG(DEBUG) << "called createpaths";
+	vector<fs::path> returnvectstr;
+	fs::path userdir = getenv("USER");
+	auto folderDlg = ui->createFolderDialog();
+	folderDlg->title("Choose location to save your URDF new package");
+	folderDlg->initialDirectory(userdir.string());
+	auto dlgResult = folderDlg->showDialog();
+	if (!dlgResult)
+		LOG(ERROR) << "failed to create dialog";
+	if (dlgResult != DialogResults::DialogOK );
+	{
+		ui->messageBox("you need to select a folder!");
+		throw std::runtime_error("Directory not selected. cannot continue."); 
+	}
+	fs::path outputdir = folderDlg->folder();
+	fs::path base_directory = outputdir / _ms_packagename;
+	fs::path thisscriptpath = fs::current_path();
+
+	ui->messageBox(base_directory.string());
+	if (!fs::exists(base_directory))
+		fs::create_directory(base_directory);
+	fs::path meshes_directory = base_directory / "meshes";
+	ui->messageBox(meshes_directory.string());
+	fs::path components_directory = base_directory / "components";
+	ui->messageBox(components_directory.string());
+	if (!fs::exists(meshes_directory))
+		fs::create_directory(meshes_directory);
+	if (!fs::exists(components_directory))
+		fs::create_directory(components_directory);
+	vector<string> filestochange = {"display.launch", "urdf_.rviz", "package.xml", "CMakeLists.txt"	}; //actually urdf.rviz is the same, but i didnt want to make another method just to copy.when i have more files i need to copy i will do it.
+	//myfilename = "display.launch";
+		for (auto myfilename : filestochange)
+		{
+			ifstream file_in;
+			// Read in the file
+			ui->messageBox(thisscriptpath.string());
+			auto thisfilename = thisscriptpath / "resources" / myfilename;
+			file_in.open(thisfilename);
+			if (!file_in)
+				LOG(ERROR) << "failed to open input file:" + myfilename;
+			string filedata;
+			file_in >> filedata;
+
+			// Replace the target string
+			
+			replaceAll(filedata,"somepackage", _ms_packagename);
+
+			// Write the file out again
+			ofstream file_out;
+			auto thisoutfilename = base_directory / myfilename;
+
+			file_out << filedata << endl;
+		}
+		returnvectstr = { base_directory, meshes_directory, components_directory };
+return returnvectstr;
 };
 
 // InputChange event handler.
@@ -624,6 +709,7 @@ public:
 	void notify(const Ptr<CommandEventArgs>& eventArgs) override
 	{
 		ui->messageBox("Executing! ");
+		createpaths(_ms.packagename);
 		LOG(INFO) << "Executing! ";
 	}
 };
