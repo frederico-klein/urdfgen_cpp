@@ -1,5 +1,6 @@
 #include "ujl.h"
 #include "inc/tinyxml.h"
+#include "inc/easylogging/easylogging++.h"
 
 std::string ULink::getitems()
 {

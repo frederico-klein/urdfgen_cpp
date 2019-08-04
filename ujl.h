@@ -3,6 +3,8 @@
 #include <Fusion/FusionAll.h>
 #include <CAM/CAMAll.h>
 #include "inc/tinyxml.h"
+#include "inc/easylogging/easylogging++.h"
+
 
 const double PI = 3.14159265359;
 

@@ -3,6 +3,7 @@
 #include <Fusion/FusionAll.h>
 #include <CAM/CAMAll.h>
 #include "ujl.h"
+#include "inc/easylogging/easylogging++.h"
 
 using namespace adsk::core;
 using namespace adsk::fusion;
@@ -22,7 +23,6 @@ public:
 	vector<DicElement> elementsDict;
 	UElement* currentEl;
 	Ptr<UserInterface> ui; // Poorman's debug tool. consider removing after either: (1) you implement proper debugging (2) everything mostly works.
-
 	// methods
 	void addLink(string name, int row);
 	void addJoint(string name, int row);
@@ -44,8 +44,10 @@ private:
 	TwoDic gentreecore(pair<UJointList, TwoDic>) ;
 	TwoDic gentreecorecore(TwoDic, UJoint*, bool*) ;
 	void genfatherjoint(string, UJoint*) ;
-	DicElement findjointscore(vector<DicElement>, vector<DicElement>) ;
+	DicElement findjointscore(vector<DicElement>*, vector<DicElement>*) ;
 	pair<UJointList,TwoDic> findjoints(TwoDic) ;
 	pair<pair<string, ULinkList>, vector<string>> alllinks(vector<DicElement>) ;
 	pair<pair<string, UJointList>, vector<string>> alljoints(vector<DicElement>);
+	pair<pair<string, vector<UElement*>>, vector<string>> UrdfTree::allelements(vector<DicElement>);
+	string UrdfTree::alljoints(UJointList);
 };
