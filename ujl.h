@@ -153,7 +153,7 @@ public:
 	std::string getitems();
 	void genfatherjoint(UJoint joint);
 	void makexml(TiXmlElement*, std::string);
-	void genlink(std::string, std::string);
+	void genlink(std::string, std::string, Ptr<Design>);
 
 private:
 	//groupmembers

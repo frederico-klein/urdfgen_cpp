@@ -122,9 +122,206 @@ void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 	}
 }
 
-void ULink::genlink(std::string meshes_directory, std::string components_directory)
+template <class myType> std::string showarrayasstring(std::vector<myType> v)
+{
+	std::string myres ="{";
+	for (auto num : v)
+	{
+		myres += std::to_string(num) + " ";
+	}
+	myres += "}";
+	return myres;
+};
+//specialized template for strings.
+template <> std::string showarrayasstring(std::vector<std::string> v)
+{
+	std::string myres = "{";
+	for (auto num : v)
+	{
+		myres += num + std::string(" ");
+	}
+	myres += "}";
+	return myres;
+};
+
+
+
+std::vector<std::string> splitstr(std::string s, std::string token)
+{
+	//thanks StackOverflow:
+	std::vector<std::string> vstrings;
+	size_t pos = 0;
+	while ((pos = s.find(token)) != std::string::npos) {
+		vstrings.push_back(s.substr(0, pos));
+		s.erase(0, pos + token.length());
+	}
+	if (s!="")
+		vstrings.push_back(s);
+	return vstrings;
+}
+
+void ULink::genlink(std::string meshes_directory, std::string components_directory, Ptr<Design> design)
 {
 	LOG(ERROR) << "not implemented!";
+
+	isVirtual = false;
+	try {
+		LOG(DEBUG) << "starting genlink";
+		// Get the root component of the active design;
+
+		Ptr<Component> rootComp = design->rootComponent();
+		if (!rootComp)
+			throw "error: can't find root component";
+
+		Ptr<OccurrenceList> allOccs = rootComp->allOccurrences();
+		if (!allOccs)
+			throw "error: can't get all orccurrences";
+
+		// create the exportManager for the original file that has the whole design;
+		Ptr<ExportManager> exportMgr = design->exportManager();
+		if (!exportMgr)
+			throw "error: can't find export manager";
+
+		Ptr<Matrix3D> removejointtranslation = Matrix3D::create();
+		Ptr<Vector3D> translation = Vector3D::create(-coordinatesystem.x, -coordinatesystem.y, -coordinatesystem.z);
+		removejointtranslation->setToIdentity();
+		removejointtranslation->translation(translation);
+		LOG(DEBUG) << "Offset from joint tm is: " + showarrayasstring(removejointtranslation->asArray());
+		LOG(DEBUG) << "Offset from joint translation is: " + showarrayasstring(removejointtranslation->translation()->asArray());
+
+		////////// add occurrences from other stuff to this new stuff;
+
+		//let's test the occurrence text splitter thingy:
+
+		//std::string myfunnystring = "some+weird+string+with_a_lot+of+plusses!";
+		//std::vector<std::string> a = splitstr(myfunnystring,"+");
+		//LOG(INFO) << "my string split: " + showarrayasstring(a);
+
+		//std::string myfunnystring2 = "some+weird";
+		//std::vector<std::string> a2 = splitstr(myfunnystring2, "+");
+		//LOG(INFO) << "my string split: " + showarrayasstring(a2);
+
+		//std::string myfunnystring3 = "some++weird";
+		//std::vector<std::string> a3 = splitstr(myfunnystring3, "+");
+		//LOG(INFO) << "my string split: " + showarrayasstring(a3);
+
+		for (auto occ : group)
+		{
+			std::vector<std::string> pathsplit = splitstr(occ->fullPathName(),"+");
+
+			std::vector<Ptr<Matrix3D>> newrotl;
+			for (size_t j =1; j<pathsplit.size();j++) 
+			{
+				std::vector<std::string> thisoccnamelist = std::vector(pathsplit.begin(),pathsplit.begin()+j);
+				std::string	thisoccname = thisoccnamelist[0];
+				for (size_t k = 1; k < thisoccnamelist.size(); k++)	//		for ( k in range(1, len(thisoccnamelist)) )
+					{
+						thisoccname = thisoccname + "+" + thisoccnamelist[k];
+					}
+				LOG(INFO) << "\tTMS::: getting the tm for:" + thisoccname;
+				for (size_t l = 1; l < allOccs->count; l++) //for (l in range(0, allOccs.count)) {
+					{   				
+					if (allOccs->item(l)->fullPathName() == thisoccname)
+						{
+							//then i want to multiply their matrices!;
+							Ptr<Matrix3D> lasttm = allOccs->item(l)->transform().copy();
+							newrotl.push_back(lasttm);
+							LOG(DEBUG) << allOccs->item(l)->fullPathName();
+							LOG(DEBUG) << "\twith tm:" + showarrayasstring(lasttm->asArray());
+							LOG(DEBUG) << "\twith translation is:" + showarrayasstring(lasttm->translation()->asArray());
+							//newrot.transformBy(allOccs.item(l).transform);
+						}
+					}
+				////// now that i have all the occurrences names i need to get them from allOccs(?!);				
+			}
+			Ptr<Matrix3D> lasttransform = occ->transform.copy();
+			newrotl.push_back(lasttransform);
+			//                newrot = removejointtranslation;
+			Ptr<Matrix3D> newrot = Matrix3D::create();
+			newrot->setToIdentity();
+			//		for (j in reversed(range(0, len(newrotl)))) {
+			//			newrot.transformBy(newrotl[j]);
+			//		}
+			//		newrot.transformBy(removejointtranslation);
+			//		express = "it" + str(i) + "=newrot";
+			//		exec(express);
+		}
+
+
+			//		//stlname = rootComp.name.translate(None, "{!@//$");
+			//		//line = re.sub("[!@//$]", "", line);
+			//		stlname = clearupst(name);
+		
+			//		//fileName = components_directory+"/" + stlname;
+			//		for (i in range(0, len(group)) ){
+			//			// export the root component to printer utility;
+			//			fileName = components_directory + "/" + stlname + str(i);
+			//			LOG(INFO) << "saving file " + fileName;
+			//			LOG(INFO) << "from occurrence" + group[i].fullPathName;
+			//			LOG(DEBUG) << "with tm{" + str(eval("it" + str(i) + ".asArray()"));
+			//			stpOptions = exportMgr.createSTEPExportOptions(fileName, group[i].component);
+			//			exportMgr.execute(stpOptions);
+			//		}
+			//		// Create a document.;
+			//		doc = _app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType);
+			//		doc.name = name;
+			//		product = _app.activeProduct;
+			//		design = adsk.fusion.Design.cast(product);
+			//		// Get the root component of the active design;
+			//		rootComp = design.rootComponent;
+			//		// Create two new components under root component;
+			//		allOccs = rootComp.occurrences;
+			//		// Get import manager;
+			//		importManager = _app.importManager;
+			//		//////// add occurrances from other stuff to this new stuff;
+			//		for (i in range(0, len(group))) {
+			//			fileName = components_directory + "/" + stlname + str(i) + ".stp";
+			//			LOG(INFO) << "loading file{ " + fileName;
+			//			stpOptions = importManager.createSTEPImportOptions(fileName);
+			//			importManager.importToTarget(stpOptions, rootComp);
+			//		}
+			//		for (i in range(0, len(rootComp.occurrences)) ){
+			//			thistransf = eval("it" + str(i));
+			//			//thistransf.transformBy(removejointtranslation)    ;
+			//			rootComp.occurrences.item(i).transform = thistransf;
+			//			//rootComp.occurrences.item(i).transform = eval("it"+str(i));
+			//			pass;
+			//		}
+			//		//////TODO{;
+			//		////// must set mass and center of inertia! i think visual and origins are correct because this info is in the stl...;
+			//		LOG(INFO) << "XYZ moments of inertia{" + str(rootComp.physicalProperties.getXYZMomentsOfInertia());
+			//		LOG(INFO) << "Mass{" + str(rootComp.physicalProperties.mass);
+			//		////// setting units to meters so stls will have proper sizes!;
+			//		unitsMgr = design.fusionUnitsManager;
+			//		unitsMgr.distanceDisplayUnits = adsk.fusion.DistanceUnits.MeterDistanceUnits;
+			//		// create aNOTHER! exportManager instance;
+			//		exportMgr = design.exportManager;
+			//		// export the root component to printer utility;
+			//		stlRootOptions = exportMgr.createSTLExportOptions(rootComp, meshes_directory + "/" + stlname);
+			//		// get all available print utilities;
+			//		//printUtils = stlRootOptions.availablePrintUtilities;
+			//		// export the root component to the print utility, instead of a specified file;
+			//		//for printUtil in printUtils{;
+			//		//    stlRootOptions.sendToPrintUtility = true;
+			//		//   stlRootOptions.printUtility = printUtil;
+			//		stlRootOptions.sendToPrintUtility = false;
+			//		LOG(INFO) << "saving STL file{ " + meshes_directory + "/" + stlname );
+			//		exportMgr.execute(stlRootOptions);
+			//		visual.geometryfilename = "package{//" + _ms.packagename + "/meshes/" + stlname + ".stl";
+			//		collision.geometryfilename = visual.geometryfilename; // the legend has it that this file should be a slimmer version of the visuals, so that collisions can be calculated more easily....       ;
+	}
+	catch (std::exception& e)
+	{
+		LOG(ERROR) << e.what();
+		std::string errormsg = "issues running genstl\n";
+		LOG(ERROR) << errormsg;
+	}
+	catch (...) // is there an exception that is not derived from std::exception?
+	{
+		std::string errormsg = "issues running genstl";
+		LOG(ERROR) << errormsg;
+	}
+
 };
 
 void OrVec::setxyz(double xx, double yy, double zz)

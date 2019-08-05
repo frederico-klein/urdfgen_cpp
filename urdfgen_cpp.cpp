@@ -737,7 +737,8 @@ public:
 
 			catch (std::exception& e)
 			{
-				std::string errormsg = "the update region bit failed...\n" + *e.what();
+				LOG(ERROR) << e.what();
+				std::string errormsg = "the update region bit failed...\n" ;
 				LOG(ERROR) << errormsg;
 				ui->messageBox(errormsg);
 			}
@@ -803,7 +804,7 @@ public:
 			if (currLink)
 			{
 				LOG(INFO) << "calling genlink for link:" + currLink->name;
-				currLink->genlink(mypaths[1].string(), mypaths[2].string());
+				currLink->genlink(mypaths[1].string(), mypaths[2].string(), design);
 			}
 			el.second->makexml(robot_root, _ms.packagename); //this should execute the derived class's makexml, i presume
 		};
