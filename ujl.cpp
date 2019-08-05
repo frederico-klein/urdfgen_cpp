@@ -32,7 +32,7 @@ void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 	try {
 		//if I ever create different stls for collision and geometry, this will have to change:
 		visual.geometryfilename = "package://" + packagename + "/meshes/" + name + ".stl";
-
+		collision.geometryfilename = visual.geometryfilename;
 
 		TiXmlElement * linkXE = new TiXmlElement("link");
 		linkXE->SetAttribute("name", name.c_str());
@@ -63,8 +63,52 @@ void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 			inertiaXE->SetAttribute("iyz", inertial.inertia.ixx.c_str());
 			inertiaXE->SetAttribute("izz", inertial.inertia.ixx.c_str());
 
+			//visual
+			TiXmlElement* visualXE = new TiXmlElement("visual");
+			linkXE->LinkEndChild(visualXE);
 
-			//and plenty more....
+			TiXmlElement* voriginXE = new TiXmlElement("origin");
+			voriginXE->SetAttribute("xyz", inertial.origin.xyz.c_str());
+			voriginXE->SetAttribute("rpy", inertial.origin.rpy.c_str());
+
+			visualXE->LinkEndChild(voriginXE);
+
+			TiXmlElement* vgeometryXE = new TiXmlElement("geometry");
+			
+			visualXE->LinkEndChild(vgeometryXE);
+
+			TiXmlElement* vgmeshXE = new TiXmlElement("mesh");
+			vgmeshXE->SetAttribute("filename", visual.geometryfilename.c_str());
+
+			vgeometryXE->LinkEndChild(vgmeshXE);
+
+			TiXmlElement* materialXE = new TiXmlElement("material");
+			materialXE->SetAttribute("name",visual.materialfilename.c_str());
+
+			TiXmlElement* colorXE = new TiXmlElement("color");
+			colorXE->SetAttribute("rgba",visual.color.c_str());
+
+
+			visualXE->LinkEndChild(materialXE);
+			
+			//collision
+			TiXmlElement* collisionXE = new TiXmlElement("collision");
+			linkXE->LinkEndChild(collisionXE);
+
+			TiXmlElement* voriginXE = new TiXmlElement("origin");
+			voriginXE->SetAttribute("xyz", collision.origin.xyz.c_str());
+			voriginXE->SetAttribute("rpy", collision.origin.rpy.c_str());
+
+			collisionXE->LinkEndChild(voriginXE);
+
+			TiXmlElement* vgeometryXE = new TiXmlElement("geometry");
+
+			collisionXE->LinkEndChild(vgeometryXE);
+
+			TiXmlElement* vgmeshXE = new TiXmlElement("mesh");
+			vgmeshXE->SetAttribute("filename", collision.geometryfilename.c_str());
+
+			vgeometryXE->LinkEndChild(vgmeshXE);
 		}
 		LOG(INFO) << "link " + name + "successfully parsed as xml!";
 	}
