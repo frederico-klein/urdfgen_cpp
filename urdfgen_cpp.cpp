@@ -229,48 +229,51 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
 
 vector<fs::path> createpaths(string _ms_packagename)
 {
-
-	LOG(DEBUG) << "called createpaths";
 	vector<fs::path> returnvectstr;
-	fs::path userdir = "";// getenv("USER");
-	char* buf = nullptr;
-	size_t sz = 0;
-	if (_dupenv_s(&buf, &sz, "USER") == 0 && buf != nullptr)
-	{
-		ui->messageBox("EnvVarName = %s\n", buf);
-		userdir = buf;
-		free(buf);
-	}
+
+	try {
+		LOG(DEBUG) << "called createpaths";
+		fs::path userdir = "";// getenv("USER");
+		char* buf = nullptr;
+		size_t sz = 0;
+		if (_dupenv_s(&buf, &sz, "USER") == 0 && buf != nullptr)
+		{
+			ui->messageBox("EnvVarName = %s\n", buf);
+			userdir = buf;
+			free(buf);
+		}
 
 
-	auto folderDlg = ui->createFolderDialog();
-	folderDlg->title("Choose location to save your URDF new package");
-	folderDlg->initialDirectory(userdir.string());
-	auto dlgResult = folderDlg->showDialog();
-	if (dlgResult ==DialogResults::DialogError)
-		LOG(ERROR) << "failed to create dialog";
-	if (dlgResult != DialogResults::DialogOK );
-	{
-		ui->messageBox("you need to select a folder!");
-		throw std::runtime_error("Directory not selected. cannot continue."); 
-	}
-	fs::path outputdir = folderDlg->folder();
-	fs::path base_directory = outputdir / _ms_packagename;
-	fs::path thisscriptpath = fs::current_path();
+		auto folderDlg = ui->createFolderDialog();
+		folderDlg->title("Choose location to save your URDF new package");
+		folderDlg->initialDirectory(userdir.string());
+		DialogResults dlgResult = folderDlg->showDialog();
+		if (dlgResult == DialogError)
+			LOG(ERROR) << "failed to create dialog";
+		if (dlgResult != DialogOK) //this 0=0 check is failing for some reason!!
+		{
+			//ui->messageBox("dialogOK is resolved to "+std::to_string(adsk::core::DialogResults::DialogOK));
+			ui->messageBox("you need to select a folder!");
+			throw std::runtime_error("Directory not selected. cannot continue.\nError code: DialogResults enum" +std::to_string(dlgResult));
+		}
 
-	ui->messageBox(base_directory.string());
-	if (!fs::exists(base_directory))
-		fs::create_directory(base_directory);
-	fs::path meshes_directory = base_directory / "meshes";
-	ui->messageBox(meshes_directory.string());
-	fs::path components_directory = base_directory / "components";
-	ui->messageBox(components_directory.string());
-	if (!fs::exists(meshes_directory))
-		fs::create_directory(meshes_directory);
-	if (!fs::exists(components_directory))
-		fs::create_directory(components_directory);
-	vector<string> filestochange = {"display.launch", "urdf_.rviz", "package.xml", "CMakeLists.txt"	}; //actually urdf.rviz is the same, but i didnt want to make another method just to copy.when i have more files i need to copy i will do it.
-	//myfilename = "display.launch";
+		fs::path outputdir = folderDlg->folder();
+		fs::path base_directory = outputdir / _ms_packagename;
+		fs::path thisscriptpath = fs::current_path(); //////// TODO: change xcopy command to have the resources also available in the webdeploy folder!!!
+
+		ui->messageBox(base_directory.string());
+		if (!fs::exists(base_directory))
+			fs::create_directory(base_directory);
+		fs::path meshes_directory = base_directory / "meshes";
+		ui->messageBox(meshes_directory.string());
+		fs::path components_directory = base_directory / "components";
+		ui->messageBox(components_directory.string());
+		if (!fs::exists(meshes_directory))
+			fs::create_directory(meshes_directory);
+		if (!fs::exists(components_directory))
+			fs::create_directory(components_directory);
+		vector<string> filestochange = { "display.launch", "urdf_.rviz", "package.xml", "CMakeLists.txt" }; //actually urdf.rviz is the same, but i didnt want to make another method just to copy.when i have more files i need to copy i will do it.
+		//myfilename = "display.launch";
 		for (auto myfilename : filestochange)
 		{
 			ifstream file_in;
@@ -284,8 +287,8 @@ vector<fs::path> createpaths(string _ms_packagename)
 			file_in >> filedata;
 
 			// Replace the target string
-			
-			replaceAll(filedata,"somepackage", _ms_packagename);
+
+			replaceAll(filedata, "somepackage", _ms_packagename);
 
 			// Write the file out again
 			ofstream file_out;
@@ -294,6 +297,24 @@ vector<fs::path> createpaths(string _ms_packagename)
 			file_out << filedata << endl;
 		}
 		returnvectstr = { base_directory, meshes_directory, components_directory };
+	}
+	catch (const char* msg) {
+		LOG(ERROR) << msg;
+		ui->messageBox(msg);
+	}
+	catch (const std::exception& e)
+	{
+		LOG(ERROR) << e.what();
+		std::string errormsg = "issues creating folders...\n";
+		LOG(ERROR) << errormsg;
+		ui->messageBox(errormsg);
+	}
+	catch (...)
+	{
+		string errormessage = "issues creating folders!";
+		LOG(ERROR) << errormessage;
+		ui->messageBox(errormessage);
+	}
 return returnvectstr;
 };
 
