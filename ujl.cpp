@@ -27,8 +27,10 @@ void ULink::genfatherjoint(UJoint joint)
 	}
 };
 
-void ULink::makexml(UrdfRoot urdfroot)
+void ULink::makexml(TiXmlDocument* urdfroot)
 {
+
+
 	LOG(ERROR) << "not implemented!";
 }
 
@@ -169,7 +171,7 @@ std::string UJoint::getitems()
 	return items;
 };
 
-void UJoint::makexml(UrdfRoot urdfroot)
+void UJoint::makexml(TiXmlDocument* urdfroot)
 {
 	//todo: 
 	LOG(ERROR) << "not implemented!";

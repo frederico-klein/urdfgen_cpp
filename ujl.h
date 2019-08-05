@@ -12,10 +12,10 @@ using namespace adsk::core;
 using namespace adsk::fusion;
 using namespace adsk::cam;
 
-class UrdfRoot
-{
-public:
-};
+//class UrdfRoot
+//{
+//public:
+//};
 
 class OrVec
 {
@@ -117,7 +117,7 @@ public:
 	std::string setjoint(Ptr<Joint> joint); ////////// this is super incomplete as far as logging goes. we need a solution. either a shared object to collect errors (sounds more obnoxious than setting up logging, really...)
 	void setrealorigin(OrVec);
 	std::string getitems();
-	void makexml(UrdfRoot);
+	void makexml(TiXmlDocument*);
 
 	// when sixdegree is working!
 	void setjoint(Ptr<Joint> joint, Ptr<CommandInput> cmdInput, Ptr<CommandInputs> inputs);
@@ -147,7 +147,7 @@ public:
 	//methods
 	std::string getitems();
 	void genfatherjoint(UJoint joint);
-	void makexml(UrdfRoot);
+	void makexml(TiXmlDocument*);
 	void genlink(std::string, std::string);
 
 private:

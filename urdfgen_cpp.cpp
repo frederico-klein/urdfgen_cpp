@@ -748,6 +748,8 @@ public:
 		// lets create a simple xml to make sure we understand tinyxml sintax
 
 		TiXmlDocument urdfroot;
+
+
 		TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", "");
 		urdfroot.LinkEndChild(decl);
 
@@ -758,9 +760,12 @@ public:
 		TiXmlText * text = new TiXmlText("Hello World!");
 		element->LinkEndChild(text);
 
-		string filenametosave = mypaths[0].string() + "madeByHand2.xml";
-		ui->messageBox(filenametosave);
+		string filenametosave = (mypaths[0] / "madeByHand2.xml").string();
+		ui->messageBox(filenametosave); //weird, this is off
 		urdfroot.SaveFile(filenametosave.c_str());
+
+		ULink base_link;
+		base_link.makexml(&urdfroot);
 
 
 		}
