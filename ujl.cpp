@@ -29,6 +29,8 @@ void ULink::genfatherjoint(UJoint joint)
 
 void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 {
+	LOG(DEBUG) << "ULink makexml function was called!";
+
 	try {
 		//if I ever create different stls for collision and geometry, this will have to change:
 		visual.geometryfilename = "package://" + packagename + "/meshes/" + name + ".stl";
@@ -146,23 +148,28 @@ void OrVec::setrpy(double rr, double pp, double yy)
 };
 
 //ujoint stuff
-std::string UJoint::setjoint(Ptr<Joint> joint)
+void UJoint::setjoint(Ptr<Joint> joint)
 {
-
+	LOG(DEBUG) << "started setjoint";
 	generatingjointname = joint->name();
 	//set origin 
 	try
 	{
-
+		LOG(DEBUG) << "1";
 		Ptr<JointGeometry> jointGeometry_var = joint->geometryOrOriginOne();
 		//todo: set from origin 2 as well?
+		LOG(DEBUG) << "2";
+
 		Ptr<Point3D> thisorigin = jointGeometry_var->origin();
+		LOG(DEBUG) << "3";
+
 		origin.setxyz(thisorigin->x(), thisorigin->y(), thisorigin->z());
-		
+		LOG(DEBUG) << "4";
+
 	}
 	catch (...)
 	{
-		return "something wrong happened. you need to set this joint manually";
+		LOG(ERROR) << "something wrong happened while getting joint geometry. you need to set this joint manually. with sixdegree control. which is not implemented. so yeah, this is a failure";
 	}
 
 	//set joint type 
@@ -180,25 +187,34 @@ std::string UJoint::setjoint(Ptr<Joint> joint)
 
 	try
 	{
+		LOG(DEBUG) << "5:trying to get jointmotion";
+
 		Ptr<JointMotion> jointMotion_var = joint->jointMotion();
 		//Ptr<Point3D> thisorigin = jointMotion_var->origin();
 		//origin.setxyz(thisorigin->x, thisorigin->x, thisorigin->x);
-		
+		LOG(DEBUG) << "6: got jointmotion";
+
 		switch (jointMotion_var->jointType())
 		{
 			case 0: //
 			{
+				LOG(DEBUG) << "0:7 joint is fixed";
 				type = "fixed";
 				break;
 			}
 			case 1: 
 			{
 				//type will be either "revolute" or continuous, depends on whether we have limits or not
+				LOG(DEBUG) << "1:7 joint is either continuous or revolute depending on whether it has limits or not";
+
 				type = "continuous";
 				bool haslimits = false;
 				//tries to sets joint limits -> "revolute"
 				Ptr<RevoluteJointMotion> thisjointmotion = joint->jointMotion();
-				Ptr< JointLimits > thislimits;
+				LOG(DEBUG) << "1:8: revolutejointmotion casting worked.";
+
+				Ptr< JointLimits > thislimits = thisjointmotion->rotationLimits();
+				LOG(DEBUG) << "1:9: jointlimits casting worked.";
 				if (thislimits->isMinimumValueEnabled())
 				{
 					limit.lower = std::to_string(thislimits->minimumValue());
@@ -215,26 +231,21 @@ std::string UJoint::setjoint(Ptr<Joint> joint)
 
 				break;
 			}
-				//case 2://
-				//break;
 			default:
 			{
-				return "joint type" +std::to_string(jointMotion_var->jointType()) + " not implemented!";
+				LOG(DEBUG) << "default:7";
+
+				LOG(ERROR) << "joint type" +std::to_string(jointMotion_var->jointType()) + " not implemented!";
 				break;
 			}
 		}
 	}
 	catch (...)
 	{
-		return "something wrong happened. you need to set this manually";
+		LOG(ERROR) << "something wrong happened. you need to set this manually";
 	}
-
-
-
-
-
 	isset = true;
-	return "";
+	return;
 };
 
 //when sixdegree is working
@@ -259,6 +270,7 @@ std::string UJoint::getitems()
 
 void UJoint::makexml(TiXmlElement* urdfroot, std::string ) //don't need packagename. it just so that both makexml functions have the same call. also, not sure if it will be needed
 {
+	LOG(DEBUG) << "UJoint makexml function was called!";
 	try {
 		TiXmlElement * jointXE = new TiXmlElement("joint");
 		jointXE->SetAttribute("name", name.c_str());
