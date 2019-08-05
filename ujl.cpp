@@ -97,20 +97,20 @@ void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 			TiXmlElement* collisionXE = new TiXmlElement("collision");
 			linkXE->LinkEndChild(collisionXE);
 
-			TiXmlElement* voriginXE = new TiXmlElement("origin");
-			voriginXE->SetAttribute("xyz", collision.origin.xyz.c_str());
-			voriginXE->SetAttribute("rpy", collision.origin.rpy.c_str());
+			TiXmlElement* coriginXE = new TiXmlElement("origin");
+			coriginXE->SetAttribute("xyz", collision.origin.xyz.c_str());
+			coriginXE->SetAttribute("rpy", collision.origin.rpy.c_str());
 
-			collisionXE->LinkEndChild(voriginXE);
+			collisionXE->LinkEndChild(coriginXE);
 
-			TiXmlElement* vgeometryXE = new TiXmlElement("geometry");
+			TiXmlElement* cgeometryXE = new TiXmlElement("geometry");
 
-			collisionXE->LinkEndChild(vgeometryXE);
+			collisionXE->LinkEndChild(cgeometryXE);
 
-			TiXmlElement* vgmeshXE = new TiXmlElement("mesh");
-			vgmeshXE->SetAttribute("filename", collision.geometryfilename.c_str());
+			TiXmlElement* cgmeshXE = new TiXmlElement("mesh");
+			cgmeshXE->SetAttribute("filename", collision.geometryfilename.c_str());
 
-			vgeometryXE->LinkEndChild(vgmeshXE);
+			cgeometryXE->LinkEndChild(cgmeshXE);
 		}
 		LOG(INFO) << "link " + name + "successfully parsed as xml!";
 	}
