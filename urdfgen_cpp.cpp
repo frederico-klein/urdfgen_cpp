@@ -291,10 +291,12 @@ vector<fs::path> createpaths(string _ms_packagename)
 			replaceAll(filedata, "somepackage", _ms_packagename);
 
 			// Write the file out again
-			ofstream file_out;
 			auto thisoutfilename = base_directory / myfilename;
+			ofstream file_out (thisoutfilename.string(), std::ofstream::out);
+			
 
 			file_out << filedata << endl;
+			file_out.close();
 		}
 		returnvectstr = { base_directory, meshes_directory, components_directory };
 	}
@@ -740,9 +742,28 @@ public:
 	void notify(const Ptr<CommandEventArgs>& eventArgs) override
 	{
 		ui->messageBox("Executing! ");
-		createpaths(_ms.packagename);
 		LOG(INFO) << "Executing! ";
-	}
+
+		vector<fs::path> mypaths = createpaths(_ms.packagename);
+		// lets create a simple xml to make sure we understand tinyxml sintax
+
+		TiXmlDocument urdfroot;
+		TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", "");
+		urdfroot.LinkEndChild(decl);
+
+		TiXmlElement * element = new TiXmlElement("robot");
+		element->SetAttribute("name", "gummi");
+		urdfroot.LinkEndChild(element);
+
+		TiXmlText * text = new TiXmlText("Hello World!");
+		element->LinkEndChild(text);
+
+		string filenametosave = mypaths[0].string() + "madeByHand2.xml";
+		ui->messageBox(filenametosave);
+		urdfroot.SaveFile(filenametosave.c_str());
+
+
+		}
 };
 
 // CommandDestroyed event handler
