@@ -234,15 +234,23 @@ vector<fs::path> createpaths(string _ms_packagename)
 	try {
 		LOG(DEBUG) << "called createpaths";
 		fs::path userdir = "";// getenv("USER");
+		fs::path appdatadir = "";// getenv("USER");
+
 		char* buf = nullptr;
 		size_t sz = 0;
-		if (_dupenv_s(&buf, &sz, "USER") == 0 && buf != nullptr)
+		if (_dupenv_s(&buf, &sz, "USERPROFILE") == 0 && buf != nullptr)
 		{
-			ui->messageBox("EnvVarName = %s\n", buf);
+			ui->messageBox("EnvVarName = "+ std::string(buf ));
 			userdir = buf;
 			free(buf);
 		}
-
+		if (_dupenv_s(&buf, &sz, "APPDATA") == 0 && buf != nullptr)
+		{
+			ui->messageBox("EnvVarName = " + std::string(buf));
+			appdatadir = buf;
+			free(buf);
+		}
+		//string autodesk_dir = "Autodesk\\Autodesk Fusion 360\\API\\AddIns\\urdfgen_cpp"; ///very bad...
 
 		auto folderDlg = ui->createFolderDialog();
 		folderDlg->title("Choose location to save your URDF new package");
@@ -259,11 +267,14 @@ vector<fs::path> createpaths(string _ms_packagename)
 
 		fs::path outputdir = folderDlg->folder();
 		fs::path base_directory = outputdir / _ms_packagename;
-		fs::path thisscriptpath = fs::current_path(); //////// TODO: change xcopy command to have the resources also available in the webdeploy folder!!!
+		ui->messageBox(appdatadir.string());
+		fs::path thisscriptpath = appdatadir / "Autodesk" / "Autodesk Fusion 360" / "API" / "AddIns" / "urdfgen_cpp"; //////// TODO: change xcopy command to have the resources also available in the webdeploy folder!!!
+		ui->messageBox(thisscriptpath.string());
+															 //fs::path thisscriptpath = fs::current_path();
 
 		ui->messageBox(base_directory.string());
 		if (!fs::exists(base_directory))
-			fs::create_directory(base_directory);
+			fs::create_directories(base_directory); //// will create whole tree if needed
 		fs::path meshes_directory = base_directory / "meshes";
 		ui->messageBox(meshes_directory.string());
 		fs::path components_directory = base_directory / "components";
@@ -278,11 +289,12 @@ vector<fs::path> createpaths(string _ms_packagename)
 		{
 			ifstream file_in;
 			// Read in the file
-			ui->messageBox(thisscriptpath.string());
+
 			auto thisfilename = thisscriptpath / "resources" / myfilename;
+			ui->messageBox(thisfilename.string());
 			file_in.open(thisfilename);
 			if (!file_in)
-				LOG(ERROR) << "failed to open input file:" + myfilename;
+				LOG(ERROR) << "failed to open input file:" + thisfilename.string();
 			string filedata;
 			file_in >> filedata;
 
