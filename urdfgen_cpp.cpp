@@ -295,19 +295,25 @@ vector<fs::path> createpaths(string _ms_packagename)
 			file_in.open(thisfilename);
 			if (!file_in)
 				LOG(ERROR) << "failed to open input file:" + thisfilename.string();
-			string filedata;
-			file_in >> filedata;
 
-			// Replace the target string
-
-			replaceAll(filedata, "somepackage", _ms_packagename);
-
-			// Write the file out again
 			auto thisoutfilename = base_directory / myfilename;
-			ofstream file_out (thisoutfilename.string(), std::ofstream::out);
+			ofstream file_out(thisoutfilename.string(), std::ofstream::out);
 			
+			string filedata;
+			
+			while (std::getline(file_in,filedata))
+			{
+				//if i use getline i don't need this anymore...
+				//file_in >> filedata;
 
-			file_out << filedata << endl;
+				// Replace the target string
+
+				replaceAll(filedata, "somepackage", _ms_packagename);
+
+				// Write the file out again
+
+				file_out << filedata << endl;
+			}
 			file_out.close();
 		}
 		returnvectstr = { base_directory, meshes_directory, components_directory };
