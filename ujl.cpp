@@ -219,12 +219,12 @@ void ULink::genlink(std::string meshes_directory, std::string components_directo
 						thisoccname = thisoccname + "+" + thisoccnamelist[k];
 					}
 				LOG(INFO) << "\tTMS::: getting the tm for:" + thisoccname;
-				for (size_t l = 1; l < allOccs->count; l++) //for (l in range(0, allOccs.count)) {
+				for (size_t l = 1; l < allOccs->count(); l++) //for (l in range(0, allOccs.count)) {
 					{   				
 					if (allOccs->item(l)->fullPathName() == thisoccname)
 						{
 							//then i want to multiply their matrices!;
-							Ptr<Matrix3D> lasttm = allOccs->item(l)->transform().copy();
+							Ptr<Matrix3D> lasttm = allOccs->item(l)->transform()->copy();
 							newrotl.push_back(lasttm);
 							LOG(DEBUG) << allOccs->item(l)->fullPathName();
 							LOG(DEBUG) << "\twith tm:" + showarrayasstring(lasttm->asArray());
@@ -234,7 +234,7 @@ void ULink::genlink(std::string meshes_directory, std::string components_directo
 					}
 				////// now that i have all the occurrences names i need to get them from allOccs(?!);				
 			}
-			Ptr<Matrix3D> lasttransform = occ->transform.copy();
+			Ptr<Matrix3D> lasttransform = occ->transform->copy();
 			newrotl.push_back(lasttransform);
 			//                newrot = removejointtranslation;
 			Ptr<Matrix3D> newrot = Matrix3D::create();
