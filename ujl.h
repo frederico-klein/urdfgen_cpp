@@ -80,7 +80,10 @@ public:
 	//perhaps unused
 	int level;
 	virtual std::string getitems() { return "not implemented"; };
-	virtual void makexml() {}; 
+	virtual void makexml(TiXmlElement*, std::string) 
+	{
+		LOG(DEBUG) << "UELement virtual makexml function was called!";
+	};
 	UElement() {};
 	//UElement(UElement&) = default;
 	~UElement() {};
@@ -116,7 +119,7 @@ public:
 		isset = false;
 	};
 	~UJoint() {};
-	std::string setjoint(Ptr<Joint> joint); ////////// this is super incomplete as far as logging goes. we need a solution. either a shared object to collect errors (sounds more obnoxious than setting up logging, really...)
+	void setjoint(Ptr<Joint> joint); ////////// this is super incomplete as far as logging goes. we need a solution. either a shared object to collect errors (sounds more obnoxious than setting up logging, really...)
 	void setrealorigin(OrVec);
 	std::string getitems();
 	void makexml(TiXmlElement*, std::string);

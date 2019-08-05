@@ -173,42 +173,6 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 
 };
 
-class MyBase
-{
-public:
-	std::string name;
-	virtual void test() {}
-};
-class MyChild : public MyBase {};
-
-void test()
-{
-	ui->messageBox("1");
-	//lets try a bunch of stuff
-
-	MyChild* child = new MyChild();
-	child->name = "aneme";
-	MyBase* base = dynamic_cast<MyBase*>(child); // ok
-	ui->messageBox("first test okay" + base->name);
-
-
-	ULink* myel = new ULink();
-	myel->name = "lolo2";
-	UElement* currLink2 = dynamic_cast<UElement*>(myel); //dunno
-	ui->messageBox("second test okay" + currLink2->name);
-
-	UElement* elele = myel;
-	ui->messageBox("third test okay" + elele->name);
-
-
-	//UJoint myjoint;
-	//myjoint.name = "lolo3";
-	//ULink* currLink3 = dynamic_cast<ULink*>(&myjoint); //i think should fail
-	//ui->messageBox("third test okay" + currLink3->name);
-
-	//////////////////
-};
-
 bool replace(std::string& str, const std::string& from, const std::string& to) {
 	size_t start_pos = str.find(from);
 	if (start_pos == std::string::npos)
@@ -240,13 +204,13 @@ vector<fs::path> createpaths(string _ms_packagename)
 		size_t sz = 0;
 		if (_dupenv_s(&buf, &sz, "USERPROFILE") == 0 && buf != nullptr)
 		{
-			ui->messageBox("EnvVarName = "+ std::string(buf ));
+			//ui->messageBox("EnvVarName = " + std::string(buf));
 			userdir = buf;
 			free(buf);
 		}
 		if (_dupenv_s(&buf, &sz, "APPDATA") == 0 && buf != nullptr)
 		{
-			ui->messageBox("EnvVarName = " + std::string(buf));
+			//ui->messageBox("EnvVarName = " + std::string(buf));
 			appdatadir = buf;
 			free(buf);
 		}
@@ -267,18 +231,21 @@ vector<fs::path> createpaths(string _ms_packagename)
 
 		fs::path outputdir = folderDlg->folder();
 		fs::path base_directory = outputdir / _ms_packagename;
-		ui->messageBox(appdatadir.string());
+		LOG(INFO) << "appdatadir:"+ appdatadir.string();
+		//ui->messageBox(appdatadir.string());
 		fs::path thisscriptpath = appdatadir / "Autodesk" / "Autodesk Fusion 360" / "API" / "AddIns" / "urdfgen_cpp"; //////// TODO: change xcopy command to have the resources also available in the webdeploy folder!!!
-		ui->messageBox(thisscriptpath.string());
+		LOG(INFO) << "This script's path: "+ (thisscriptpath.string());
+		//ui->messageBox(thisscriptpath.string());
 															 //fs::path thisscriptpath = fs::current_path();
 
-		ui->messageBox(base_directory.string());
+		//ui->messageBox(base_directory.string());
+		LOG(INFO) <<"Base directory:"+base_directory.string();
 		if (!fs::exists(base_directory))
 			fs::create_directories(base_directory); //// will create whole tree if needed
 		fs::path meshes_directory = base_directory / "meshes";
-		ui->messageBox(meshes_directory.string());
+		//ui->messageBox(meshes_directory.string());
 		fs::path components_directory = base_directory / "components";
-		ui->messageBox(components_directory.string());
+		//ui->messageBox(components_directory.string());
 		if (!fs::exists(meshes_directory))
 			fs::create_directory(meshes_directory);
 		if (!fs::exists(components_directory))
@@ -291,7 +258,8 @@ vector<fs::path> createpaths(string _ms_packagename)
 			// Read in the file
 
 			auto thisfilename = thisscriptpath / "resources" / myfilename;
-			ui->messageBox(thisfilename.string());
+			//ui->messageBox(thisfilename.string());
+			LOG(INFO)<<"Opening file:"+(thisfilename.string());
 			file_in.open(thisfilename);
 			if (!file_in)
 				LOG(ERROR) << "failed to open input file:" + thisfilename.string();
@@ -540,12 +508,42 @@ public:
 		//ui->messageBox("is this being reached?");
 		if (cmdInput->id() == "linkselection") 
 		{
-			ui->messageBox("not implemented yet");
-		}
-		else if (cmdInput->id() == "jointselection") 
-		{
-		ui->messageBox("not implemented yet");
 
+			ULink* currLink = dynamic_cast<ULink*>(_ms.thistree.currentEl);
+			if (currLink)
+			{
+				currLink->group.clear();
+				for (int i = 0; i < linkselInput->selectionCount();i++) 
+				{
+					Ptr<Occurrence> thisFusionOcc = linkselInput->selection(i)->entity();
+					LOG(DEBUG) << "adding link entity:" + thisFusionOcc->name();
+					currLink->group.push_back(linkselInput->selection(i)->entity());
+				}
+			}
+			LOG(DEBUG) << "linkselection: done ";
+			//ui->messageBox("not implemented yet");
+		}
+		else if (cmdInput->id() == "jointselection" && jointselInput->selectionCount() == 1)
+		{
+			//ui->messageBox("started");
+			Ptr<Joint> thisFusionJoint = jointselInput->selection(0)->entity();
+			LOG(DEBUG) << "adding joint entity:"+ thisFusionJoint->name();
+			//ui->messageBox("is it the cast?");
+			UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+			//ui->messageBox("is it something else?");
+			if (thisjoint)
+			{
+				thisjoint->setjoint(thisFusionJoint);
+				//thisjoint->setjoint(jointselInput->selection(0)->entity, cmdInput.id, inputs)
+			}
+			else
+			{
+				string errormsg = "the cast didn't work. it should have.";
+				LOG(ERROR) << errormsg;
+				ui->messageBox(errormsg);
+			}
+			LOG(DEBUG) << "jointselection: done ";
+			//ui->messageBox("done");
 		}
 		else if (cmdInput->id() == "parentlinkname") 
 		{
@@ -778,14 +776,41 @@ public:
 		//TiXmlText * text = new TiXmlText("Hello World!");
 		//element->LinkEndChild(text);
 
+		//ULink base_link;
+		//base_link.makexml(robot_root, _ms.packagename);
+
+		//UJoint testjoint;
+		//testjoint.makexml(robot_root, _ms.packagename);
+
 		ULink base_link;
+		base_link.name = "base_link";
+		//base_link = Link('base_link', -1)
 		base_link.makexml(robot_root, _ms.packagename);
+#
+		UJoint setaxisjoint;
+		setaxisjoint.name = "set_worldaxis";
+		setaxisjoint.isset = true;
+		setaxisjoint.type = "fixed";
+		setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
+		setaxisjoint.parentlink = "base_link";
+		setaxisjoint.childlink = "base";
+		setaxisjoint.makexml(robot_root, _ms.packagename);
+		
+		//now parse the urdftree
+		for (auto el:_ms.thistree.elementsDict) 
+		{
+			ULink* currLink = dynamic_cast<ULink*>(el.second);
+			if (currLink)
+			{
+				LOG(INFO) << "calling genlink for link:" + currLink->name;
+				currLink->genlink(mypaths[1].string(), mypaths[2].string());
+			}
+			el.second->makexml(robot_root, _ms.packagename); //this should execute the derived class's makexml, i presume
+		};
 
-		UJoint testjoint;
-		testjoint.makexml(robot_root, _ms.packagename);
-
-		string filenametosave = (mypaths[0] / "madeByHand2.xml").string();
-		ui->messageBox(filenametosave); //weird, this is off
+		string filenametosave = (mypaths[0] / "robot.urdf").string();
+		//ui->messageBox(filenametosave); 
+		LOG(INFO) << "Saving file" + (filenametosave); 
 		urdfdoc.SaveFile(filenametosave.c_str());
 
 
@@ -884,8 +909,10 @@ public:
 					Ptr<ValidateInputsEvent> validateInputsEvent = command->validateInputs();
 					if (!validateInputsEvent)
 						return;
+					
+					//I am not validating inputs right now; remove comments to use input validation callback.
 
-					isOk = validateInputsEvent->add(&_validateInputs);
+					//isOk = validateInputsEvent->add(&_validateInputs);
 					if (!isOk)
 						return;
 
