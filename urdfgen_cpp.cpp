@@ -747,25 +747,30 @@ public:
 		vector<fs::path> mypaths = createpaths(_ms.packagename);
 		// lets create a simple xml to make sure we understand tinyxml sintax
 
-		TiXmlDocument urdfroot;
+		TiXmlDocument urdfdoc;
 
-
+		//////change!!!
 		TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", "");
-		urdfroot.LinkEndChild(decl);
+		urdfdoc.LinkEndChild(decl);
 
-		TiXmlElement * element = new TiXmlElement("robot");
-		element->SetAttribute("name", "gummi");
-		urdfroot.LinkEndChild(element);
+		TiXmlElement * robot_root = new TiXmlElement("robot");
+		robot_root->SetAttribute("name", "gummi");
+		urdfdoc.LinkEndChild(robot_root);
 
-		TiXmlText * text = new TiXmlText("Hello World!");
-		element->LinkEndChild(text);
+		//TiXmlText * text = new TiXmlText("Hello World!");
+		//element->LinkEndChild(text);
+
+		ULink base_link;
+		base_link.makexml(robot_root, _ms.packagename);
+
+		UJoint testjoint;
+		testjoint.makexml(robot_root, _ms.packagename);
 
 		string filenametosave = (mypaths[0] / "madeByHand2.xml").string();
 		ui->messageBox(filenametosave); //weird, this is off
-		urdfroot.SaveFile(filenametosave.c_str());
+		urdfdoc.SaveFile(filenametosave.c_str());
 
-		ULink base_link;
-		base_link.makexml(&urdfroot);
+
 
 
 		}

@@ -44,12 +44,14 @@ public:
 
 class Collision
 {
+public:
 	OrVec origin;
 	std::string geometryfilename = "";
 };
 
 class Inertia
 {
+public:
 	std::string ixx, ixy, ixz, iyy, iyz, izz;
 };
 
@@ -117,7 +119,7 @@ public:
 	std::string setjoint(Ptr<Joint> joint); ////////// this is super incomplete as far as logging goes. we need a solution. either a shared object to collect errors (sounds more obnoxious than setting up logging, really...)
 	void setrealorigin(OrVec);
 	std::string getitems();
-	void makexml(TiXmlDocument*);
+	void makexml(TiXmlElement*, std::string);
 
 	// when sixdegree is working!
 	void setjoint(Ptr<Joint> joint, Ptr<CommandInput> cmdInput, Ptr<CommandInputs> inputs);
@@ -147,7 +149,7 @@ public:
 	//methods
 	std::string getitems();
 	void genfatherjoint(UJoint joint);
-	void makexml(TiXmlDocument*);
+	void makexml(TiXmlElement*, std::string);
 	void genlink(std::string, std::string);
 
 private:

@@ -27,11 +27,53 @@ void ULink::genfatherjoint(UJoint joint)
 	}
 };
 
-void ULink::makexml(TiXmlDocument* urdfroot)
+void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 {
+	try {
+		//if I ever create different stls for collision and geometry, this will have to change:
+		visual.geometryfilename = "package://" + packagename + "/meshes/" + name + ".stl";
 
 
-	LOG(ERROR) << "not implemented!";
+		TiXmlElement * linkXE = new TiXmlElement("link");
+		linkXE->SetAttribute("name", name.c_str());
+
+		urdfroot->LinkEndChild(linkXE);
+
+		if (!isVirtual)
+		{
+			TiXmlElement * inertialXE = new TiXmlElement("inertial");
+			linkXE->LinkEndChild(inertialXE);
+
+			TiXmlElement * originXE = new TiXmlElement("origin");
+			originXE->SetAttribute("xyz", inertial.origin.xyz.c_str());
+			originXE->SetAttribute("rpy", inertial.origin.rpy.c_str());
+
+			inertialXE->LinkEndChild(originXE);
+
+			TiXmlElement * massXE = new TiXmlElement("mass");
+			massXE->SetAttribute("value", inertial.mass.c_str());
+
+			inertialXE->LinkEndChild(massXE);
+
+			TiXmlElement * inertiaXE = new TiXmlElement("inertia");
+			inertiaXE->SetAttribute("ixx", inertial.inertia.ixx.c_str());
+			inertiaXE->SetAttribute("ixy", inertial.inertia.ixx.c_str());
+			inertiaXE->SetAttribute("ixz", inertial.inertia.ixx.c_str());
+			inertiaXE->SetAttribute("iyy", inertial.inertia.ixx.c_str());
+			inertiaXE->SetAttribute("iyz", inertial.inertia.ixx.c_str());
+			inertiaXE->SetAttribute("izz", inertial.inertia.ixx.c_str());
+
+
+			//and plenty more....
+		}
+		LOG(INFO) << "link " + name + "successfully parsed as xml!";
+	}
+	catch (...)
+	{
+		//todo: 
+		//LOG(ERROR) << "not implemented!";
+		LOG(ERROR) << "link " + name + "FAILED to be parsed as xml!";
+	}
 }
 
 void ULink::genlink(std::string meshes_directory, std::string components_directory)
@@ -171,8 +213,45 @@ std::string UJoint::getitems()
 	return items;
 };
 
-void UJoint::makexml(TiXmlDocument* urdfroot)
+void UJoint::makexml(TiXmlElement* urdfroot, std::string ) //don't need packagename. it just so that both makexml functions have the same call. also, not sure if it will be needed
 {
-	//todo: 
-	LOG(ERROR) << "not implemented!";
+	try {
+		TiXmlElement * jointXE = new TiXmlElement("joint");
+		jointXE->SetAttribute("name", name.c_str());
+		jointXE->SetAttribute("type", type.c_str());
+
+		urdfroot->LinkEndChild(jointXE);
+
+		TiXmlElement * originXE = new TiXmlElement("origin");
+		originXE->SetAttribute("xyz", realorigin.xyz.c_str());
+		originXE->SetAttribute("rpy", realorigin.rpy.c_str());
+
+		jointXE->LinkEndChild(originXE);
+
+		TiXmlElement * parentXE = new TiXmlElement("parent");
+		parentXE->SetAttribute("link", parentlink.c_str());
+
+		jointXE->LinkEndChild(parentXE);
+
+		TiXmlElement * childXE = new TiXmlElement("child");
+		childXE->SetAttribute("link", childlink.c_str());
+
+		jointXE->LinkEndChild(childXE);
+
+		TiXmlElement * limitXE = new TiXmlElement("limit");
+		limitXE->SetAttribute("lower", limit.lower.c_str());
+		limitXE->SetAttribute("upper", limit.upper.c_str());
+		limitXE->SetAttribute("effort", limit.effort.c_str());
+		limitXE->SetAttribute("velocity", limit.velocity.c_str());
+
+		jointXE->LinkEndChild(limitXE);
+
+		LOG(INFO) << "joint " + name + "successfully parsed as xml!";
+	}
+	catch (...)
+	{
+		//todo: 
+		//LOG(ERROR) << "not implemented!";
+		LOG(ERROR) << "joint " + name + "FAILED to be parsed as xml!";
+	}
 };
