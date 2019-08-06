@@ -951,7 +951,7 @@ public:
 					Ptr<GroupCommandInput> linkGroupCmdInput = tab3ChildInputs->addGroupCommandInput("linkgroup", "Link Stuff");
 					if (!linkGroupCmdInput)
 						return;
-					linkGroupCmdInput->isVisible(true);
+					linkGroupCmdInput->isVisible(false);
 					
 					Ptr<CommandInputs> linkGroupChildInputs = linkGroupCmdInput->children();
 					if (!linkGroupChildInputs)
@@ -967,7 +967,7 @@ public:
 					Ptr<GroupCommandInput> jointGroupCmdInput = tab3ChildInputs->addGroupCommandInput("jointgroup", "Joint Stuff");
 					if (!jointGroupCmdInput)
 						return;
-					jointGroupCmdInput->isVisible(true);
+					jointGroupCmdInput->isVisible(false);
 				
 					Ptr<CommandInputs> jointGroupChildInputs = jointGroupCmdInput->children();
 					if (!jointGroupChildInputs)
