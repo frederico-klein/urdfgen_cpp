@@ -154,7 +154,7 @@ template <class T> std::string showarrayasstring(std::vector<T> v)
 		for (auto num : v)
 		{
 			myres += asstring(num) + std::string(" ");
-			if (i+1 % 4 == 0)
+			if ((i+1) % 4 == 0)
 				myres += '\n';
 			i++;
 		}
@@ -281,6 +281,7 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 				////// now that i have all the occurrences names i need to get them from allOccs(?!);				
 			}
 			Ptr<Matrix3D> lasttransform = occ->transform()->copy();
+			LOG(DEBUG) << "own tm (lasttransform) is:" + showarrayasstring(lasttransform->asArray());
 			newrotl.push_back(lasttransform);
 			//                newrot = removejointtranslation;
 			Ptr<Matrix3D> newrot = Matrix3D::create();
@@ -288,15 +289,21 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 
 			// trying to uncomment the largest amount of lines the fastest without causing compile/runtime errors
 
-
-			for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl))))
+			//checking indexing
+			LOG(DEBUG) << "newrotl.size()=" + std::to_string(newrotl.size());
+			//for (int j = newrotl.size(); j < 0; --j) 
+			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = newrotl.rbegin();newrotlj != newrotl.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
 			{
-						newrot->transformBy(newrotl[j]);
+				auto j = std::distance(newrotl.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
+				LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
+				newrot->transformBy(*newrotlj);
+				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
+				//newrot->transformBy(newrotl[j]);
 			}
 			newrot->transformBy(removejointtranslation);
 			//		express = "it" + str(i) + "=newrot";
 			//		exec(express);
-			LOG(DEBUG) << "it transformation is:" + showarrayasstring(newrot->asArray());
+			LOG(DEBUG) << "\nit transformation is:" + showarrayasstring(newrot->asArray());
 			it.push_back(newrot);
 		}
 
