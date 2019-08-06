@@ -125,25 +125,42 @@ void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 	}
 }
 
-template <class myType> std::string showarrayasstring(std::vector<myType> v)
+template <class myType> std::string asstring(myType v)
 {
-	std::string myres ="{";
-	for (auto num : v)
-	{
-		myres += std::to_string(num) + " ";
-	}
-	myres += "}";
-	return myres;
+ return std::to_string(v);
 };
-//specialized template for strings.
-template <> std::string showarrayasstring(std::vector<std::string> v)
+//overloading instead of specializing, because I couldnot get the syntax to work //specialized template for strings.
+std::string asstring(const std::string v)
 {
-	std::string myres = "{";
-	for (auto num : v)
+	return v;
+};
+
+template <class T> std::string showarrayasstring(std::vector<T> v)
+{
+	std::string myres = "size:" + std::to_string(v.size()) + "\n";
+	if (v.size() != 16)
 	{
-		myres += num + std::string(" ");
+		myres += "{";
+		for (auto num : v)
+		{
+			myres += asstring(num) + std::string(" ");
+		}
+		myres += "}";
 	}
-	myres += "}";
+	else
+	{
+		myres += "[";
+		int i = 0; //
+		for (auto num : v)
+		{
+			myres += asstring(num) + std::string(" ");
+			if (i+1 % 4 == 0)
+				myres += '\n';
+			i++;
+		}
+		myres += "]";
+
+	}
 	return myres;
 };
 
@@ -279,6 +296,7 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 			newrot->transformBy(removejointtranslation);
 			//		express = "it" + str(i) + "=newrot";
 			//		exec(express);
+			LOG(DEBUG) << "it transformation is:" + showarrayasstring(newrot->asArray());
 			it.push_back(newrot);
 		}
 
@@ -298,7 +316,7 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 			Ptr<STEPExportOptions> stpOptions = exportMgr->createSTEPExportOptions(fileName.string(), group[i]->component());
 			if (!stpOptions)
 				throw "error: can't set step export options";
-			//stpOptions->filename();
+
 			bool isOk = exportMgr->execute(stpOptions);
 			if (!isOk)
 				throw "exportMgr failed to generate file" + fileName.string();
@@ -318,6 +336,7 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		if (!doc)
 			throw "cant add document";
 
+		doc->name(stlname);
 		Ptr<Design> design = _app->activeProduct();
 		if (!design)
 			throw "cant get current design";

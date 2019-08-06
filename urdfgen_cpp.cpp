@@ -712,8 +712,8 @@ public:
 							pln->listItems()->clear();
 							//ui->messageBox("ffs8");
 
-							cln->listItems()->add(">>>>not set<<<<", true);
-							pln->listItems()->add(">>>>not set<<<<", true);
+							cln->listItems()->add(">>not set<<", true);
+							pln->listItems()->add(">>not set<<", true);
 
 							LOG(DEBUG) << "repopulating joint names";
 							for (auto linknamestr : alllinkgr)
