@@ -452,6 +452,7 @@ void UJoint::setjoint(Ptr<Joint> joint)
 {
 	LOG(DEBUG) << "started setjoint";
 	generatingjointname = joint->name();
+	entity = joint;
 	//set origin 
 	try
 	{

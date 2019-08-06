@@ -688,29 +688,22 @@ public:
 						UJoint* currJoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
 						if (currJoint)
 						{
-							//ui->messageBox("ffs3");
 							LOG(DEBUG) << "repopulating joint selection";
 							jointselInput->addSelection(currJoint->entity);
-							//ui->messageBox("ffs4");
 
 							//we hide the link selection
-							//ui->messageBox("ffs5");
-
 							linkgroupInput->isVisible(false);
 							jointgroupInput->isVisible(true);
-							//ui->messageBox("ffs6");
 
 							//we set the controls for parent and child links
 
 							vector<string> alllinkgr = _ms.thistree.allLinksvec();
-							//ui->messageBox("ffs7");
 
 							if (!cln || !pln)
 								throw "either cln or pln (or both!) don't exist. this will fail, aborting";
 
 							cln->listItems()->clear();
 							pln->listItems()->clear();
-							//ui->messageBox("ffs8");
 
 							cln->listItems()->add(">>not set<<", true);
 							pln->listItems()->add(">>not set<<", true);
@@ -722,10 +715,7 @@ public:
 								bool isthisparentselected = linknamestr == currJoint->parentlink;
 								cln->listItems()->add(linknamestr, isthischildselected);
 								pln->listItems()->add(linknamestr, isthisparentselected);
-								//cln->listItems()->add(linknamestr, false, "");
-								//pln->listItems()->add(linknamestr, false, "");
 							}
-							//ui->messageBox("ffs9");
 
 						}
 
