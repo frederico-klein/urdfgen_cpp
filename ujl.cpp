@@ -9,7 +9,7 @@ namespace fs = std::filesystem;
 std::string ULink::getitems()
 {
 	std::string iss = (coordinatesystem.isset) ? "Yes" : "No";
-	std::string items = "isset:" + iss;
+	std::string items = "isset:" + iss + "\n";
 	for (auto it = group.cbegin(); it != group.cend(); it++)
 	{
 		Ptr<Occurrence> thisocc = *it;
@@ -68,6 +68,8 @@ void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 			inertiaXE->SetAttribute("iyz", inertial.inertia.ixx.c_str());
 			inertiaXE->SetAttribute("izz", inertial.inertia.ixx.c_str());
 
+			inertialXE->LinkEndChild(inertiaXE);
+
 			//visual
 			TiXmlElement* visualXE = new TiXmlElement("visual");
 			linkXE->LinkEndChild(visualXE);
@@ -93,6 +95,7 @@ void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 			TiXmlElement* colorXE = new TiXmlElement("color");
 			colorXE->SetAttribute("rgba",visual.color.c_str());
 
+			materialXE->LinkEndChild(colorXE);
 
 			visualXE->LinkEndChild(materialXE);
 			
@@ -376,8 +379,6 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 			//thistransf.transformBy(removejointtranslation)    ;
 			rootComp2->occurrences()->item(i)->transform(it[i]);
 		}
-		//////TODO{;
-		////// must set mass and center of inertia! i think visual and origins are correct because this info is in the stl...;
 		double xx;
 		double yy;
 		double zz;
@@ -389,6 +390,9 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		mass = rootComp2->physicalProperties()->mass();
 		LOG(INFO) << "XYZ moments of inertia: xx:" + std::to_string(xx) + "yy" + std::to_string(yy) + "zz" + std::to_string(zz) + "xy" + std::to_string(xy) + "yz" + std::to_string(yz) + "xz" + std::to_string(xz);
 		LOG(INFO) << "Mass:" + std::to_string(mass);
+		//setting this to inertial
+		inertial.setall(mass, xx, xy, xz, yy, yz, zz);
+
 		////// setting units to meters so stls will have proper sizes!;
 		Ptr<FusionUnitsManager> unitsMgr = design->fusionUnitsManager();
 		unitsMgr->distanceDisplayUnits(DistanceUnits::MeterDistanceUnits);
@@ -448,6 +452,7 @@ void UJoint::setjoint(Ptr<Joint> joint)
 {
 	LOG(DEBUG) << "started setjoint";
 	generatingjointname = joint->name();
+	entity = joint;
 	//set origin 
 	try
 	{
@@ -508,6 +513,8 @@ void UJoint::setjoint(Ptr<Joint> joint)
 				//tries to sets joint limits -> "revolute"
 				Ptr<RevoluteJointMotion> thisjointmotion = joint->jointMotion();
 				LOG(DEBUG) << "1:8: revolutejointmotion casting worked.";
+				Ptr<Vector3D> myaxis = thisjointmotion->rotationAxisVector();
+				axis = std::to_string(myaxis->x()) + " " + std::to_string(myaxis->y()) + " " + std::to_string(myaxis->z());
 
 				Ptr< JointLimits > thislimits = thisjointmotion->rotationLimits();
 				LOG(DEBUG) << "1:9: jointlimits casting worked.";
@@ -598,6 +605,11 @@ void UJoint::makexml(TiXmlElement* urdfroot, std::string ) //don't need packagen
 
 		jointXE->LinkEndChild(limitXE);
 
+		TiXmlElement * axisXE = new TiXmlElement("axis");
+		axisXE->SetAttribute("xyz", axis.c_str());
+
+		jointXE->LinkEndChild(axisXE);
+
 		LOG(INFO) << "joint " + name + "successfully parsed as xml!";
 	}
 	catch (...)
@@ -606,4 +618,22 @@ void UJoint::makexml(TiXmlElement* urdfroot, std::string ) //don't need packagen
 		//LOG(ERROR) << "not implemented!";
 		LOG(ERROR) << "joint " + name + "FAILED to be parsed as xml!";
 	}
+};
+
+void Inertia::set(double xx_, double xy_, double xz_, double yy_, double yz_, double zz_) 
+{
+	ixx = std::to_string(xx_);
+	ixy = std::to_string(xy_);
+	ixz = std::to_string(xz_);
+	iyy = std::to_string(yy_);
+	ixx = std::to_string(yz_);
+	ixx = std::to_string(zz_);
+	LOG(INFO) << "inertia set for all xyz components";
+};
+
+void Inertial::setall(double mass_, double xx_, double xy_, double xz_, double yy_, double yz_, double zz_)
+{
+	mass = std::to_string(mass_);
+	inertia.set(xx_,xy_, xz_, yy_, yz_, zz_);
+	LOG(INFO) << "inertial set with mass and inertia ";
 };

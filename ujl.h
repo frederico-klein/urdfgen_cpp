@@ -55,14 +55,16 @@ class Inertia
 {
 public:
 	std::string ixx, ixy, ixz, iyy, iyz, izz;
+	void set(double, double, double, double, double, double);
 };
 
 class Inertial
 {
 public:
 	OrVec origin;
-	std::string mass;
+	std::string mass = "0";
 	Inertia inertia;
+	void setall(double, double, double, double, double, double, double);
 };
 
 class Limit
