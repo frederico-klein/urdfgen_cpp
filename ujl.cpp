@@ -1,6 +1,9 @@
 #include "ujl.h"
 #include "inc/tinyxml.h"
 #include "inc/easylogging/easylogging++.h"
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 //ulink stuff
 std::string ULink::getitems()
@@ -144,8 +147,6 @@ template <> std::string showarrayasstring(std::vector<std::string> v)
 	return myres;
 };
 
-
-
 std::vector<std::string> splitstr(std::string s, std::string token)
 {
 	//thanks StackOverflow:
@@ -160,7 +161,33 @@ std::vector<std::string> splitstr(std::string s, std::string token)
 	return vstrings;
 }
 
-void ULink::genlink(std::string meshes_directory, std::string components_directory, Ptr<Design> design)
+std::string clearupst(std::string s)
+{
+	std::vector<std::string> vstrings;
+	std::string mystring =s;
+	char* removethese = "[:!@#$.()/-]";
+	char changethis = ' ', forthis = '_';
+
+	for (char * removethis = removethese; *removethis != '\0'; removethis++)
+	{
+		vstrings = splitstr(mystring, std::string(1, *removethis));
+		mystring = "";
+		for (auto astring : vstrings)
+		{
+			mystring += astring;
+		}
+	}
+	vstrings = splitstr(mystring, std::string(1, changethis));
+	mystring = "";
+	for (auto astring : vstrings)
+	{
+		mystring += astring + forthis;
+	}
+
+	return mystring.substr(0,mystring.size()-1);
+}
+
+void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Ptr<Design> _design, Ptr<Application> _app)
 {
 	LOG(ERROR) << "not implemented!";
 
@@ -169,7 +196,7 @@ void ULink::genlink(std::string meshes_directory, std::string components_directo
 		LOG(DEBUG) << "starting genlink";
 		// Get the root component of the active design;
 
-		Ptr<Component> rootComp = design->rootComponent();
+		Ptr<Component> rootComp = _design->rootComponent();
 		if (!rootComp)
 			throw "error: can't find root component";
 
@@ -178,7 +205,7 @@ void ULink::genlink(std::string meshes_directory, std::string components_directo
 			throw "error: can't get all orccurrences";
 
 		// create the exportManager for the original file that has the whole design;
-		Ptr<ExportManager> exportMgr = design->exportManager();
+		Ptr<ExportManager> exportMgr = _design->exportManager();
 		if (!exportMgr)
 			throw "error: can't find export manager";
 
@@ -205,8 +232,10 @@ void ULink::genlink(std::string meshes_directory, std::string components_directo
 		//std::vector<std::string> a3 = splitstr(myfunnystring3, "+");
 		//LOG(INFO) << "my string split: " + showarrayasstring(a3);
 
-		for (auto occ : group)
+		std::vector<Ptr<Matrix3D>> it;
+		for (int i = 0; i< group.size();i++)
 		{
+			auto occ = group[i];
 			std::vector<std::string> pathsplit = splitstr(occ->fullPathName(),"+");
 
 			std::vector<Ptr<Matrix3D>> newrotl;
@@ -234,87 +263,131 @@ void ULink::genlink(std::string meshes_directory, std::string components_directo
 					}
 				////// now that i have all the occurrences names i need to get them from allOccs(?!);				
 			}
-			Ptr<Matrix3D> lasttransform = occ->transform->copy();
+			Ptr<Matrix3D> lasttransform = occ->transform()->copy();
 			newrotl.push_back(lasttransform);
 			//                newrot = removejointtranslation;
 			Ptr<Matrix3D> newrot = Matrix3D::create();
 			newrot->setToIdentity();
-			//		for (j in reversed(range(0, len(newrotl)))) {
-			//			newrot.transformBy(newrotl[j]);
-			//		}
-			//		newrot.transformBy(removejointtranslation);
+
+			// trying to uncomment the largest amount of lines the fastest without causing compile/runtime errors
+
+
+			for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl))))
+			{
+						newrot->transformBy(newrotl[j]);
+			}
+			newrot->transformBy(removejointtranslation);
 			//		express = "it" + str(i) + "=newrot";
 			//		exec(express);
+			it.push_back(newrot);
 		}
 
 
 			//		//stlname = rootComp.name.translate(None, "{!@//$");
 			//		//line = re.sub("[!@//$]", "", line);
-			//		stlname = clearupst(name);
-		
+		std::string	stlname = clearupst(name);
+		LOG(INFO) << "stl name after removing weird characters:" + stlname;
+		//LOG(INFO) << "my string clearupst'ed: " + clearupst("Funny:[name(2)-8].#Hi  Purpur");
 			//		//fileName = components_directory+"/" + stlname;
-			//		for (i in range(0, len(group)) ){
-			//			// export the root component to printer utility;
-			//			fileName = components_directory + "/" + stlname + str(i);
-			//			LOG(INFO) << "saving file " + fileName;
-			//			LOG(INFO) << "from occurrence" + group[i].fullPathName;
-			//			LOG(DEBUG) << "with tm{" + str(eval("it" + str(i) + ".asArray()"));
-			//			stpOptions = exportMgr.createSTEPExportOptions(fileName, group[i].component);
-			//			exportMgr.execute(stpOptions);
-			//		}
-			//		// Create a document.;
-			//		doc = _app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType);
-			//		doc.name = name;
-			//		product = _app.activeProduct;
-			//		design = adsk.fusion.Design.cast(product);
-			//		// Get the root component of the active design;
-			//		rootComp = design.rootComponent;
+		for (int i =0; i< group.size();i++ )
+		{		
+			std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
+			LOG(INFO) << "saving file " + fileName.string();
+			LOG(INFO) << "from occurrence" + group[i]->fullPathName();
+			LOG(DEBUG) << "with tm:" + showarrayasstring(it[i]->asArray());
+			Ptr<STEPExportOptions> stpOptions = exportMgr->createSTEPExportOptions(fileName.string(), group[i]->component());
+			if (!stpOptions)
+				throw "error: can't set step export options";
+			//stpOptions->filename();
+			bool isOk = exportMgr->execute(stpOptions);
+			if (!isOk)
+				throw "exportMgr failed to generate file" + fileName.string();
+			LOG(INFO) << "File " + fileName.string() + " exported successfully";
+		}
+
+		//created all the components. now I need to open a new document. load them and export the whole rootcomponent as STL file.
+
+		// Create a document.;
+
+		Ptr<Documents> docs = _app->documents();
+		if (!docs)
+			throw "cant get documents";
+
+		// Create a document.
+		Ptr<Document> doc = docs->add(DocumentTypes::FusionDesignDocumentType);
+		if (!doc)
+			throw "cant add document";
+
+		Ptr<Design> design = _app->activeProduct();
+		if (!design)
+			throw "cant get current design";
+
+
+
+		// Get the root component of the active design;
+		Ptr<Component> rootComp2 = design->rootComponent();
 			//		// Create two new components under root component;
 			//		allOccs = rootComp.occurrences;
-			//		// Get import manager;
-			//		importManager = _app.importManager;
-			//		//////// add occurrances from other stuff to this new stuff;
-			//		for (i in range(0, len(group))) {
-			//			fileName = components_directory + "/" + stlname + str(i) + ".stp";
-			//			LOG(INFO) << "loading file{ " + fileName;
-			//			stpOptions = importManager.createSTEPImportOptions(fileName);
-			//			importManager.importToTarget(stpOptions, rootComp);
-			//		}
-			//		for (i in range(0, len(rootComp.occurrences)) ){
-			//			thistransf = eval("it" + str(i));
-			//			//thistransf.transformBy(removejointtranslation)    ;
-			//			rootComp.occurrences.item(i).transform = thistransf;
-			//			//rootComp.occurrences.item(i).transform = eval("it"+str(i));
-			//			pass;
-			//		}
-			//		//////TODO{;
-			//		////// must set mass and center of inertia! i think visual and origins are correct because this info is in the stl...;
-			//		LOG(INFO) << "XYZ moments of inertia{" + str(rootComp.physicalProperties.getXYZMomentsOfInertia());
-			//		LOG(INFO) << "Mass{" + str(rootComp.physicalProperties.mass);
-			//		////// setting units to meters so stls will have proper sizes!;
-			//		unitsMgr = design.fusionUnitsManager;
-			//		unitsMgr.distanceDisplayUnits = adsk.fusion.DistanceUnits.MeterDistanceUnits;
-			//		// create aNOTHER! exportManager instance;
-			//		exportMgr = design.exportManager;
-			//		// export the root component to printer utility;
-			//		stlRootOptions = exportMgr.createSTLExportOptions(rootComp, meshes_directory + "/" + stlname);
-			//		// get all available print utilities;
-			//		//printUtils = stlRootOptions.availablePrintUtilities;
-			//		// export the root component to the print utility, instead of a specified file;
-			//		//for printUtil in printUtils{;
-			//		//    stlRootOptions.sendToPrintUtility = true;
-			//		//   stlRootOptions.printUtility = printUtil;
-			//		stlRootOptions.sendToPrintUtility = false;
-			//		LOG(INFO) << "saving STL file{ " + meshes_directory + "/" + stlname );
-			//		exportMgr.execute(stlRootOptions);
-			//		visual.geometryfilename = "package{//" + _ms.packagename + "/meshes/" + stlname + ".stl";
-			//		collision.geometryfilename = visual.geometryfilename; // the legend has it that this file should be a slimmer version of the visuals, so that collisions can be calculated more easily....       ;
+		// Get import manager;
+		Ptr<ImportManager> importManager = _app->importManager();
+		if (!importManager)
+			throw "cant create importManager";
+		//////// add occurrances from other stuff to this new stuff;
+		for (int i = 0; i< group.size();i++) 
+		{
+			std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
+			LOG(INFO) << "loading file: " + fileName.string();
+			Ptr<STEPImportOptions> stpOptions = importManager->createSTEPImportOptions(fileName.string());
+			if (!stpOptions)
+				throw "error: can't set step import options";
+			bool isOk = importManager->importToTarget(stpOptions, rootComp2);
+			if (!isOk)
+				throw "failed to import" + fileName.string();
+		}
+		assert(rootComp2->occurrences()->count()== group.size()); //it should be the same, right?
+		for (int i = 0; i<rootComp2->occurrences()->count();i++)
+		{
+			//thistransf.transformBy(removejointtranslation)    ;
+			rootComp2->occurrences()->item(i)->transform(it[i]);
+		}
+		//////TODO{;
+		////// must set mass and center of inertia! i think visual and origins are correct because this info is in the stl...;
+		double xx;
+		double yy;
+		double zz;
+		double xy;
+		double yz;
+		double xz;
+		double mass;
+		rootComp2->physicalProperties()->getXYZMomentsOfInertia(xx, yy, zz, xy, yz, xz);
+		mass = rootComp2->physicalProperties()->mass();
+		LOG(INFO) << "XYZ moments of inertia: xx:" + std::to_string(xx) + "yy" + std::to_string(yy) + "zz" + std::to_string(zz) + "xy" + std::to_string(xy) + "yz" + std::to_string(yz) + "xz" + std::to_string(xz);
+		LOG(INFO) << "Mass:" + std::to_string(mass);
+		////// setting units to meters so stls will have proper sizes!;
+		Ptr<FusionUnitsManager> unitsMgr = design->fusionUnitsManager();
+		unitsMgr->distanceDisplayUnits(DistanceUnits::MeterDistanceUnits);
+		// create aNOTHER! exportManager instance;
+		Ptr<ExportManager> exportMgr2 = design->exportManager();
+		if (!exportMgr2)
+			throw "error: can't create second export manager";
+		std::string meshname = (meshes_directory / stlname).string();
+		Ptr<STLExportOptions> stlRootOptions = exportMgr->createSTLExportOptions(rootComp2, meshname);
+			
+		stlRootOptions->sendToPrintUtility(false);
+		LOG(INFO) << "saving STL file: " + meshname;
+		exportMgr->execute(stlRootOptions);
+		//visual.geometryfilename = "package://" + _ms.packagename + "/meshes/" + stlname + ".stl";
+		//collision.geometryfilename = visual.geometryfilename; // the legend has it that this file should be a slimmer version of the visuals, so that collisions can be calculated more easily....       ;
 	}
 	catch (std::exception& e)
 	{
 		LOG(ERROR) << e.what();
 		std::string errormsg = "issues running genstl\n";
 		LOG(ERROR) << errormsg;
+	}
+	catch (char* msg)
+	{
+		LOG(ERROR) << msg;
 	}
 	catch (...) // is there an exception that is not derived from std::exception?
 	{

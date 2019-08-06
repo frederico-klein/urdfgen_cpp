@@ -358,26 +358,31 @@ public:
 		}
 		else
 			linkselInput = linkgroupInput->children()->itemById("linkselection");
-		LOG_IF(!linkselInput, ERROR) << "linkselInput is a null pointer, things are gonna fail";
+		LOG_IF(!linkselInput, WARNING) << "linkselInput is a null pointer, either things are gonna fail, or I am inside jointgroup";
 
-
+		//ui->messageBox("6:: so far so good");
 		LOG(DEBUG) << "6:: so far so good";
 		//inside the group, there is no group!
 		if (!jointgroupInput) // linkgroupInput is None:			
 		{
-			LOG(DEBUG) << "probably inside jointgroup!";
-			jointselInput = inputs->itemById("jointselection");
-			cln = inputs->itemById("childlinkname");
-			if (!cln)
+			//ui->messageBox("6.1:: so far so good");
+			if (!linkselInput) 
 			{
-				ui->messageBox("cln is nope");
-				LOG(WARNING) << "cln is nope";
-			}
-			pln = inputs->itemById("parentlinkname");
-			if (!pln)
-			{
-				ui->messageBox("pln is nope");
-				LOG(WARNING) << "pln is nope";
+				//ui->messageBox("6.2:: so far so good");
+				LOG(DEBUG) << "probably inside jointgroup!";
+				jointselInput = inputs->itemById("jointselection");
+				cln = inputs->itemById("childlinkname");
+				if (!cln)
+				{
+					ui->messageBox("cln is nope");
+					LOG(WARNING) << "cln is nope";
+				}
+				pln = inputs->itemById("parentlinkname");
+				if (!pln)
+				{
+					ui->messageBox("pln is nope");
+					LOG(WARNING) << "pln is nope";
+				}
 			}
 		}
 		else
@@ -386,6 +391,7 @@ public:
 			cln = jointgroupInput->children()->itemById("childlinkname");
 			pln = jointgroupInput->children()->itemById("parentlinkname");
 		}
+		//ui->messageBox("7::not here");
 		LOG_IF(!jointselInput, ERROR) << "jointselInput is a null pointer, things are gonna fail";
 
 		LOG(DEBUG) << "this command does not crash the beginning:" + cmdInput->id();
@@ -804,7 +810,7 @@ public:
 			if (currLink)
 			{
 				LOG(INFO) << "calling genlink for link:" + currLink->name;
-				currLink->genlink(mypaths[1].string(), mypaths[2].string(), design);
+				currLink->genlink(mypaths[1], mypaths[2], design, app);
 			}
 			el.second->makexml(robot_root, _ms.packagename); //this should execute the derived class's makexml, i presume
 		};

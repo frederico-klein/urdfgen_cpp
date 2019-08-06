@@ -4,13 +4,15 @@
 #include <CAM/CAMAll.h>
 #include "inc/tinyxml.h"
 #include "inc/easylogging/easylogging++.h"
-
+#include <filesystem>
 
 const double PI = 3.14159265359;
 
 using namespace adsk::core;
 using namespace adsk::fusion;
 using namespace adsk::cam;
+
+namespace fs = std::filesystem;
 
 //class UrdfRoot
 //{
@@ -153,7 +155,7 @@ public:
 	std::string getitems();
 	void genfatherjoint(UJoint joint);
 	void makexml(TiXmlElement*, std::string);
-	void genlink(std::string, std::string, Ptr<Design>);
+	void genlink(fs::path, fs::path, Ptr<Design>, Ptr<Application>);
 
 private:
 	//groupmembers
