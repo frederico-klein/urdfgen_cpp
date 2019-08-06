@@ -1,9 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2042
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29123.88
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "urdfgen_cpp", "urdfgen_cpp.vcxproj", "{D7CBB035-8CC0-4576-9C72-5076E079586B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9A9963B1-4B81-4370-AF71-AAA3F8B4312E}"
+	ProjectSection(SolutionItems) = preProject
+		inc\easylogging\easylogging++.h = inc\easylogging\easylogging++.h
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
