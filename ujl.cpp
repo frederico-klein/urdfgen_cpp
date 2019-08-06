@@ -513,6 +513,8 @@ void UJoint::setjoint(Ptr<Joint> joint)
 				//tries to sets joint limits -> "revolute"
 				Ptr<RevoluteJointMotion> thisjointmotion = joint->jointMotion();
 				LOG(DEBUG) << "1:8: revolutejointmotion casting worked.";
+				Ptr<Vector3D> myaxis = thisjointmotion->rotationAxisVector();
+				axis = std::to_string(myaxis->x()) + " " + std::to_string(myaxis->y()) + " " + std::to_string(myaxis->z());
 
 				Ptr< JointLimits > thislimits = thisjointmotion->rotationLimits();
 				LOG(DEBUG) << "1:9: jointlimits casting worked.";
