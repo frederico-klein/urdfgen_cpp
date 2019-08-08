@@ -30,11 +30,29 @@ class MotherShip
 public:
 	int rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1,lastrow = 0;
 	std::string packagename = "mypackage";
+	fs::path thisscriptpath;
 	//missing! jtctrl lastjoint is maybe not a ujoint object?
 	UJoint lastjoint;
 	UrdfTree thistree;
 	MotherShip() {
 		rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1, lastrow = 0;	
+
+		//setting thisscriptpath
+		
+		fs::path appdatadir = "";// getenv("USER");
+		char* buf = nullptr;
+		size_t sz = 0;
+
+		if (_dupenv_s(&buf, &sz, "APPDATA") == 0 && buf != nullptr)
+		{
+			//ui->messageBox("EnvVarName = " + std::string(buf));
+			appdatadir = buf;
+			free(buf);
+		}
+		//LOG(INFO) << "appdatadir:"+ appdatadir.string();
+		thisscriptpath = appdatadir / "Autodesk" / "Autodesk Fusion 360" / "API" / "AddIns" / "urdfgen_cpp"; //////// TODO: change xcopy command to have the resources also available in the webdeploy folder!!!
+		//LOG(INFO) << "This script's path: "+ (thisscriptpath.string());
+
 	};
 	~MotherShip() {};
 	void addRowToTable(Ptr<TableCommandInput>, std::string);
@@ -173,14 +191,14 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 };
 
 
-vector<fs::path> createpaths(string _ms_packagename)
+vector<fs::path> createpaths(string _ms_packagename, fs::path thisscriptpath)
 {
 	vector<fs::path> returnvectstr;
 
 	try {
 		LOG(DEBUG) << "called createpaths";
 		fs::path userdir = "";// getenv("USER");
-		fs::path appdatadir = "";// getenv("USER");
+		//fs::path appdatadir = "";// getenv("USER");
 
 		char* buf = nullptr;
 		size_t sz = 0;
@@ -190,12 +208,12 @@ vector<fs::path> createpaths(string _ms_packagename)
 			userdir = buf;
 			free(buf);
 		}
-		if (_dupenv_s(&buf, &sz, "APPDATA") == 0 && buf != nullptr)
-		{
-			//ui->messageBox("EnvVarName = " + std::string(buf));
-			appdatadir = buf;
-			free(buf);
-		}
+		//if (_dupenv_s(&buf, &sz, "APPDATA") == 0 && buf != nullptr)
+		//{
+		//	//ui->messageBox("EnvVarName = " + std::string(buf));
+		//	appdatadir = buf;
+		//	free(buf);
+		//}
 		//string autodesk_dir = "Autodesk\\Autodesk Fusion 360\\API\\AddIns\\urdfgen_cpp"; ///very bad...
 
 		auto folderDlg = ui->createFolderDialog();
@@ -213,9 +231,9 @@ vector<fs::path> createpaths(string _ms_packagename)
 
 		fs::path outputdir = folderDlg->folder();
 		fs::path base_directory = outputdir / _ms_packagename;
-		LOG(INFO) << "appdatadir:"+ appdatadir.string();
+		//LOG(INFO) << "appdatadir:"+ appdatadir.string();
 		//ui->messageBox(appdatadir.string());
-		fs::path thisscriptpath = appdatadir / "Autodesk" / "Autodesk Fusion 360" / "API" / "AddIns" / "urdfgen_cpp"; //////// TODO: change xcopy command to have the resources also available in the webdeploy folder!!!
+		//fs::path thisscriptpath = appdatadir / "Autodesk" / "Autodesk Fusion 360" / "API" / "AddIns" / "urdfgen_cpp"; //////// TODO: change xcopy command to have the resources also available in the webdeploy folder!!!
 		LOG(INFO) << "This script's path: "+ (thisscriptpath.string());
 		//ui->messageBox(thisscriptpath.string());
 															 //fs::path thisscriptpath = fs::current_path();
@@ -739,7 +757,7 @@ public:
 		ui->messageBox("Executing! ");
 		LOG(INFO) << "Executing! ";
 
-		vector<fs::path> mypaths = createpaths(_ms.packagename);
+		vector<fs::path> mypaths = createpaths(_ms.packagename, _ms.thisscriptpath);
 		// lets create a simple xml to make sure we understand tinyxml sintax
 
 		TiXmlDocument urdfdoc;
@@ -1074,9 +1092,12 @@ extern "C" XI_EXPORT bool run(const char* context)
 {
 	//actually, this dll is copied to the webdeploy path, so I would need to understand paths better 
 
-	//el::Configurations conf("inc/easylogging/conf"); 
-	//el::Loggers::reconfigureLogger("default", conf); //configures easylogging with my config file..
-	//el::Loggers::reconfigureAllLoggers(conf);
+	//_ms should exist already and have appdata and thisscriptpath set
+	el::Configurations conf;// ((_ms.thisscriptpath / "inc" / "easylogging" / "conf").string());
+	conf.setToDefault();
+	conf.setGlobally(el::ConfigurationType::Filename, (_ms.thisscriptpath / "urdflog.log").string());
+	el::Loggers::reconfigureLogger("default", conf); //configures easylogging with my config file..
+	el::Loggers::reconfigureAllLoggers(conf);
 	
 	//let's use the cpp stuff
 	
