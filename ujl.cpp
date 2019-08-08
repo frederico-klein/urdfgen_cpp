@@ -2,6 +2,7 @@
 #include "inc/tinyxml.h"
 #include "inc/easylogging/easylogging++.h"
 #include <filesystem>
+#include "shared_funcs.h"
 
 namespace fs = std::filesystem;
 
@@ -26,7 +27,24 @@ void ULink::genfatherjoint(UJoint joint)
 		LOG(ERROR) << "tried to set displacement for link:" + name + ",but joint " + joint.name + " is not set!";
 	else
 	{
-		coordinatesystem = joint.origin;
+		coordinatesystem = joint.origin; ///probably wrong.
+		fatherjoint = joint.entity;
+		if (!joint.entity)
+			LOG(ERROR) << "joint entity not set!";
+		LOG(DEBUG) << "Original def:\nlink: " << name << " origin is:" << joint.origin.x << "," << joint.origin.y << "," << joint.origin.z;
+		//new def
+		double xx = fatherjoint->occurrenceTwo()->transform()->translation()->x();
+		double yy = fatherjoint->occurrenceTwo()->transform()->translation()->y();
+		double zz = fatherjoint->occurrenceTwo()->transform()->translation()->z();
+
+		double dxx = joint.origin.x - xx;
+		double dyy = joint.origin.y - yy;
+		double dzz = joint.origin.z - zz;
+
+		LOG(DEBUG) << "From link2:\nlink: " << name << " origin is:" << xx << "," << yy << "," << zz;
+
+		LOG(DEBUG) << "Difference:\nlink: " << name << " origin is:" << dxx << "," << dyy << "," << dzz;
+		coordinatesystem.setxyz(dxx,dyy,dzz);
 	}
 };
 
@@ -128,101 +146,26 @@ void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 	}
 }
 
-template <class myType> std::string asstring(myType v)
+bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Ptr<Design> _design, Ptr<Application> _app)
 {
- return std::to_string(v);
-};
-//overloading instead of specializing, because I couldnot get the syntax to work //specialized template for strings.
-std::string asstring(const std::string v)
-{
-	return v;
-};
-
-template <class T> std::string showarrayasstring(std::vector<T> v)
-{
-	std::string myres = "size:" + std::to_string(v.size()) + "\n";
-	if (v.size() != 16)
-	{
-		myres += "{";
-		for (auto num : v)
-		{
-			myres += asstring(num) + std::string(" ");
-		}
-		myres += "}";
-	}
-	else
-	{
-		myres += "[";
-		int i = 0; //
-		for (auto num : v)
-		{
-			myres += asstring(num) + std::string(" ");
-			if ((i+1) % 4 == 0)
-				myres += '\n';
-			i++;
-		}
-		myres += "]";
-
-	}
-	return myres;
-};
-
-std::vector<std::string> splitstr(std::string s, std::string token)
-{
-	//thanks StackOverflow:
-	std::vector<std::string> vstrings;
-	size_t pos = 0;
-	while ((pos = s.find(token)) != std::string::npos) {
-		vstrings.push_back(s.substr(0, pos));
-		s.erase(0, pos + token.length());
-	}
-	if (s!="")
-		vstrings.push_back(s);
-	return vstrings;
-}
-
-std::string clearupst(std::string s)
-{
-	std::vector<std::string> vstrings;
-	std::string mystring =s;
-	char* removethese = "[:!@#$.()/-]";
-	char changethis = ' ', forthis = '_';
-
-	for (char * removethis = removethese; *removethis != '\0'; removethis++)
-	{
-		vstrings = splitstr(mystring, std::string(1, *removethis));
-		mystring = "";
-		for (auto astring : vstrings)
-		{
-			mystring += astring;
-		}
-	}
-	vstrings = splitstr(mystring, std::string(1, changethis));
-	mystring = "";
-	for (auto astring : vstrings)
-	{
-		mystring += astring + forthis;
-	}
-
-	return mystring.substr(0,mystring.size()-1);
-}
-
-void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Ptr<Design> _design, Ptr<Application> _app)
-{
-	LOG(ERROR) << "not implemented!";
+	//LOG(ERROR) << "not implemented!";
 
 	isVirtual = false;
 	try {
-		LOG(DEBUG) << "starting genlink";
+		LOG(DEBUG) << bigprint("starting genlink for link:"+name);
 		// Get the root component of the active design;
 
 		Ptr<Component> rootComp = _design->rootComponent();
 		if (!rootComp)
 			throw "error: can't find root component";
 
-		Ptr<OccurrenceList> allOccs = rootComp->allOccurrences();
+		Ptr<Occurrences> allOccs = rootComp->occurrences();
 		if (!allOccs)
-			throw "error: can't get all orccurrences";
+			throw "error: can't get all occurrences";
+
+		//Ptr<OccurrenceList> allOccs = rootComp->allOccurrences();
+		//if (!allOccs)
+		//	throw "error: can't get all occurrences";
 
 		// create the exportManager for the original file that has the whole design;
 		Ptr<ExportManager> exportMgr = _design->exportManager();
@@ -230,10 +173,10 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 			throw "error: can't find export manager";
 
 		Ptr<Matrix3D> removejointtranslation = Matrix3D::create();
-		Ptr<Vector3D> translation = Vector3D::create(-coordinatesystem.x, -coordinatesystem.y, -coordinatesystem.z);
+		Ptr<Vector3D> translation = Vector3D::create(-coordinatesystem.x,-coordinatesystem.y,-coordinatesystem.z);
 		removejointtranslation->setToIdentity();
 		removejointtranslation->translation(translation);
-		LOG(DEBUG) << "Offset from joint tm is: " + showarrayasstring(removejointtranslation->asArray());
+		LOG(DEBUG) << "\nOffset from joint tm is: " + showarrayasstring(removejointtranslation->asArray());
 		LOG(DEBUG) << "Offset from joint translation is: " + showarrayasstring(removejointtranslation->translation()->asArray());
 
 		////////// add occurrences from other stuff to this new stuff;
@@ -268,24 +211,32 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 						thisoccname = thisoccname + "+" + thisoccnamelist[k];
 					}
 				LOG(INFO) << "\tTMS::: getting the tm for:" + thisoccname;
-				for (size_t l = 1; l < allOccs->count(); l++) //for (l in range(0, allOccs.count)) {
+				for (size_t l = 0; l < allOccs->count(); l++) //for (l in range(0, allOccs.count)) {
 					{   				
 					if (allOccs->item(l)->fullPathName() == thisoccname)
 						{
 							//then i want to multiply their matrices!;
 							Ptr<Matrix3D> lasttm = allOccs->item(l)->transform()->copy();
 							newrotl.push_back(lasttm);
-							LOG(DEBUG) << allOccs->item(l)->fullPathName();
-							LOG(DEBUG) << "\twith tm:" + showarrayasstring(lasttm->asArray());
-							LOG(DEBUG) << "\twith translation is:" + showarrayasstring(lasttm->translation()->asArray());
+							LOG(DEBUG) << allOccs->item(l)->fullPathName() << std::endl
+							 << "\twith tm:" + showarrayasstring(lasttm->asArray()) << std::endl
+							 << "\twith translation is:" + showarrayasstring(lasttm->translation()->asArray());
 							//newrot.transformBy(allOccs.item(l).transform);
 						}
 					}
 				////// now that i have all the occurrences names i need to get them from allOccs(?!);				
 			}
+
 			Ptr<Matrix3D> lasttransform = occ->transform()->copy();
+			LOG(DEBUG) << "Occurrence fullpathname: " + bigprint(occ->fullPathName());
 			LOG(DEBUG) << "own tm (lasttransform) is:" + showarrayasstring(lasttransform->asArray());
 			newrotl.push_back(lasttransform);
+
+			//not sure if this should be here:
+
+			//Ptr<Matrix3D> secondJointElementDisplacement = fatherjoint->occurrenceTwo()->transform();
+			//newrotl.push_back(secondJointElementDisplacement);
+
 			//                newrot = removejointtranslation;
 			Ptr<Matrix3D> newrot = Matrix3D::create();
 			newrot->setToIdentity();
@@ -331,6 +282,7 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 			if (!isOk)
 				throw "exportMgr failed to generate file" + fileName.string();
 			LOG(INFO) << "File " + fileName.string() + " exported successfully";
+
 		}
 
 		//created all the components. now I need to open a new document. load them and export the whole rootcomponent as STL file.
@@ -414,17 +366,20 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		LOG(ERROR) << e.what();
 		std::string errormsg = "issues running genstl\n";
 		LOG(ERROR) << errormsg;
+		return false;
 	}
 	catch (char* msg)
 	{
 		LOG(ERROR) << msg;
+		return false;
 	}
 	catch (...) // is there an exception that is not derived from std::exception?
 	{
 		std::string errormsg = "issues running genstl";
 		LOG(ERROR) << errormsg;
+		return false;
 	}
-
+	return true;
 };
 
 void OrVec::setxyz(double xx, double yy, double zz)
