@@ -148,6 +148,48 @@ void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 	}
 }
 
+void recurse_component(Ptr<Component> myComp, std::string fullPathName, std::vector<Ptr<Matrix3D>>* newrotl, int* level) //poorman's allOccurrences method.
+{
+	int maxlevel = 20;
+	level++;
+	if (*level > maxlevel)
+		return;
+	Ptr<Occurrences> allOccs = myComp->occurrences();
+	if (!allOccs)
+		throw "error: can't get all occurrences";
+
+	std::vector<std::string> pathsplit = splitstr(fullPathName, "+");
+	
+	std::string	thisoccname = pathsplit[0];
+
+	LOG(INFO) << "\tTMS::: getting the tm for:" + thisoccname;
+
+	for (size_t l = 0; l < allOccs->count(); l++) //for (l in range(0, allOccs.count)) {
+	{
+		if (allOccs->item(l)->fullPathName() == thisoccname)
+		{
+			//then i want to multiply their matrices!;
+			Ptr<Matrix3D> lasttm = allOccs->item(l)->transform()->copy();
+			newrotl->push_back(lasttm);
+			LOG(DEBUG) << "level" << std::to_string(*level) << allOccs->item(l)->fullPathName() << std::endl
+				<< "\twith tm:" + showarrayasstring(lasttm->asArray()) << std::endl
+				<< "\twith translation is:" + showarrayasstring(lasttm->translation()->asArray());
+			if (pathsplit.size() > 1)
+			{
+				std::string newfullpathname = "";
+				for (size_t k = 1; k < pathsplit.size(); k++)
+				{
+					newfullpathname = newfullpathname + "+" + pathsplit[k];
+				}
+				recurse_component(allOccs->item(l)->component(), newfullpathname, newrotl, level);
+			}
+			break;
+		}
+	}			   		 	  	  
+
+};
+
+
 bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Ptr<Design> _design, Ptr<Application> _app)
 {
 	//LOG(ERROR) << "not implemented!";
@@ -196,6 +238,23 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		//std::string myfunnystring3 = "some++weird";
 		//std::vector<std::string> a3 = splitstr(myfunnystring3, "+");
 		//LOG(INFO) << "my string split: " + showarrayasstring(a3);
+
+		//so, here is the thing: I believe there is a hierarchical displacement resolution going on here, 
+		//like an onion and I need to trasverse the hierarchy as well to get the real joint translation.
+		// this is tricky and involves another nested for loop, just as we need the ones to get the occurrences transforms.
+		//or I am wrong. 
+
+		Ptr<Matrix3D> secondJointElementDisplacement;// = fatherjoint->occurrenceTwo()->transform();
+
+		
+		std::vector<Ptr<Matrix3D>> jointtmMat;
+		int level = 0;
+		
+		//&(jointtmMat) = new std::vector<Ptr<Matrix3D>>;
+		recurse_component(rootComp, fatherjoint->occurrenceOne()->fullPathName(), &jointtmMat, &level);
+
+		//now I need to multiply all of that. either forwards or backwards, dunno yet. 
+
 
 		std::vector<Ptr<Matrix3D>> it;
 		for (int i = 0; i< group.size();i++)
