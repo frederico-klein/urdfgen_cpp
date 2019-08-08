@@ -37,6 +37,8 @@ void ULink::genfatherjoint(UJoint joint)
 		double yy = fatherjoint->occurrenceTwo()->transform()->translation()->y();
 		double zz = fatherjoint->occurrenceTwo()->transform()->translation()->z();
 
+		LOG(DEBUG) << "\n full transformation matrix is" << showarrayasstring(fatherjoint->occurrenceTwo()->transform()->asArray());
+
 		double dxx = joint.origin.x - xx;
 		double dyy = joint.origin.y - yy;
 		double dzz = joint.origin.z - zz;
@@ -44,7 +46,7 @@ void ULink::genfatherjoint(UJoint joint)
 		LOG(DEBUG) << "From link2:\nlink: " << name << " origin is:" << xx << "," << yy << "," << zz;
 
 		LOG(DEBUG) << "Difference:\nlink: " << name << " origin is:" << dxx << "," << dyy << "," << dzz;
-		coordinatesystem.setxyz(dxx,dyy,dzz);
+		//coordinatesystem.setxyz(dxx,dyy,dzz);
 	}
 };
 
