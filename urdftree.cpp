@@ -1,6 +1,7 @@
 #include "urdftree.h"
 #include "ujl.h"
 #include "inc/easylogging/easylogging++.h"
+#include "shared_funcs.h"
 
 const int MAX_OP = 10;
 
@@ -132,8 +133,8 @@ pair<string, vector<UElement*>> UrdfTree::allElements()
 
 std::string UrdfTree::genTree()
 {
-	string lotsofequals ="=============================================================================";
-	LOG(INFO) << "\n"+lotsofequals+"\n"+lotsofequals + "\n"+ " starting gentree " + "\n" + lotsofequals + "\n" + lotsofequals + "\n";
+	
+	LOG(INFO) << bigprint("starting gentree");
 
 
 	report = "Report:\n";
@@ -202,7 +203,7 @@ std::string UrdfTree::genTree()
 		report += "reached maximum number of operations. unexpected. check code!";
 	}
 	LOG(INFO) << report;
-	LOG(INFO) << "\n" + lotsofequals + "\n" + lotsofequals + "\n" + " finishing gentree " + "\n" + lotsofequals + "\n" + lotsofequals + "\n";
+	LOG(INFO) << bigprint(" finishing gentree ");
 	return report;
 }
 void UrdfTree::rmElement(int elnum)

@@ -148,7 +148,7 @@ public:
 	OrVec coordinatesystem;
 	bool isVirtual = true;
 	std::vector<Ptr<Occurrence>> group; //vector of what?
-
+	Ptr<Joint> fatherjoint;
 	//what I think is unused
 
 	std::string parent;
@@ -157,7 +157,7 @@ public:
 	std::string getitems();
 	void genfatherjoint(UJoint joint);
 	void makexml(TiXmlElement*, std::string);
-	void genlink(fs::path, fs::path, Ptr<Design>, Ptr<Application>);
+	bool genlink(fs::path, fs::path, Ptr<Design>, Ptr<Application>);
 
 private:
 	//groupmembers

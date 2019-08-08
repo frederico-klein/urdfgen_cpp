@@ -99,6 +99,7 @@
     <ClCompile Include="inc\tinyxml.cpp" />
     <ClCompile Include="inc\tinyxmlerror.cpp" />
     <ClCompile Include="inc\tinyxmlparser.cpp" />
+    <ClCompile Include="shared_funcs.cpp" />
     <ClCompile Include="ujl.cpp" />
     <ClCompile Include="urdftree.cpp" />
     <ClCompile Include="urdftree.h" />
@@ -114,6 +115,7 @@
     </Text>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="shared_funcs.h" />
     <ClInclude Include="inc\easylogging\easylogging++.h" />
     <ClInclude Include="ujl.h" />
     <ClInclude Include="inc\tinystr.h" />

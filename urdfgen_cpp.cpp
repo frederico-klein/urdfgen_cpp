@@ -1,4 +1,3 @@
-
 #include <Core/CoreAll.h>
 #include <Fusion/FusionAll.h>
 #include <CAM/CAMAll.h>
@@ -9,9 +8,7 @@
 
 #include <iostream>
 #include <fstream>
-
-
-#include "inc/easylogging/easylogging++.h"
+#include "shared_funcs.h"
 
 INITIALIZE_EASYLOGGINGPP;
 
@@ -26,7 +23,7 @@ Ptr<Design> design;
 
 // this file has mostly gui things.
 
-const bool runfrommenu = false; // this allowed to be run as script as well. TODO: KEEP? 
+const bool runfrommenu = true; // this allowed to be run as script as well. TODO: KEEP? 
 
 class MotherShip
 {
@@ -36,7 +33,9 @@ public:
 	//missing! jtctrl lastjoint is maybe not a ujoint object?
 	UJoint lastjoint;
 	UrdfTree thistree;
-	MotherShip() {};
+	MotherShip() {
+		rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1, lastrow = 0;	
+	};
 	~MotherShip() {};
 	void addRowToTable(Ptr<TableCommandInput>, std::string);
 } _ms;
@@ -135,8 +134,8 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 	{
 		islink = true;
 		numlinks += 1;
-		if (elnum == 0)
-			elname = "base";
+		if (elnum == 0 || thistree.allLinks().second.size() ==0 )// thistree.elementsDict.size()==0) // should check for number of links actually
+			elname = "base"; //first link has to be named base
 		else
 			elname = "link" + std::to_string(numlinks);
 	}
@@ -173,23 +172,6 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 
 };
 
-bool replace(std::string& str, const std::string& from, const std::string& to) {
-	size_t start_pos = str.find(from);
-	if (start_pos == std::string::npos)
-		return false;
-	str.replace(start_pos, from.length(), to);
-	return true;
-}
-
-void replaceAll(std::string& str, const std::string& from, const std::string& to) { //thnx stoverflow
-	if (from.empty())
-		return;
-	size_t start_pos = 0;
-	while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
-		str.replace(start_pos, from.length(), to);
-		start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
-	}
-}
 
 vector<fs::path> createpaths(string _ms_packagename)
 {
@@ -800,7 +782,14 @@ public:
 			if (currLink)
 			{
 				LOG(INFO) << "calling genlink for link:" + currLink->name;
-				currLink->genlink(mypaths[1], mypaths[2], design, app);
+				bool succeeded = currLink->genlink(mypaths[1], mypaths[2], design, app);
+				if (!succeeded)
+				{
+					string errormsg = "failed generating link" + currLink->name;
+					LOG(ERROR) << errormsg;
+					ui->messageBox(errormsg);
+					return;
+				}
 			}
 			el.second->makexml(robot_root, _ms.packagename); //this should execute the derived class's makexml, i presume
 		};
@@ -824,6 +813,8 @@ public:
 	{
 		//if i had logging I would need to stop it here. probably just need to reset _ms
 		MotherShip _ms;
+		(&_ms)->~MotherShip();
+		new (&_ms) MotherShip();
 		//adsk::terminate(); terminate will unload it. i want to keep unloading it to test it, but uncomment next line before commiting to master
 		
 		//if (!runfrommenu)
