@@ -754,8 +754,8 @@ class UrdfGenOnExecuteEventHander : public adsk::core::CommandEventHandler
 public:
 	void notify(const Ptr<CommandEventArgs>& eventArgs) override
 	{
-		ui->messageBox("Executing! ");
-		LOG(INFO) << "Executing! ";
+		//ui->messageBox("Executing! ");
+		LOG(INFO) << bigprint("Executing! ");
 
 		vector<fs::path> mypaths = createpaths(_ms.packagename, _ms.thisscriptpath);
 		// lets create a simple xml to make sure we understand tinyxml sintax
@@ -836,7 +836,7 @@ public:
 		//adsk::terminate(); terminate will unload it. i want to keep unloading it to test it, but uncomment next line before commiting to master
 		
 		//if (!runfrommenu)
-		LOG(INFO) << "Bye bye!";
+		LOG(INFO) << bigprint("Bye bye!");
 		adsk::terminate();
 	}
 };
@@ -1027,7 +1027,7 @@ public:
 	{
 		if (eventArgs)
 		{
-			LOG(INFO) << "Hello from genSTL ";
+			LOG(INFO) << bigprint("Hello from genSTL ");
 			try
 			{
 				//need to update default design!

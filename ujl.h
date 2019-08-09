@@ -147,6 +147,7 @@ public:
 	Collision collision;
 	OrVec coordinatesystem;
 	bool isVirtual = true;
+	bool isBase = false;
 	std::vector<Ptr<Occurrence>> group; //vector of what?
 	Ptr<Joint> fatherjoint;
 	//what I think is unused
