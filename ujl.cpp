@@ -247,146 +247,13 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 			throw "error: can't find export manager";
 
 		Ptr<Matrix3D> removejointtranslation = Matrix3D::create();
-		//Ptr<Vector3D> translation = Vector3D::create(coordinatesystem.x, coordinatesystem.y, coordinatesystem.z);
-		Ptr<Vector3D> translation = Vector3D::create(-coordinatesystem.x, -coordinatesystem.y, -coordinatesystem.z);
+		Ptr<Vector3D> translation = Vector3D::create(coordinatesystem.x, coordinatesystem.y, coordinatesystem.z);
+		//Ptr<Vector3D> translation = Vector3D::create(-coordinatesystem.x, -coordinatesystem.y, -coordinatesystem.z);
 		removejointtranslation->setToIdentity();
 		removejointtranslation->translation(translation);
 		LOG(DEBUG) << "\nOffset from joint tm is: " + showarrayasstring(removejointtranslation->asArray());
 		LOG(DEBUG) << "Offset from joint translation is: " + showarrayasstring(removejointtranslation->translation()->asArray());
 
-		////////// add occurrences from other stuff to this new stuff;
-
-		//let's test the occurrence text splitter thingy:
-
-		//std::string myfunnystring = "some+weird+string+with_a_lot+of+plusses!";
-		//std::vector<std::string> a = splitstr(myfunnystring,"+");
-		//LOG(INFO) << "my string split: " + showarrayasstring(a);
-
-		//std::string myfunnystring2 = "some+weird";
-		//std::vector<std::string> a2 = splitstr(myfunnystring2, "+");
-		//LOG(INFO) << "my string split: " + showarrayasstring(a2);
-
-		//std::string myfunnystring3 = "some++weird";
-		//std::vector<std::string> a3 = splitstr(myfunnystring3, "+");
-		//LOG(INFO) << "my string split: " + showarrayasstring(a3);
-
-
-
-
-		//so, here is the thing: I believe there is a hierarchical displacement resolution going on here, 
-		//like an onion and I need to trasverse the hierarchy as well to get the real joint translation.
-		// this is tricky and involves another nested for loop, just as we need the ones to get the occurrences transforms.
-		//or I am wrong. 
-		Ptr<Matrix3D> secondJointElementDisplacement1 = Matrix3D::create();// = fatherjoint->occurrenceTwo()->transform();
-		secondJointElementDisplacement1->setToIdentity();
-
-		Ptr<Matrix3D> secondJointElementDisplacement2 = Matrix3D::create();// = fatherjoint->occurrenceTwo()->transform();
-		secondJointElementDisplacement2->setToIdentity();
-
-		Ptr<Matrix3D> secondJointElementDisplacement3 = Matrix3D::create();// = fatherjoint->occurrenceTwo()->transform();
-		secondJointElementDisplacement3->setToIdentity();
-
-		Ptr<Matrix3D> thistranform_ = Matrix3D::create();
-		thistranform_->setToIdentity();
-
-		Ptr<Matrix3D> thistranform_2 = Matrix3D::create();
-		thistranform_2->setToIdentity();
-
-		Ptr<Matrix3D> thistranform_3 = Matrix3D::create();
-		thistranform_3->setToIdentity();
-
-		if(!isBase) //if it is the base then we have no father joint and this will break
-		{
-			LOG(DEBUG) << semibigprint("begin options");
-			std::vector<Ptr<Matrix3D>>* jointtmMat = new std::vector<Ptr<Matrix3D>>;
-
-			int level = 0;
-
-			/*int* level = new int();
-			*level = 0;*/
-
-			//&(jointtmMat) = new std::vector<Ptr<Matrix3D>>;
-			//this is breaking, let's split it into pieces to see why.
-			Ptr<Occurrence> oOne = fatherjoint->occurrenceOne();
-			if (!oOne)
-				throw "can't get occurrenceOne from fatherjoint!!";
-
-			std::string thejointfullname = oOne->fullPathName();
-			LOG(DEBUG) << "joint full path:" << thejointfullname;
-			recurse_component(rootComp, thejointfullname, jointtmMat, &level);
-			//recurse_component(rootComp, thejointfullname, jointtmMat, level);
-
-			//now I need to multiply all of that. either forwards or backwards, dunno yet. 
-
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-			LOG(DEBUG) << semibigprint("option1: reverse iterator secondJointElementDisplacement");
-
-			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = jointtmMat->rbegin(); newrotlj != jointtmMat->rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
-			{
-				auto j = std::distance(jointtmMat->rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
-				LOG(DEBUG) << "\nj:" + std::to_string(j) + "secondJointElementDisplacement1 is:" + showarrayasstring(secondJointElementDisplacement1->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
-				secondJointElementDisplacement1->transformBy(*newrotlj);
-				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
-				//newrot->transformBy(newrotl[j]);
-			}
-			//secondJointElementDisplacement1->transformBy(removejointtranslation);
-
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-			LOG(DEBUG) << semibigprint("option2: forward iterator secondJointElementDisplacement");
-
-			for (std::vector<Ptr<Matrix3D>>::iterator newrotlj = jointtmMat->begin(); newrotlj != jointtmMat->end(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
-			{
-				auto j = std::distance(jointtmMat->begin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
-				LOG(DEBUG) << "\nj:" + std::to_string(j) + "secondJointElementDisplacement2 is:" + showarrayasstring(secondJointElementDisplacement2->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
-				secondJointElementDisplacement2->transformBy(*newrotlj);
-				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
-				//newrot->transformBy(newrotl[j]);
-			}
-			//secondJointElementDisplacement2->transformBy(removejointtranslation);
-
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-			LOG(DEBUG) << semibigprint("option3: only last term of jointtmMat is secondJointElementDisplacement");
-			secondJointElementDisplacement3->transformBy((*jointtmMat).back());
-			LOG(DEBUG) << "secondJointElementDisplacement3 is:" + showarrayasstring(secondJointElementDisplacement3->asArray());
-
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-			//option4 only the translation from seconJointElementDisplacement?
-			LOG(DEBUG) << semibigprint("option4: only translation bit from last term of jointtmMat is secondJointElementDisplacement");
-
-			Ptr<Vector3D> thistranslation_ = secondJointElementDisplacement3->translation();
-			thistranform_->translation(thistranslation_);
-			LOG(DEBUG) << "thistranform_ is:" + showarrayasstring(thistranform_->asArray());
-
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-			//option5 only the translation from seconJointElementDisplacement?
-			LOG(DEBUG) << semibigprint("option5: only negative translation bit from last term of jointtmMat is secondJointElementDisplacement");
-
-			Ptr<Vector3D> thistranslation_2 = Vector3D::create(+(secondJointElementDisplacement3->translation()->x()), -(secondJointElementDisplacement3->translation()->y()), -(secondJointElementDisplacement3->translation()->z()));
-			thistranform_2->translation(thistranslation_2);
-
-			LOG(DEBUG) << "thistranform_2 is:" + showarrayasstring(thistranform_2->asArray());
-
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-			//option6 only the translation from seconJointElementDisplacement?
-			LOG(DEBUG) << semibigprint("option6: same translation bit, repeated, because maybe we need to translate the displacement vector????????????? from last term of jointtmMat is secondJointElementDisplacement");
-
-			Ptr<Vector3D> thistranslation_3 = secondJointElementDisplacement3->translation();
-			std::vector<double> mycoords2 = { thistranslation_3->x(), thistranslation_3->x(), thistranslation_3->x() };
-			//thistranform_3->translation()->setWithArray(mycoords);
-			thistranform_3->translation()->x(-(thistranslation_3->x())); //i'm expecting at least one of them to be aligned.
-			thistranform_3->translation()->y(-(thistranslation_3->x()));
-			thistranform_3->translation()->z(-(thistranslation_3->x()));
-			LOG(DEBUG) << "thistranform_3 is:" + showarrayasstring(thistranform_3->asArray());
-
-
-			LOG(DEBUG) << semibigprint("end options");
-		}
 		//TODO:
 		//check this. I think I need one it per group element, so a vector of the current it
 		//then resolve when trasversing the group to the appropriate it(i)
@@ -395,132 +262,63 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		for (int i = 0; i< group.size();i++)
 		{
 			auto occ = group[i];
-			std::vector<std::string> pathsplit = splitstr(occ->fullPathName(),"+");
+
 
 			std::vector<Ptr<Matrix3D>> newrotl;
-			for (size_t j =1; j<pathsplit.size();j++) 
-			{
-				std::vector<std::string> thisoccnamelist = std::vector(pathsplit.begin(),pathsplit.begin()+j);
-				std::string	thisoccname = thisoccnamelist[0];
-				for (size_t k = 1; k < thisoccnamelist.size(); k++)	//		for ( k in range(1, len(thisoccnamelist)) )
-					{
-						thisoccname = thisoccname + "+" + thisoccnamelist[k];
-					}
-				LOG(INFO) << "\tTMS::: getting the tm for:" + thisoccname;
-				for (size_t l = 0; l < allOccs->count(); l++) //for (l in range(0, allOccs.count)) {
-					{   				
-					if (allOccs->item(l)->fullPathName() == thisoccname)
-						{
-							//then i want to multiply their matrices!;
-							Ptr<Matrix3D> lasttm = allOccs->item(l)->transform()->copy();
-							newrotl.push_back(lasttm);
-							LOG(DEBUG) << allOccs->item(l)->fullPathName() << std::endl
-							 << "\twith tm:" + showarrayasstring(lasttm->asArray()) << std::endl
-							 << "\twith translation is:" + showarrayasstring(lasttm->translation()->asArray());
-							//newrot.transformBy(allOccs.item(l).transform);
-						}
-					}
-				////// now that i have all the occurrences names i need to get them from allOccs(?!);				
-			}
+
+			//std::vector<std::string> pathsplit = splitstr(occ->fullPathName(), "+");
+			//for (size_t j =1; j<pathsplit.size();j++) 
+			//{
+			//	std::vector<std::string> thisoccnamelist = std::vector(pathsplit.begin(),pathsplit.begin()+j);
+			//	std::string	thisoccname = thisoccnamelist[0];
+			//	for (size_t k = 1; k < thisoccnamelist.size(); k++)	//		for ( k in range(1, len(thisoccnamelist)) )
+			//		{
+			//			thisoccname = thisoccname + "+" + thisoccnamelist[k];
+			//		}
+			//	LOG(INFO) << "\tTMS::: getting the tm for:" + thisoccname;
+			//	for (size_t l = 0; l < allOccs->count(); l++) //for (l in range(0, allOccs.count)) {
+			//		{   				
+			//		if (allOccs->item(l)->fullPathName() == thisoccname)
+			//			{
+			//				//then i want to multiply their matrices!;
+			//				Ptr<Matrix3D> lasttm = allOccs->item(l)->transform()->copy();
+			//				newrotl.push_back(lasttm);
+			//				LOG(DEBUG) << allOccs->item(l)->fullPathName() << std::endl
+			//				 << "\twith tm:" + showarrayasstring(lasttm->asArray()) << std::endl
+			//				 << "\twith translation is:" + showarrayasstring(lasttm->translation()->asArray());
+			//				//newrot.transformBy(allOccs.item(l).transform);
+			//			}
+			//		}
+			//	////// now that i have all the occurrences names i need to get them from allOccs(?!);				
+			//}
 
 			Ptr<Matrix3D> lasttransform = occ->transform()->copy();
 			LOG(DEBUG) << "Occurrence fullpathname: " + semibigprint(occ->fullPathName());
 			LOG(DEBUG) << "own tm (lasttransform) is:" + showarrayasstring(lasttransform->asArray());
-			newrotl.push_back(lasttransform);
-
-			//not sure if this should be here:
-
-			//Ptr<Matrix3D> secondJointElementDisplacement = fatherjoint->occurrenceTwo()->transform();
-			//newrotl.push_back(secondJointElementDisplacement);
-			//dochira? none?
-			//newrotl.push_back(secondJointElementDisplacement1);
-			//newrotl.push_back(secondJointElementDisplacement2);
-			//newrotl.push_back(secondJointElementDisplacement3);
-			//newrotl.push_back(thistranform_);
-
-
+			//newrotl.push_back(lasttransform);
 
 			//                newrot = removejointtranslation;
 			Ptr<Matrix3D> newrot = Matrix3D::create();
 			newrot->setToIdentity();
 
-			// trying to uncomment the largest amount of lines the fastest without causing compile/runtime errors
-
 			//checking indexing
 			LOG(DEBUG) << "newrotl.size()=" + std::to_string(newrotl.size());
-			//for (int j = newrotl.size(); j < 0; --j) 
-			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = newrotl.rbegin();newrotlj != newrotl.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
+
+			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = newrotl.rbegin();newrotlj != newrotl.rend(); ++newrotlj) 
 			{
 				auto j = std::distance(newrotl.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
 				LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
-				newrot->transformBy(*newrotlj);
-				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
-				//newrot->transformBy(newrotl[j]);
+				//newrot->transformBy(*newrotlj);
 			}
 
-			//now with the new changes, it is either the forward or backwards (or maybe only the last term?)
+			newrot->transformBy(removejointtranslation);
 
-			bool removebefore = false;
-			int mycase = 5;
-
-			if (removebefore) {
-				newrot->transformBy(removejointtranslation);
-			}
-			
-
-			switch (mycase)
-			{
-			case 0:
-				LOG(DEBUG) << "not transforming after removejoint translation";
-				break;
-			case 1:
-				LOG(DEBUG) << "transforming after removejoint translation";
-				LOG(DEBUG) << "using matrix transform secondJointElementDisplacement1" << showarrayasstring(secondJointElementDisplacement1->asArray());
-				newrot->transformBy(secondJointElementDisplacement1);
-				break;
-			case 2:
-				LOG(DEBUG) << "transforming after removejoint translation";
-				LOG(DEBUG) << "using matrix transform secondJointElementDisplacement2" << showarrayasstring(secondJointElementDisplacement2->asArray());
-				newrot->transformBy(secondJointElementDisplacement2);
-				break;
-			case 3:
-				LOG(DEBUG) << "transforming after removejoint translation";
-				LOG(DEBUG) << "using matrix transform secondJointElementDisplacement3" << showarrayasstring(secondJointElementDisplacement3->asArray());
-				newrot->transformBy(secondJointElementDisplacement3);
-				break;
-			case 4:
-				LOG(DEBUG) << "transforming after removejoint translation";
-				LOG(DEBUG) << "using matrix transform thistranform_" << showarrayasstring(thistranform_->asArray());
-				newrot->transformBy(thistranform_);
-				break;
-			case 5:
-				LOG(DEBUG) << "transforming after removejoint translation";
-				LOG(DEBUG) << "using matrix transform thistranform_2 with negative terms" << showarrayasstring(thistranform_->asArray());
-				newrot->transformBy(thistranform_2);
-				break;
-
-			case 6:
-				LOG(DEBUG) << "transforming after removejoint translation";
-				LOG(DEBUG) << "??? what am I even doing?" << showarrayasstring(thistranform_->asArray());
-				newrot->transformBy(thistranform_3);
-				break;
-
-			default:
-				LOG(WARNING) << "case not found!!not transforming after removejoint translation";
-				break;
-			}
-
-			LOG(DEBUG) << "\nit transformation is:" + showarrayasstring(newrot->asArray());
 			it.push_back(newrot);
 		}
 
-
-			//		//stlname = rootComp.name.translate(None, "{!@//$");
-			//		//line = re.sub("[!@//$]", "", line);
 		std::string	stlname = clearupst(name);
 		LOG(INFO) << "stl name after removing weird characters:" + stlname;
-		//LOG(INFO) << "my string clearupst'ed: " + clearupst("Funny:[name(2)-8].#Hi  Purpur");
-			//		//fileName = components_directory+"/" + stlname;
+
 		for (int i =0; i< group.size();i++ )
 		{		
 			std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
