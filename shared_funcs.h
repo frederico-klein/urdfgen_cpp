@@ -23,6 +23,7 @@ bool replace(std::string&, const std::string&, const std::string&);
 void replaceAll(std::string& str, const std::string& from, const std::string& to);
 
 std::string bigprint(std::string s);
+std::string semibigprint(std::string s);
 
 template <class myType> std::string asstring(myType v)
 {

@@ -31,6 +31,13 @@ std::string bigprint(std::string s)
 
 };
 
+std::string semibigprint(std::string s)
+{
+	std::string lotsofequals = "=============================================================================";
+	return "\n" + lotsofequals + "\n" + s + "\n" + lotsofequals + "\n" ;
+
+};
+
 std::string asstring(const std::string v)
 {
 	return v;
