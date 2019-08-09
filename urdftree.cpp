@@ -236,6 +236,7 @@ TwoDic UrdfTree::gentreefindbase(std::vector<DicElement> thiselementsdict) {
 			LOG(DEBUG) << "hey found base!";
 			report += "found my base when testing. base is on row:" + std::to_string(currLink->row) + "\n";
 			currLink->coordinatesystem.isset = true; //base coordinate system is zero by default, so it is already set
+			currLink->isBase = true;
 			DicElement mybase = std::make_pair(0,currLink);
 			placedlinks.push_back(mybase);
 			thiselementsdict.erase(thiselementsdict.begin() + el->first);

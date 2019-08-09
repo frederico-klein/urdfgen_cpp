@@ -196,20 +196,20 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 
 	isVirtual = false;
 	try {
-		LOG(DEBUG) << bigprint("starting genlink for link:"+name);
+		LOG(DEBUG) << bigprint("starting genlink for link:" + name);
 		// Get the root component of the active design;
 
 		Ptr<Component> rootComp = _design->rootComponent();
 		if (!rootComp)
 			throw "error: can't find root component";
 
-		Ptr<Occurrences> allOccs = rootComp->occurrences();
-		if (!allOccs)
-			throw "error: can't get all occurrences";
-
-		//Ptr<OccurrenceList> allOccs = rootComp->allOccurrences();
+		//Ptr<Occurrences> allOccs = rootComp->occurrences();
 		//if (!allOccs)
 		//	throw "error: can't get all occurrences";
+
+		Ptr<OccurrenceList> allOccs = rootComp->allOccurrences();
+		if (!allOccs)
+			throw "error: can't get all occurrences";
 
 		// create the exportManager for the original file that has the whole design;
 		Ptr<ExportManager> exportMgr = _design->exportManager();
@@ -217,7 +217,7 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 			throw "error: can't find export manager";
 
 		Ptr<Matrix3D> removejointtranslation = Matrix3D::create();
-		Ptr<Vector3D> translation = Vector3D::create(-coordinatesystem.x,-coordinatesystem.y,-coordinatesystem.z);
+		Ptr<Vector3D> translation = Vector3D::create(-coordinatesystem.x, -coordinatesystem.y, -coordinatesystem.z);
 		removejointtranslation->setToIdentity();
 		removejointtranslation->translation(translation);
 		LOG(DEBUG) << "\nOffset from joint tm is: " + showarrayasstring(removejointtranslation->asArray());
@@ -244,57 +244,58 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		// this is tricky and involves another nested for loop, just as we need the ones to get the occurrences transforms.
 		//or I am wrong. 
 
-		
-		std::vector<Ptr<Matrix3D>> jointtmMat;
-		int level = 0;
-		
-		//&(jointtmMat) = new std::vector<Ptr<Matrix3D>>;
-		recurse_component(rootComp, fatherjoint->occurrenceOne()->fullPathName(), &jointtmMat, &level);
-
-		//now I need to multiply all of that. either forwards or backwards, dunno yet. 
-
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		LOG(DEBUG) << semibigprint("option1: reverse iterator secondJointElementDisplacement");
-
 		Ptr<Matrix3D> secondJointElementDisplacement1 = Matrix3D::create();// = fatherjoint->occurrenceTwo()->transform();
 		secondJointElementDisplacement1->setToIdentity();
-
-	 	for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = jointtmMat.rbegin(); newrotlj != jointtmMat.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
-		{
-			auto j = std::distance(jointtmMat.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
-			LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(secondJointElementDisplacement1->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
-			secondJointElementDisplacement1->transformBy(*newrotlj);
-			//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
-			//newrot->transformBy(newrotl[j]);
-		}
-		secondJointElementDisplacement1->transformBy(removejointtranslation);
-
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		LOG(DEBUG) << semibigprint("option2: forward iterator secondJointElementDisplacement");
 
 		Ptr<Matrix3D> secondJointElementDisplacement2 = Matrix3D::create();// = fatherjoint->occurrenceTwo()->transform();
 		secondJointElementDisplacement2->setToIdentity();
 
-		for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = jointtmMat.rbegin(); newrotlj != jointtmMat.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
-		{
-			auto j = std::distance(jointtmMat.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
-			LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(secondJointElementDisplacement2->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
-			secondJointElementDisplacement2->transformBy(*newrotlj);
-			//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
-			//newrot->transformBy(newrotl[j]);
-		}
-		secondJointElementDisplacement2->transformBy(removejointtranslation);
-
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		LOG(DEBUG) << semibigprint("option3: only last term of jointtmMat is secondJointElementDisplacement");
-
 		Ptr<Matrix3D> secondJointElementDisplacement3 = Matrix3D::create();// = fatherjoint->occurrenceTwo()->transform();
 		secondJointElementDisplacement3->setToIdentity();
 
-		secondJointElementDisplacement3->transformBy(jointtmMat[-1]);
+		std::vector<Ptr<Matrix3D>> jointtmMat;
+		int level = 0;
+		if (!isBase)
+		{
+			//&(jointtmMat) = new std::vector<Ptr<Matrix3D>>;
+			recurse_component(rootComp, fatherjoint->occurrenceOne()->fullPathName(), &jointtmMat, &level);
+
+			//now I need to multiply all of that. either forwards or backwards, dunno yet. 
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			LOG(DEBUG) << semibigprint("option1: reverse iterator secondJointElementDisplacement");
+
+			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = jointtmMat.rbegin(); newrotlj != jointtmMat.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
+			{
+				auto j = std::distance(jointtmMat.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
+				LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(secondJointElementDisplacement1->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
+				secondJointElementDisplacement1->transformBy(*newrotlj);
+				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
+				//newrot->transformBy(newrotl[j]);
+			}
+			secondJointElementDisplacement1->transformBy(removejointtranslation);
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			LOG(DEBUG) << semibigprint("option2: forward iterator secondJointElementDisplacement");
+
+			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = jointtmMat.rbegin(); newrotlj != jointtmMat.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
+			{
+				auto j = std::distance(jointtmMat.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
+				LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(secondJointElementDisplacement2->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
+				secondJointElementDisplacement2->transformBy(*newrotlj);
+				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
+				//newrot->transformBy(newrotl[j]);
+			}
+			secondJointElementDisplacement2->transformBy(removejointtranslation);
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			LOG(DEBUG) << semibigprint("option3: only last term of jointtmMat is secondJointElementDisplacement");
+
+			secondJointElementDisplacement3->transformBy(jointtmMat.back());
+		}
 
 		std::vector<Ptr<Matrix3D>> it;
 		for (int i = 0; i< group.size();i++)
@@ -357,7 +358,7 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 				LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
 				newrot->transformBy(*newrotlj);
 				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
-				//newrot->transformBy(newrotl[j]);
+				//		newrot->transformBy(newrotl[j]);
 			}
 
 			//now with the new changes, it is either the forward or backwards (or maybe only the last term?)
@@ -379,9 +380,19 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		for (int i =0; i< group.size();i++ )
 		{		
 			std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
+			//std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stl");
 			LOG(INFO) << "saving file " + fileName.string();
 			LOG(INFO) << "from occurrence" + group[i]->fullPathName();
 			LOG(DEBUG) << "with tm:" + showarrayasstring(it[i]->asArray());
+			//Ptr<STEPExportOptions> stpOptions = exportMgr->createSTEPExportOptions(fileName.string(), group[i]); //exporting the occurrence does not work. 
+			//Ptr<STLExportOptions> stlOptions = exportMgr->createSTLExportOptions(group[i]); //exporting the occurrence works, but there is no function to load it. this would work for khaian's drawings because everything is well scoped, but if you want to choose more than one occurrence it would fail, because we can't put them together. 
+			//stlOptions->filename(fileName.string());
+			//
+			//if (!stlOptions)
+			//	throw "error: can't set stl export options";
+
+			//bool isOk = exportMgr->execute(stlOptions);
+
 			Ptr<STEPExportOptions> stpOptions = exportMgr->createSTEPExportOptions(fileName.string(), group[i]->component());
 			if (!stpOptions)
 				throw "error: can't set step export options";
@@ -424,8 +435,13 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		//////// add occurrances from other stuff to this new stuff;
 		for (int i = 0; i< group.size();i++) 
 		{
+			//std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stl");
 			std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
 			LOG(INFO) << "loading file: " + fileName.string();
+			//Ptr<STLImportOptions> stlOptions = importManager->createSTLImportOptions(fileName.string()); //this does not exist, so we can't use it...
+			//if (!stlOptions)
+			//	throw "error: can't set step import options";
+			//bool isOk = importManager->importToTarget(stlOptions, rootComp2);
 			Ptr<STEPImportOptions> stpOptions = importManager->createSTEPImportOptions(fileName.string());
 			if (!stpOptions)
 				throw "error: can't set step import options";
