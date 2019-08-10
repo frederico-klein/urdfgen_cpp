@@ -3,6 +3,8 @@
 #include <Fusion/FusionAll.h>
 #include <CAM/CAMAll.h>
 #include "inc/tinyxml.h"
+#include "inc/easylogging/easylogging++.h"
+#include <filesystem>
 
 const double PI = 3.14159265359;
 
@@ -10,10 +12,12 @@ using namespace adsk::core;
 using namespace adsk::fusion;
 using namespace adsk::cam;
 
-class UrdfRoot
-{
-public:
-};
+namespace fs = std::filesystem;
+
+//class UrdfRoot
+//{
+//public:
+//};
 
 class OrVec
 {
@@ -42,21 +46,25 @@ public:
 
 class Collision
 {
+public:
 	OrVec origin;
 	std::string geometryfilename = "";
 };
 
 class Inertia
 {
+public:
 	std::string ixx, ixy, ixz, iyy, iyz, izz;
+	void set(double, double, double, double, double, double);
 };
 
 class Inertial
 {
 public:
 	OrVec origin;
-	std::string mass;
+	std::string mass = "0";
 	Inertia inertia;
+	void setall(double, double, double, double, double, double, double);
 };
 
 class Limit
@@ -72,10 +80,14 @@ class UElement {
 public:
 	int row;
 	std::string name;
+
 	//perhaps unused
 	int level;
 	virtual std::string getitems() { return "not implemented"; };
-	virtual void makexml() {}; 
+	virtual void makexml(TiXmlElement*, std::string) 
+	{
+		LOG(DEBUG) << "UELement virtual makexml function was called!";
+	};
 	UElement() {};
 	//UElement(UElement&) = default;
 	~UElement() {};
@@ -111,10 +123,10 @@ public:
 		isset = false;
 	};
 	~UJoint() {};
-	std::string setjoint(Ptr<Joint> joint); ////////// this is super incomplete as far as logging goes. we need a solution. either a shared object to collect errors (sounds more obnoxious than setting up logging, really...)
+	void setjoint(Ptr<Joint> joint); ////////// this is super incomplete as far as logging goes. we need a solution. either a shared object to collect errors (sounds more obnoxious than setting up logging, really...)
 	void setrealorigin(OrVec);
 	std::string getitems();
-	void makexml(UrdfRoot);
+	void makexml(TiXmlElement*, std::string);
 
 	// when sixdegree is working!
 	void setjoint(Ptr<Joint> joint, Ptr<CommandInput> cmdInput, Ptr<CommandInputs> inputs);
@@ -135,8 +147,9 @@ public:
 	Collision collision;
 	OrVec coordinatesystem;
 	bool isVirtual = true;
+	bool isBase = false;
 	std::vector<Ptr<Occurrence>> group; //vector of what?
-
+	Ptr<Joint> fatherjoint;
 	//what I think is unused
 
 	std::string parent;
@@ -144,6 +157,8 @@ public:
 	//methods
 	std::string getitems();
 	void genfatherjoint(UJoint joint);
+	void makexml(TiXmlElement*, std::string);
+	bool genlink(fs::path, fs::path, Ptr<Design>, Ptr<Application>);
 
 private:
 	//groupmembers

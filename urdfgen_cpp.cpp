@@ -1,13 +1,21 @@
-
 #include <Core/CoreAll.h>
 #include <Fusion/FusionAll.h>
 #include <CAM/CAMAll.h>
 #include "urdftree.h"
 #include "ujl.h"
 
+#include <filesystem>
+
+#include <iostream>
+#include <fstream>
+#include "shared_funcs.h"
+
+INITIALIZE_EASYLOGGINGPP;
+
 using namespace adsk::core;
 using namespace adsk::fusion;
 using namespace adsk::cam;
+namespace fs = std::filesystem;
 
 Ptr<Application> app;
 Ptr<UserInterface> ui;
@@ -20,16 +28,34 @@ const bool runfrommenu = true; // this allowed to be run as script as well. TODO
 class MotherShip
 {
 public:
-	int rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1;
+	int rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1,lastrow = 0;
 	std::string packagename = "mypackage";
+	fs::path thisscriptpath;
 	//missing! jtctrl lastjoint is maybe not a ujoint object?
 	UJoint lastjoint;
 	UrdfTree thistree;
-	void setCurrEl() {};
-	MotherShip() {};
+	MotherShip() {
+		rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1, lastrow = 0;	
+
+		//setting thisscriptpath
+		
+		fs::path appdatadir = "";// getenv("USER");
+		char* buf = nullptr;
+		size_t sz = 0;
+
+		if (_dupenv_s(&buf, &sz, "APPDATA") == 0 && buf != nullptr)
+		{
+			//ui->messageBox("EnvVarName = " + std::string(buf));
+			appdatadir = buf;
+			free(buf);
+		}
+		//LOG(INFO) << "appdatadir:"+ appdatadir.string();
+		thisscriptpath = appdatadir / "Autodesk" / "Autodesk Fusion 360" / "API" / "AddIns" / "urdfgen_cpp"; //////// TODO: change xcopy command to have the resources also available in the webdeploy folder!!!
+		//LOG(INFO) << "This script's path: "+ (thisscriptpath.string());
+
+	};
 	~MotherShip() {};
-	void addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint);
-	void setcurrel(int, Ptr<TextBoxCommandInput>, Ptr<SelectionCommandInput>, Ptr<SelectionCommandInput>);
+	void addRowToTable(Ptr<TableCommandInput>, std::string);
 } _ms;
 
 class SixDegree : OrVec
@@ -108,13 +134,6 @@ private:
 
 };
 
-void UrdfTree::rmElement(int elnum)
-{
-	elementsDict.erase(elementsDict.begin() + elnum);
-	_ms.rowNumber -= 1;
-};
-
-
 void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string LinkOrJoint)
 {
 	//Adds element to tree, i.e., row to table
@@ -133,8 +152,8 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 	{
 		islink = true;
 		numlinks += 1;
-		if (elnum == 0)
-			elname = "base";
+		if (elnum == 0 || thistree.allLinks().second.size() ==0 )// thistree.elementsDict.size()==0) // should check for number of links actually
+			elname = "base"; //first link has to be named base
 		else
 			elname = "link" + std::to_string(numlinks);
 	}
@@ -158,11 +177,11 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 	Ptr<CommandInput> slbutInput = cmdInputs->addBoolValueInput("butselectClick" + std::to_string(elnum), "Select", false, "", true);
 
     // Add the inputs to the table.
-	int row = tableInput->rowCount();
-	tableInput->addCommandInput(elnnumInput, row, 0);
-	tableInput->addCommandInput(JorLInput, row, 1);
-	tableInput->addCommandInput(stringInput, row, 2);
-	tableInput->addCommandInput(slbutInput, row, 3);
+	lastrow = tableInput->rowCount();
+	tableInput->addCommandInput(elnnumInput, lastrow, 0);
+	tableInput->addCommandInput(JorLInput, lastrow, 1);
+	tableInput->addCommandInput(stringInput, lastrow, 2);
+	tableInput->addCommandInput(slbutInput, lastrow, 3);
 
 	// Increment a counter used to make each row unique.
 
@@ -171,44 +190,120 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 
 };
 
-void MotherShip::setcurrel(int elementtobedefined, Ptr<TextBoxCommandInput> debugInput, Ptr<SelectionCommandInput> linkselInput, Ptr<SelectionCommandInput> jointselInput) 
+
+vector<fs::path> createpaths(string _ms_packagename, fs::path thisscriptpath)
 {
-	//this updates the UI and the debugbox
-	thistree.setCurrentEl(elementtobedefined);
-	if (thistree.currentEl)
-	{
-		int row = thistree.currentEl->row;
-		if (row != oldrow)
+	vector<fs::path> returnvectstr;
+
+	try {
+		LOG(DEBUG) << "called createpaths";
+		fs::path userdir = "";// getenv("USER");
+		//fs::path appdatadir = "";// getenv("USER");
+
+		char* buf = nullptr;
+		size_t sz = 0;
+		if (_dupenv_s(&buf, &sz, "USERPROFILE") == 0 && buf != nullptr)
 		{
-			linkselInput->clearSelection();
-			jointselInput->clearSelection();
-			//now if it is a link, i want to show the appropriate stored selection
-			//first check, is it a link?
-			ULink* currLink = dynamic_cast<ULink*>(thistree.currentEl);
-			if (currLink)
-			{				
-				std::vector<Ptr<Occurrence>> group = currLink->group;
-				for (auto it = group.cbegin(); it != group.cend(); it++)
-				{
-					linkselInput->addSelection(*it);
-				}
-			}
-			//same for joints
-			UJoint* currJoint = dynamic_cast<UJoint*>(thistree.currentEl);
-			if (currJoint)
-			{
-				jointselInput->addSelection(currJoint->entity);
-			}
-
+			//ui->messageBox("EnvVarName = " + std::string(buf));
+			userdir = buf;
+			free(buf);
 		}
+		//if (_dupenv_s(&buf, &sz, "APPDATA") == 0 && buf != nullptr)
+		//{
+		//	//ui->messageBox("EnvVarName = " + std::string(buf));
+		//	appdatadir = buf;
+		//	free(buf);
+		//}
+		//string autodesk_dir = "Autodesk\\Autodesk Fusion 360\\API\\AddIns\\urdfgen_cpp"; ///very bad...
+
+		auto folderDlg = ui->createFolderDialog();
+		folderDlg->title("Choose location to save your URDF new package");
+		folderDlg->initialDirectory(userdir.string());
+		DialogResults dlgResult = folderDlg->showDialog();
+		if (dlgResult == DialogError)
+			LOG(ERROR) << "failed to create dialog";
+		if (dlgResult != DialogOK) //this 0=0 check is failing for some reason!!
+		{
+			//ui->messageBox("dialogOK is resolved to "+std::to_string(adsk::core::DialogResults::DialogOK));
+			ui->messageBox("you need to select a folder!");
+			throw std::runtime_error("Directory not selected. cannot continue.\nError code: DialogResults enum" +std::to_string(dlgResult));
+		}
+
+		fs::path outputdir = folderDlg->folder();
+		fs::path base_directory = outputdir / _ms_packagename;
+		//LOG(INFO) << "appdatadir:"+ appdatadir.string();
+		//ui->messageBox(appdatadir.string());
+		//fs::path thisscriptpath = appdatadir / "Autodesk" / "Autodesk Fusion 360" / "API" / "AddIns" / "urdfgen_cpp"; //////// TODO: change xcopy command to have the resources also available in the webdeploy folder!!!
+		LOG(INFO) << "This script's path: "+ (thisscriptpath.string());
+		//ui->messageBox(thisscriptpath.string());
+															 //fs::path thisscriptpath = fs::current_path();
+
+		//ui->messageBox(base_directory.string());
+		LOG(INFO) <<"Base directory:"+base_directory.string();
+		if (!fs::exists(base_directory))
+			fs::create_directories(base_directory); //// will create whole tree if needed
+		fs::path meshes_directory = base_directory / "meshes";
+		//ui->messageBox(meshes_directory.string());
+		fs::path components_directory = base_directory / "components";
+		//ui->messageBox(components_directory.string());
+		if (!fs::exists(meshes_directory))
+			fs::create_directory(meshes_directory);
+		if (!fs::exists(components_directory))
+			fs::create_directory(components_directory);
+		vector<string> filestochange = { "display.launch", "urdf_.rviz", "package.xml", "CMakeLists.txt" }; //actually urdf.rviz is the same, but i didnt want to make another method just to copy.when i have more files i need to copy i will do it.
+		//myfilename = "display.launch";
+		for (auto myfilename : filestochange)
+		{
+			ifstream file_in;
+			// Read in the file
+
+			auto thisfilename = thisscriptpath / "resources" / myfilename;
+			//ui->messageBox(thisfilename.string());
+			LOG(INFO)<<"Opening file:"+(thisfilename.string());
+			file_in.open(thisfilename);
+			if (!file_in)
+				LOG(ERROR) << "failed to open input file:" + thisfilename.string();
+
+			auto thisoutfilename = base_directory / myfilename;
+			ofstream file_out(thisoutfilename.string(), std::ofstream::out);
+			
+			string filedata;
+			
+			while (std::getline(file_in,filedata))
+			{
+				//if i use getline i don't need this anymore...
+				//file_in >> filedata;
+
+				// Replace the target string
+
+				replaceAll(filedata, "somepackage", _ms_packagename);
+
+				// Write the file out again
+
+				file_out << filedata << endl;
+			}
+			file_out.close();
+		}
+		returnvectstr = { base_directory, meshes_directory, components_directory };
 	}
-	std::pair<string, vector<UElement>> alllinkstrpair = thistree.allElements();
-	debugInput->text("current element: " + thistree.getCurrentElDesc() + "\n" + alllinkstrpair.first);
-
-};
-
-void otherfunc(std::string o) {
-	ui->messageBox("from otherfunc:"+o);
+	catch (const char* msg) {
+		LOG(ERROR) << msg;
+		ui->messageBox(msg);
+	}
+	catch (const std::exception& e)
+	{
+		LOG(ERROR) << e.what();
+		std::string errormsg = "issues creating folders...\n";
+		LOG(ERROR) << errormsg;
+		ui->messageBox(errormsg);
+	}
+	catch (...)
+	{
+		string errormessage = "issues creating folders!";
+		LOG(ERROR) << errormessage;
+		ui->messageBox(errormessage);
+	}
+return returnvectstr;
 };
 
 // InputChange event handler.
@@ -217,6 +312,11 @@ class UrdfGenOnInputChangedEventHander : public adsk::core::InputChangedEventHan
 public:
 	void notify(const Ptr<InputChangedEventArgs>& eventArgs) override
 	{
+		bool rows_differ = false;
+		//not efficient check, but
+		if (_ms.oldrow !=_ms.rowNumber)
+			rows_differ = true;
+
 		std::string jointname;
 		Ptr<CommandInputs> inputs = eventArgs->inputs();
 		if (!inputs)
@@ -226,32 +326,75 @@ public:
 		if (!cmdInput)
 			return;
 
-		Ptr<TableCommandInput> tableInput = inputs->itemById("table");
-		if (!tableInput)
-			return;
+		//ui->messageBox("old one"+cmdInput->id());
 
+		Ptr<TableCommandInput> tableInput = inputs->itemById("table");
+		//if (!tableInput)
+		//	return;
+		LOG_IF(!tableInput, DEBUG) << "no table input. inside a group, probably";
+
+		//ui->messageBox("1");
 		Ptr<TextBoxCommandInput> debugInput = inputs->itemById("debugbox");
+		//ui->messageBox("2");
+
+
 
 		//define the groups first:
 		Ptr<GroupCommandInput> linkgroupInput = inputs->itemById("linkgroup");
 		Ptr<GroupCommandInput> jointgroupInput = inputs->itemById("jointgroup");
+		//ui->messageBox("3");
 
+		//ui->messageBox("4");
 		Ptr<SelectionCommandInput> linkselInput;
 		Ptr<SelectionCommandInput> jointselInput;
+		Ptr<DropDownCommandInput> cln;
+		Ptr<DropDownCommandInput> pln;
+		//ui->messageBox("5");
 		//inside the group, there is no group!
-		if (!linkgroupInput) // linkgroupInput is None:			
+		if (!linkgroupInput) // linkgroupInput is None:		
+		{
+			LOG(DEBUG) << "probably inside linkgroup!";
 			linkselInput = inputs->itemById("linkselection");
+		}
 		else
 			linkselInput = linkgroupInput->children()->itemById("linkselection");
+		LOG_IF(!linkselInput, WARNING) << "linkselInput is a null pointer, either things are gonna fail, or I am inside jointgroup";
 
+		//ui->messageBox("6:: so far so good");
+		LOG(DEBUG) << "6:: so far so good";
 		//inside the group, there is no group!
 		if (!jointgroupInput) // linkgroupInput is None:			
-			jointselInput = inputs->itemById("jointselection");
+		{
+			//ui->messageBox("6.1:: so far so good");
+			if (!linkselInput) 
+			{
+				//ui->messageBox("6.2:: so far so good");
+				LOG(DEBUG) << "probably inside jointgroup!";
+				jointselInput = inputs->itemById("jointselection");
+				cln = inputs->itemById("childlinkname");
+				if (!cln)
+				{
+					ui->messageBox("cln is nope");
+					LOG(WARNING) << "cln is nope";
+				}
+				pln = inputs->itemById("parentlinkname");
+				if (!pln)
+				{
+					ui->messageBox("pln is nope");
+					LOG(WARNING) << "pln is nope";
+				}
+			}
+		}
 		else
+		{
 			jointselInput = jointgroupInput->children()->itemById("jointselection");
+			cln = jointgroupInput->children()->itemById("childlinkname");
+			pln = jointgroupInput->children()->itemById("parentlinkname");
+		}
+		//ui->messageBox("7::not here");
+		LOG_IF(!jointselInput, ERROR) << "jointselInput is a null pointer, things are gonna fail";
 
-		ui->messageBox(cmdInput->id());
-		//wait, things from the group are not calling this!
+		LOG(DEBUG) << "this command does not crash the beginning:" + cmdInput->id();
 
 		if (tableInput)
 		{
@@ -270,61 +413,65 @@ public:
 		if (cmdInput->id() == "tableLinkAdd") {
 			try {
 				_ms.addRowToTable(tableInput, "Link");
-				ui->messageBox("1");
+				//ui->messageBox("1");
 				{
 					//actually I changed addrow and removed the add element button, so I don't really need to do this.
-					Ptr<DropDownCommandInput> JorLInput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 1);
+					Ptr<DropDownCommandInput> JorLInput = tableInput->getInputAtPosition(_ms.lastrow, 1);
 					if (!JorLInput) {
-						std::string thiserror = "error getting dropdown command box in position" + std::to_string(_ms.rowNumber - 1);
+						std::string thiserror = "error getting dropdown command box in position" + std::to_string(_ms.lastrow);
 						throw thiserror;
 					}
 						
 					JorLInput->isEnabled(false); 
 				}
-				ui->messageBox("2");
-				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
+				//ui->messageBox("2");
+				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.lastrow, 2);
 				if (!thisstringinput)
 					throw "error getting row!";
-				ui->messageBox("3");
+				//ui->messageBox("3");
 				jointname = thisstringinput->value();
-				ui->messageBox("4");
+				//ui->messageBox("4");
 				//ui -> messageBox(jointname);
 				//otherfunc(jointname);
 				//_ms.thistree.addJoint("but this?", _ms.elnum - 1);
 				_ms.thistree.addLink(jointname, _ms.elnum - 1);
-				ui->messageBox("5");
+				//ui->messageBox("5");
 			}
 			catch (const char* msg) {
-				ui->messageBox(msg);
-			}
-			catch (std::string msg) {
+				LOG(ERROR) << msg;
 				ui->messageBox(msg);
 			}
 			catch (...)
 			{
-				ui->messageBox("issues adding link!");
+				string errormessage = "issues adding link!";
+				LOG(ERROR) << errormessage;
+				ui->messageBox(errormessage);
 			}
 		}
 		else if (cmdInput->id() == "tableJointAdd") {
 			try {
 				_ms.addRowToTable(tableInput, "Joint");
-				tableInput->getInputAtPosition(_ms.rowNumber - 1, 1)->isEnabled(false);
-				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.rowNumber - 1, 2);
+				tableInput->getInputAtPosition(_ms.lastrow, 1)->isEnabled(false);
+				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.lastrow, 2);
 				if (!thisstringinput)
 					throw "error getting row!";
 				jointname = thisstringinput->value();
 				//ui -> messageBox(jointname);
 				//otherfunc(jointname);
 				//_ms.thistree.addJoint("but this?", _ms.elnum - 1);
+				LOG(DEBUG) << "added joint:" + jointname;
 				_ms.thistree.addJoint(jointname, _ms.elnum - 1);
 			}
 			catch (const char* msg) {
+				LOG(ERROR) << msg;
 				ui->messageBox(msg);
 			}
 
 			catch (...)
 			{
-				ui->messageBox("issues adding joint!");
+				string errormessage = "issues adding joint!";
+				LOG(ERROR) << errormessage;
+				ui->messageBox(errormessage);
 			}
 		}
 		else if (cmdInput->id() == "tableDelete") {
@@ -332,21 +479,159 @@ public:
 				ui->messageBox("Select one row to delete.");
 			}
 			else {
-				tableInput->deleteRow(tableInput->selectedRow());
-				//and attempt
+				int elementtobedeleted = tableInput->selectedRow();
+				//first I set the current link to the one above it
+				Ptr<StringValueCommandInput> thisstringinput;
+				if (tableInput->selectedRow() != 0)
+					thisstringinput = tableInput->getInputAtPosition(tableInput->selectedRow()-1, 0);
+				else
+				{
+					//if it is the first row, we can't get the one above it
+					thisstringinput = tableInput->getInputAtPosition( 1, 0);
+				}
+				if (thisstringinput)
+				{
+					std::string oneaboveorbelownumstr = thisstringinput->value();
+					_ms.thistree.setCurrentEl(std::stoi(oneaboveorbelownumstr));
+				}
+				else
+				{
+					//table is empty
+					_ms.thistree.setCurrentEl(-1);
+				}
+
+				//now I can delete the row
+				tableInput->deleteRow(elementtobedeleted);
+				//and delete the element
+				_ms.thistree.rmElement(elementtobedeleted);
 				_ms.rowNumber -= 1;
+				
+				//I also want to update the debug message text!
+				debugInput->text(_ms.thistree.getdebugtext());
+				LOG(DEBUG) << "deleted element okay";
 			}
 		}
-		else if (cmdInput->id() == "linkselection") 
+		//ui->messageBox("is this being reached?");
+		if (cmdInput->id() == "linkselection") 
 		{
-		
-		}
-		else if (cmdInput->id() == "jointselection") {}
-		else if (cmdInput->id() == "parentlinkname") {}
-		else if (cmdInput->id() == "childlinkname") {}
-		else if (cmdInput->id() == "createtree") {}
 
-		else if (cmdInput->id() == "butselectClick") {}
+			ULink* currLink = dynamic_cast<ULink*>(_ms.thistree.currentEl);
+			if (currLink)
+			{
+				currLink->group.clear();
+				for (int i = 0; i < linkselInput->selectionCount();i++) 
+				{
+					Ptr<Occurrence> thisFusionOcc = linkselInput->selection(i)->entity();
+					LOG(DEBUG) << "adding link entity:" + thisFusionOcc->name();
+					currLink->group.push_back(linkselInput->selection(i)->entity());
+				}
+			}
+			LOG(DEBUG) << "linkselection: done ";
+			//ui->messageBox("not implemented yet");
+		}
+		else if (cmdInput->id() == "jointselection" && jointselInput->selectionCount() == 1)
+		{
+			//ui->messageBox("started");
+			Ptr<Joint> thisFusionJoint = jointselInput->selection(0)->entity();
+			LOG(DEBUG) << "adding joint entity:"+ thisFusionJoint->name();
+			//ui->messageBox("is it the cast?");
+			UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+			//ui->messageBox("is it something else?");
+			if (thisjoint)
+			{
+				thisjoint->setjoint(thisFusionJoint);
+				//thisjoint->setjoint(jointselInput->selection(0)->entity, cmdInput.id, inputs)
+			}
+			else
+			{
+				string errormsg = "the cast didn't work. it should have.";
+				LOG(ERROR) << errormsg;
+				ui->messageBox(errormsg);
+			}
+			LOG(DEBUG) << "jointselection: done ";
+			//ui->messageBox("done");
+		}
+		else if (cmdInput->id() == "parentlinkname") 
+		{
+			LOG(DEBUG) << "i am aware i am a parentlinkname control";
+			//since I changed the visibility of controls I know current element is a joint, if this is accessible
+			UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+			if (thisjoint)
+			{
+				Ptr<ListItem> dropdown_parent1 = pln->selectedItem();
+				std::string myparentlinkname = dropdown_parent1->name();
+				thisjoint->parentlink = myparentlinkname;
+				_ms.thistree.currentEl = thisjoint;
+			}
+			else
+			{
+				string errormsg = "the cast didn't work";
+				LOG(ERROR) << errormsg;
+				ui->messageBox(errormsg);
+			}
+			LOG(DEBUG) << "parentlinkname: done ";
+		}
+		else if (cmdInput->id() == "childlinkname") 
+		{
+			LOG(DEBUG) << "i am aware i am a childlinkname control";
+
+			//since I changed the visibility of controls I know current element is a joint, if this is accessible
+			UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+			if (thisjoint)
+			{
+				Ptr<ListItem> dropdown_child2 = cln->selectedItem();
+				std::string childlinkname = dropdown_child2->name();
+				thisjoint->childlink = childlinkname;
+				LOG(DEBUG) << "thisjointchildlink:"+ thisjoint->childlink +"\ndropdownthing:"+ dropdown_child2->name();
+				_ms.thistree.currentEl = thisjoint;
+			}
+			else
+			{
+				string errormsg = "the cast didn't work";
+				LOG(ERROR) << errormsg;
+				ui->messageBox(errormsg);
+			}
+			LOG(DEBUG) << "childlinkname: done ";
+		}
+		else if (cmdInput->id() == "createtree") 
+		{
+			linkgroupInput->isVisible(false);
+			jointgroupInput->isVisible(false);
+			ui->messageBox(_ms.thistree.genTree());
+		}		
+		else if (cmdInput->id().find("butselectClick") != std::string::npos) ///// TODO: add all other controls from table here, if we ever want to make them selectable/changeable then how it is, will break!
+		{
+		//one liner with a nameless object. I am trying to see if that string is in the name of the command (because I append numbers to those controls, so that they are unique; also, not my idea, came with the fusion example code)
+			//ui->messageBox("worked!");
+			//I want to update the debug message text here. 
+			//first we set current element
+			if (tableInput)
+			{
+				std::string num_str = cmdInput->id().substr(14); // I used to get the value of the index from the control of the selected row. I guess I can double check
+				if (tableInput->selectedRow() != -1)
+				{
+					Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(tableInput->selectedRow(), 0);
+					if (thisstringinput)
+					{
+						std::string num_str2 = thisstringinput->value();
+						//assert(num_str2 == num_str); 
+						if (num_str2 != num_str)
+						{
+							rows_differ = true;
+							//actually, getting the number from the controlname string is better, since the value of the selected row will only change after this input events are processed!
+							//ui->messageBox("numstr:" + num_str + "\nnumstr2:" + num_str2);
+							LOG(DEBUG) << "numstr:" + num_str + "\nnumstr2:" + num_str2;
+							_ms.oldrow = std::stoi(num_str);
+							_ms.rowNumber = std::stoi(num_str2);
+						}
+					}
+				}
+				_ms.thistree.setCurrentEl(std::stoi(num_str));
+				LOG(DEBUG) << "current selected element's name is:"+_ms.thistree.currentEl->name;
+				debugInput->text(_ms.thistree.getdebugtext());
+			}
+		}
+		//else if (cmdInput->id() == "butselectClick") {}
 		else if (cmdInput->id() == "packagename")
 		{
 			//true I only need to instantiate the variables before if they are needed in more than one place...
@@ -357,6 +642,109 @@ public:
 		// SO I am missing all of the things for the joint control...
 
 		//else if (cmdInput->id() == "") {}
+
+		//checks current element and updates all things!
+
+		LOG(DEBUG) << "entering the old setcurrelement from Mothership that, because of the multiple pointers needed to be passed came back here";
+		//this is not the nicest piece of code, but it will have to do. 
+		bool runonce = true;
+		while (runonce) {
+			runonce = false;
+			try {
+				if (_ms.thistree.currentEl)
+				{
+					if (rows_differ)
+					{
+						if (!linkselInput || !jointselInput)
+						{
+							//no need to throw an error here, this happens in harmless situations. i'll just break out
+							break;
+							//throw "either linkselInput or jointselInput are null. this will fail, aborting";
+						}
+						if (!linkgroupInput || !jointgroupInput)
+						{
+							//no need to throw an error here, this happens in harmless situations. i'll just break out
+							break;
+							//throw "either linkgroupInput or jointgroupInput are null. this will fail, aborting";
+						}
+						linkselInput->clearSelection();
+						jointselInput->clearSelection();
+						//is it a link?
+						ULink* currLink = dynamic_cast<ULink*>(_ms.thistree.currentEl);
+						if (currLink)
+						{
+							std::vector<Ptr<Occurrence>> group = currLink->group;
+							LOG(DEBUG) << "repopulating link selection";
+							for (auto it = group.cbegin(); it != group.cend(); it++)
+							{
+								linkselInput->addSelection(*it);
+							}
+							//we hide the joint selection
+							linkgroupInput->isVisible(true);
+							jointgroupInput->isVisible(false);
+						}
+						//same for joints
+						//ui->messageBox("ffs2");
+						UJoint* currJoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+						if (currJoint)
+						{
+							LOG(DEBUG) << "repopulating joint selection";
+							jointselInput->addSelection(currJoint->entity);
+
+							//we hide the link selection
+							linkgroupInput->isVisible(false);
+							jointgroupInput->isVisible(true);
+
+							//we set the controls for parent and child links
+
+							vector<string> alllinkgr = _ms.thistree.allLinksvec();
+
+							if (!cln || !pln)
+								throw "either cln or pln (or both!) don't exist. this will fail, aborting";
+
+							cln->listItems()->clear();
+							pln->listItems()->clear();
+
+							cln->listItems()->add(">>not set<<", true);
+							pln->listItems()->add(">>not set<<", true);
+
+							LOG(DEBUG) << "repopulating joint names";
+							for (auto linknamestr : alllinkgr)
+							{
+								bool isthischildselected = linknamestr == currJoint->childlink;
+								bool isthisparentselected = linknamestr == currJoint->parentlink;
+								cln->listItems()->add(linknamestr, isthischildselected);
+								pln->listItems()->add(linknamestr, isthisparentselected);
+							}
+
+						}
+
+					}
+				}
+				else
+				{
+					LOG(WARNING) << "could not resolve _ms.thistree.currentEl\nThis happens if there is no selected row and can usually be ignored.";
+				}
+			}
+			catch (const char* msg) {
+				LOG(ERROR) << msg;
+				ui->messageBox(msg);
+			}
+
+			catch (std::exception& e)
+			{
+				LOG(ERROR) << e.what();
+				std::string errormsg = "the update region bit failed...\n" ;
+				LOG(ERROR) << errormsg;
+				ui->messageBox(errormsg);
+			}
+			catch (...) // is there an exception that is not derived from std::exception?
+			{
+				std::string errormsg = "Error: the update region bit failed hard!";
+				LOG(ERROR) << errormsg;
+				ui->messageBox(errormsg);
+			}
+		}
 	}
 };
 
@@ -367,7 +755,72 @@ public:
 	void notify(const Ptr<CommandEventArgs>& eventArgs) override
 	{
 		ui->messageBox("Executing! ");
-	}
+		LOG(INFO) << "Executing! ";
+
+		vector<fs::path> mypaths = createpaths(_ms.packagename, _ms.thisscriptpath);
+		// lets create a simple xml to make sure we understand tinyxml sintax
+
+		TiXmlDocument urdfdoc;
+
+		//////change!!!
+		TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", "");
+		urdfdoc.LinkEndChild(decl);
+
+		TiXmlElement * robot_root = new TiXmlElement("robot");
+		robot_root->SetAttribute("name", "gummi");
+		urdfdoc.LinkEndChild(robot_root);
+
+		//TiXmlText * text = new TiXmlText("Hello World!");
+		//element->LinkEndChild(text);
+
+		//ULink base_link;
+		//base_link.makexml(robot_root, _ms.packagename);
+
+		//UJoint testjoint;
+		//testjoint.makexml(robot_root, _ms.packagename);
+
+		ULink base_link;
+		base_link.name = "base_link";
+		//base_link = Link('base_link', -1)
+		base_link.makexml(robot_root, _ms.packagename);
+#
+		UJoint setaxisjoint;
+		setaxisjoint.name = "set_worldaxis";
+		setaxisjoint.isset = true;
+		setaxisjoint.type = "fixed";
+		setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
+		setaxisjoint.parentlink = "base_link";
+		setaxisjoint.childlink = "base";
+		setaxisjoint.makexml(robot_root, _ms.packagename);
+		
+		//now parse the urdftree
+		for (auto el:_ms.thistree.elementsDict) 
+		{
+			ULink* currLink = dynamic_cast<ULink*>(el.second);
+			if (currLink)
+			{
+				LOG(INFO) << "calling genlink for link:" + currLink->name;
+				bool succeeded = currLink->genlink(mypaths[1], mypaths[2], design, app);
+				if (!succeeded)
+				{
+					string errormsg = "failed generating link" + currLink->name;
+					LOG(ERROR) << errormsg;
+					ui->messageBox(errormsg);
+					return;
+				}
+			}
+			el.second->makexml(robot_root, _ms.packagename); //this should execute the derived class's makexml, i presume
+		};
+
+		string filenametosave = (mypaths[0] / "robot.urdf").string();
+		//ui->messageBox(filenametosave); 
+		LOG(INFO) << "Saving file" + (filenametosave); 
+		urdfdoc.SaveFile(filenametosave.c_str());
+
+
+
+
+		}
 };
 
 // CommandDestroyed event handler
@@ -378,9 +831,12 @@ public:
 	{
 		//if i had logging I would need to stop it here. probably just need to reset _ms
 		MotherShip _ms;
+		(&_ms)->~MotherShip();
+		new (&_ms) MotherShip();
 		//adsk::terminate(); terminate will unload it. i want to keep unloading it to test it, but uncomment next line before commiting to master
 		
 		//if (!runfrommenu)
+		LOG(INFO) << "Bye bye!";
 		adsk::terminate();
 	}
 };
@@ -397,7 +853,7 @@ public:
 		//ui->messageBox("In UrdfGenValidateInputsEventHandler event handler.");
 
 		// if the tree is empty, then just quit?
-
+		LOG(DEBUG) << "Validating inputs";
 	}
 } _validateInputs;
 
@@ -409,7 +865,7 @@ public:
 	{
 		if (eventArgs)
 		{
-			ui->messageBox("Hello from urdfgen ");
+			LOG(INFO) << "Hello from urdfgen. Creating GUI ";
 			try 
 			{
 				//need to update default design!
@@ -459,8 +915,10 @@ public:
 					Ptr<ValidateInputsEvent> validateInputsEvent = command->validateInputs();
 					if (!validateInputsEvent)
 						return;
+					
+					//I am not validating inputs right now; remove comments to use input validation callback.
 
-					isOk = validateInputsEvent->add(&_validateInputs);
+					//isOk = validateInputsEvent->add(&_validateInputs);
 					if (!isOk)
 						return;
 
@@ -502,8 +960,8 @@ public:
 					Ptr<GroupCommandInput> linkGroupCmdInput = tab3ChildInputs->addGroupCommandInput("linkgroup", "Link Stuff");
 					if (!linkGroupCmdInput)
 						return;
-					linkGroupCmdInput->isVisible(true);
-
+					linkGroupCmdInput->isVisible(false);
+					
 					Ptr<CommandInputs> linkGroupChildInputs = linkGroupCmdInput->children();
 					if (!linkGroupChildInputs)
 						return;
@@ -518,7 +976,7 @@ public:
 					Ptr<GroupCommandInput> jointGroupCmdInput = tab3ChildInputs->addGroupCommandInput("jointgroup", "Joint Stuff");
 					if (!jointGroupCmdInput)
 						return;
-					jointGroupCmdInput->isVisible(true);
+					jointGroupCmdInput->isVisible(false);
 				
 					Ptr<CommandInputs> jointGroupChildInputs = jointGroupCmdInput->children();
 					if (!jointGroupChildInputs)
@@ -541,14 +999,18 @@ public:
 					Ptr<DropDownCommandInput> parentlinkin = jointGroupChildInputs->addDropDownCommandInput("parentlinkname", "Name of parent link", DropDownStyles::TextListDropDownStyle);
 
 					Ptr<DropDownCommandInput> childlinkin = jointGroupChildInputs->addDropDownCommandInput("childlinkname", "Name of child link", DropDownStyles::TextListDropDownStyle);
+					LOG(INFO) << "Created GUI alright. ";
 				}
 			}
 			catch (const char* msg) {
+				LOG(ERROR) << msg;
 				ui->messageBox(msg);
 			}
 			catch (...) //probably bad style. will just avoid failing here. 
 			{
-				ui->messageBox("unknown error!?!");
+				const char* msg = "unknown error!?!";
+				LOG(ERROR) << "unknown error!?!";
+				ui->messageBox(msg);
 			}
 		}
 	}
@@ -565,7 +1027,7 @@ public:
 	{
 		if (eventArgs)
 		{
-			ui->messageBox("Hello from genSTL ");
+			LOG(INFO) << "Hello from genSTL ";
 			try
 			{
 				//need to update default design!
@@ -601,15 +1063,19 @@ public:
 				stlRootOptions->sendToPrintUtility(false);
 				exportMgr->execute(stlRootOptions);
 
-				ui->messageBox("File " + fileDlg->filename() + " saved successfully");
+				LOG(INFO) << "File " + fileDlg->filename() + " saved successfully";
+				LOG(INFO)<< " genSTL succeeded!"; 
 				
 			}
 			catch (const char* msg) {
+				LOG(ERROR) << msg;
 				ui->messageBox(msg);
 			}
 			catch (...) //probably bad style. will just avoid failing here. 
 			{
-				ui->messageBox("unknown error!?!");
+				const char* msg = "unknown error!?!";
+				LOG(ERROR) << "unknown error!?!";
+				ui->messageBox(msg);
 			}
 
 		}
@@ -624,6 +1090,18 @@ private:
 
 extern "C" XI_EXPORT bool run(const char* context)
 {
+	//actually, this dll is copied to the webdeploy path, so I would need to understand paths better 
+
+	//_ms should exist already and have appdata and thisscriptpath set
+	el::Configurations conf;// ((_ms.thisscriptpath / "inc" / "easylogging" / "conf").string());
+	conf.setToDefault();
+	conf.setGlobally(el::ConfigurationType::Filename, (_ms.thisscriptpath / "urdflog.log").string());
+	el::Loggers::reconfigureLogger("default", conf); //configures easylogging with my config file..
+	el::Loggers::reconfigureAllLoggers(conf);
+	
+	//let's use the cpp stuff
+	
+	LOG(INFO) << "Started!";
 	app = Application::get();
 	if (!app)
 		return false;
@@ -706,15 +1184,15 @@ extern "C" XI_EXPORT bool run(const char* context)
 		urdfGenCmdDef->execute();
 	}
 
-
-	ui->messageBox("Hello addin");
+	//ui->messageBox("Hello addin");
+	LOG(INFO) << "run finished";
 
 	return true;
 }
 
 extern "C" XI_EXPORT bool stop(const char* context)
 {
-
+	LOG(INFO) << "Shutting down.";
 	//removing buttons from toolbar
 	Ptr<ToolbarPanelList> toolBarPanels = ui->allToolbarPanels();
 	if (!toolBarPanels)
@@ -742,10 +1220,10 @@ extern "C" XI_EXPORT bool stop(const char* context)
 
 	if (ui)
 	{
-		ui->messageBox("Stop addin");
+		//ui->messageBox("Stop addin");
 		ui = nullptr;
 	}
-
+	LOG(INFO) << "stop finished";
 	return true;
 }
 
