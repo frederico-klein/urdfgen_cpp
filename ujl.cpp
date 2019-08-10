@@ -6,7 +6,6 @@
 
 namespace fs = std::filesystem;
 
-//ulink stuff
 std::string ULink::getitems()
 {
 	std::string iss = (coordinatesystem.isset) ? "Yes" : "No";
@@ -27,7 +26,7 @@ void ULink::genfatherjoint(UJoint joint)
 		LOG(ERROR) << "tried to set displacement for link:" + name + ",but joint " + joint.name + " is not set!";
 	else
 	{
-		coordinatesystem = joint.origin; ///probably wrong.
+		coordinatesystem = joint.origin; 
 		fatherjoint = joint.entity;
 		if (!joint.entity)
 			LOG(ERROR) << "joint entity not set!";
@@ -142,53 +141,9 @@ void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 	}
 	catch (...)
 	{
-		//todo: 
-		//LOG(ERROR) << "not implemented!";
 		LOG(ERROR) << "link " + name + "FAILED to be parsed as xml!";
 	}
 }
-
-void recurse_component(Ptr<Component> myComp, std::string fullPathName, std::vector<Ptr<Matrix3D>>* newrotl, int* level) //poorman's allOccurrences method.
-{
-	int maxlevel = 20;
-	level++;
-	if (*level > maxlevel)
-		return;
-	Ptr<Occurrences> allOccs = myComp->occurrences();
-	if (!allOccs)
-		throw "error: can't get all occurrences";
-
-	std::vector<std::string> pathsplit = splitstr(fullPathName, "+");
-	
-	std::string	thisoccname = pathsplit[0];
-
-	LOG(INFO) << "\tTMS::: getting the tm for:" + thisoccname;
-
-	for (size_t l = 0; l < allOccs->count(); l++) //for (l in range(0, allOccs.count)) {
-	{
-		if (allOccs->item(l)->fullPathName() == thisoccname)
-		{
-			//then i want to multiply their matrices!;
-			Ptr<Matrix3D> lasttm = allOccs->item(l)->transform()->copy();
-			newrotl->push_back(lasttm);
-			LOG(DEBUG) << "level" << std::to_string(*level) << allOccs->item(l)->fullPathName() << std::endl
-				<< "\twith tm:" + showarrayasstring(lasttm->asArray()) << std::endl
-				<< "\twith translation is:" + showarrayasstring(lasttm->translation()->asArray());
-			if (pathsplit.size() > 1)
-			{
-				std::string newfullpathname = "";
-				for (size_t k = 1; k < pathsplit.size(); k++)
-				{
-					newfullpathname = newfullpathname + "+" + pathsplit[k];
-				}
-				recurse_component(allOccs->item(l)->component(), newfullpathname, newrotl, level);
-			}
-			break;
-		}
-	}			   		 	  	  
-
-};
-
 
 bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Ptr<Design> _design, Ptr<Application> _app)
 {
@@ -203,10 +158,7 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		if (!rootComp)
 			throw "error: can't find root component";
 
-		//Ptr<Occurrences> allOccs = rootComp->occurrences();
-		//if (!allOccs)
-		//	throw "error: can't get all occurrences";
-
+		//this needs to be allOccurrences. if you use Occurrences, you also need to implement a recursion function!
 		Ptr<OccurrenceList> allOccs = rootComp->allOccurrences();
 		if (!allOccs)
 			throw "error: can't get all occurrences";
@@ -216,6 +168,8 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		if (!exportMgr)
 			throw "error: can't find export manager";
 
+		// creates the jointtranslation TM for this link:
+
 		Ptr<Matrix3D> removejointtranslation = Matrix3D::create();
 		Ptr<Vector3D> translation = Vector3D::create(-coordinatesystem.x, -coordinatesystem.y, -coordinatesystem.z);
 		removejointtranslation->setToIdentity();
@@ -223,84 +177,11 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		LOG(DEBUG) << "\nOffset from joint tm is: " + showarrayasstring(removejointtranslation->asArray());
 		LOG(DEBUG) << "Offset from joint translation is: " + showarrayasstring(removejointtranslation->translation()->asArray());
 
-		////////// add occurrences from other stuff to this new stuff;
-
-		//let's test the occurrence text splitter thingy:
-
-		//std::string myfunnystring = "some+weird+string+with_a_lot+of+plusses!";
-		//std::vector<std::string> a = splitstr(myfunnystring,"+");
-		//LOG(INFO) << "my string split: " + showarrayasstring(a);
-
-		//std::string myfunnystring2 = "some+weird";
-		//std::vector<std::string> a2 = splitstr(myfunnystring2, "+");
-		//LOG(INFO) << "my string split: " + showarrayasstring(a2);
-
-		//std::string myfunnystring3 = "some++weird";
-		//std::vector<std::string> a3 = splitstr(myfunnystring3, "+");
-		//LOG(INFO) << "my string split: " + showarrayasstring(a3);
-
-		//so, here is the thing: I believe there is a hierarchical displacement resolution going on here, 
-		//like an onion and I need to trasverse the hierarchy as well to get the real joint translation.
-		// this is tricky and involves another nested for loop, just as we need the ones to get the occurrences transforms.
-		//or I am wrong. 
-
-		Ptr<Matrix3D> secondJointElementDisplacement1 = Matrix3D::create();// = fatherjoint->occurrenceTwo()->transform();
-		secondJointElementDisplacement1->setToIdentity();
-
-		Ptr<Matrix3D> secondJointElementDisplacement2 = Matrix3D::create();// = fatherjoint->occurrenceTwo()->transform();
-		secondJointElementDisplacement2->setToIdentity();
-
-		Ptr<Matrix3D> secondJointElementDisplacement3 = Matrix3D::create();// = fatherjoint->occurrenceTwo()->transform();
-		secondJointElementDisplacement3->setToIdentity();
-
-		std::vector<Ptr<Matrix3D>> jointtmMat;
-		int level = 0;
-		if (!isBase)
-		{
-			//&(jointtmMat) = new std::vector<Ptr<Matrix3D>>;
-			recurse_component(rootComp, fatherjoint->occurrenceOne()->fullPathName(), &jointtmMat, &level);
-
-			//now I need to multiply all of that. either forwards or backwards, dunno yet. 
-
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-			LOG(DEBUG) << semibigprint("option1: reverse iterator secondJointElementDisplacement");
-
-			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = jointtmMat.rbegin(); newrotlj != jointtmMat.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
-			{
-				auto j = std::distance(jointtmMat.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
-				LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(secondJointElementDisplacement1->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
-				secondJointElementDisplacement1->transformBy(*newrotlj);
-				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
-				//newrot->transformBy(newrotl[j]);
-			}
-			secondJointElementDisplacement1->transformBy(removejointtranslation);
-
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-			LOG(DEBUG) << semibigprint("option2: forward iterator secondJointElementDisplacement");
-
-			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = jointtmMat.rbegin(); newrotlj != jointtmMat.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
-			{
-				auto j = std::distance(jointtmMat.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
-				LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(secondJointElementDisplacement2->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
-				secondJointElementDisplacement2->transformBy(*newrotlj);
-				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
-				//newrot->transformBy(newrotl[j]);
-			}
-			secondJointElementDisplacement2->transformBy(removejointtranslation);
-
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-			LOG(DEBUG) << semibigprint("option3: only last term of jointtmMat is secondJointElementDisplacement");
-
-			secondJointElementDisplacement3->transformBy(jointtmMat.back());
-		}
-
 		std::vector<Ptr<Matrix3D>> it;
 		for (int i = 0; i< group.size();i++)
 		{
 			auto occ = group[i];
+			//we get all the TMs for all the parents
 			std::vector<std::string> pathsplit = splitstr(occ->fullPathName(),"+");
 
 			std::vector<Ptr<Matrix3D>> newrotl;
@@ -308,91 +189,65 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 			{
 				std::vector<std::string> thisoccnamelist = std::vector(pathsplit.begin(),pathsplit.begin()+j);
 				std::string	thisoccname = thisoccnamelist[0];
-				for (size_t k = 1; k < thisoccnamelist.size(); k++)	//		for ( k in range(1, len(thisoccnamelist)) )
+				for (size_t k = 1; k < thisoccnamelist.size(); k++)	
 					{
 						thisoccname = thisoccname + "+" + thisoccnamelist[k];
 					}
 				LOG(INFO) << "\tTMS::: getting the tm for:" + thisoccname;
-				for (size_t l = 0; l < allOccs->count(); l++) //for (l in range(0, allOccs.count)) {
+				for (size_t l = 0; l < allOccs->count(); l++) 
 					{   				
 					if (allOccs->item(l)->fullPathName() == thisoccname)
 						{
-							//then i want to multiply their matrices!;
+							//here we just stack them
 							Ptr<Matrix3D> lasttm = allOccs->item(l)->transform()->copy();
 							newrotl.push_back(lasttm);
 							LOG(DEBUG) << allOccs->item(l)->fullPathName() << std::endl
 							 << "\twith tm:" + showarrayasstring(lasttm->asArray()) << std::endl
 							 << "\twith translation is:" + showarrayasstring(lasttm->translation()->asArray());
-							//newrot.transformBy(allOccs.item(l).transform);
 						}
-					}
-				////// now that i have all the occurrences names i need to get them from allOccs(?!);				
+					}		
 			}
 
+			//need to add the transform from the occurrence itself as well
 			Ptr<Matrix3D> lasttransform = occ->transform()->copy();
 			LOG(DEBUG) << "Occurrence fullpathname: " + bigprint(occ->fullPathName());
 			LOG(DEBUG) << "own tm (lasttransform) is:" + showarrayasstring(lasttransform->asArray());
 			newrotl.push_back(lasttransform);
 
-			//not sure if this should be here:
 
-			//Ptr<Matrix3D> secondJointElementDisplacement = fatherjoint->occurrenceTwo()->transform();
-			//newrotl.push_back(secondJointElementDisplacement);
-			//dochira? none?
-			//newrotl.push_back(secondJointElementDisplacement1);
-			//newrotl.push_back(secondJointElementDisplacement2);
-			//newrotl.push_back(secondJointElementDisplacement3);
-
-			//                newrot = removejointtranslation;
+			//set a blank TM to apply those TMs to in order so we can correct translation afterwards
 			Ptr<Matrix3D> newrot = Matrix3D::create();
 			newrot->setToIdentity();
 
-			// trying to uncomment the largest amount of lines the fastest without causing compile/runtime errors
-
 			//checking indexing
 			LOG(DEBUG) << "newrotl.size()=" + std::to_string(newrotl.size());
-			//for (int j = newrotl.size(); j < 0; --j) 
-			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = newrotl.rbegin();newrotlj != newrotl.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
+
+			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = newrotl.rbegin();newrotlj != newrotl.rend(); ++newrotlj)
 			{
 				auto j = std::distance(newrotl.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
 				LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
 				newrot->transformBy(*newrotlj);
-				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
-				//		newrot->transformBy(newrotl[j]);
 			}
 
-			//now with the new changes, it is either the forward or backwards (or maybe only the last term?)
+			//we finally add the link's translation TM
 
 			newrot->transformBy(removejointtranslation);
-			//		express = "it" + str(i) + "=newrot";
-			//		exec(express);
+			
 			LOG(DEBUG) << "\nit transformation is:" + showarrayasstring(newrot->asArray());
+			//this is the total TM for this group[i]'th Occurrence
 			it.push_back(newrot);
 		}
 
-
-			//		//stlname = rootComp.name.translate(None, "{!@//$");
-			//		//line = re.sub("[!@//$]", "", line);
 		std::string	stlname = clearupst(name);
 		LOG(INFO) << "stl name after removing weird characters:" + stlname;
-		//LOG(INFO) << "my string clearupst'ed: " + clearupst("Funny:[name(2)-8].#Hi  Purpur");
-			//		//fileName = components_directory+"/" + stlname;
+
 		for (int i =0; i< group.size();i++ )
 		{		
 			std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
-			//std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stl");
 			LOG(INFO) << "saving file " + fileName.string();
 			LOG(INFO) << "from occurrence" + group[i]->fullPathName();
 			LOG(DEBUG) << "with tm:" + showarrayasstring(it[i]->asArray());
-			//Ptr<STEPExportOptions> stpOptions = exportMgr->createSTEPExportOptions(fileName.string(), group[i]); //exporting the occurrence does not work. 
-			//Ptr<STLExportOptions> stlOptions = exportMgr->createSTLExportOptions(group[i]); //exporting the occurrence works, but there is no function to load it. this would work for khaian's drawings because everything is well scoped, but if you want to choose more than one occurrence it would fail, because we can't put them together. 
-			//stlOptions->filename(fileName.string());
-			//
-			//if (!stlOptions)
-			//	throw "error: can't set stl export options";
-
-			//bool isOk = exportMgr->execute(stlOptions);
-
+			
 			Ptr<STEPExportOptions> stpOptions = exportMgr->createSTEPExportOptions(fileName.string(), group[i]->component());
 			if (!stpOptions)
 				throw "error: can't set step export options";
@@ -412,7 +267,7 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		if (!docs)
 			throw "cant get documents";
 
-		// Create a document.
+		// Actually creates a document.
 		Ptr<Document> doc = docs->add(DocumentTypes::FusionDesignDocumentType);
 		if (!doc)
 			throw "cant add document";
@@ -421,27 +276,22 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		Ptr<Design> design = _app->activeProduct();
 		if (!design)
 			throw "cant get current design";
-
-
-
+			   
 		// Get the root component of the active design;
 		Ptr<Component> rootComp2 = design->rootComponent();
-			//		// Create two new components under root component;
-			//		allOccs = rootComp.occurrences;
+			
 		// Get import manager;
 		Ptr<ImportManager> importManager = _app->importManager();
 		if (!importManager)
 			throw "cant create importManager";
-		//////// add occurrances from other stuff to this new stuff;
+		
+		// add occurrences we just generated to the new document;
 		for (int i = 0; i< group.size();i++) 
 		{
-			//std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stl");
+			
 			std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
 			LOG(INFO) << "loading file: " + fileName.string();
-			//Ptr<STLImportOptions> stlOptions = importManager->createSTLImportOptions(fileName.string()); //this does not exist, so we can't use it...
-			//if (!stlOptions)
-			//	throw "error: can't set step import options";
-			//bool isOk = importManager->importToTarget(stlOptions, rootComp2);
+			
 			Ptr<STEPImportOptions> stpOptions = importManager->createSTEPImportOptions(fileName.string());
 			if (!stpOptions)
 				throw "error: can't set step import options";
@@ -452,7 +302,6 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		assert(rootComp2->occurrences()->count()== group.size()); //it should be the same, right?
 		for (int i = 0; i<rootComp2->occurrences()->count();i++)
 		{
-			//thistransf.transformBy(removejointtranslation)    ;
 			rootComp2->occurrences()->item(i)->transform(it[i]);
 		}
 		double xx;
@@ -469,10 +318,11 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		//setting this to inertial
 		inertial.setall(mass, xx, xy, xz, yy, yz, zz);
 
-		////// setting units to meters so stls will have proper sizes!;
+		// setting units to meters so stls will have proper sizes!;
 		Ptr<FusionUnitsManager> unitsMgr = design->fusionUnitsManager();
 		unitsMgr->distanceDisplayUnits(DistanceUnits::MeterDistanceUnits);
-		// create aNOTHER! exportManager instance;
+
+		// create another exportManager instance, now for STLs;
 		Ptr<ExportManager> exportMgr2 = design->exportManager();
 		if (!exportMgr2)
 			throw "error: can't create second export manager";
@@ -482,8 +332,7 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		stlRootOptions->sendToPrintUtility(false);
 		LOG(INFO) << "saving STL file: " + meshname;
 		exportMgr->execute(stlRootOptions);
-		//visual.geometryfilename = "package://" + _ms.packagename + "/meshes/" + stlname + ".stl";
-		//collision.geometryfilename = visual.geometryfilename; // the legend has it that this file should be a slimmer version of the visuals, so that collisions can be calculated more easily....       ;
+		
 	}
 	catch (std::exception& e)
 	{
@@ -497,7 +346,7 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		LOG(ERROR) << msg;
 		return false;
 	}
-	catch (...) // is there an exception that is not derived from std::exception?
+	catch (...) 
 	{
 		std::string errormsg = "issues running genstl";
 		LOG(ERROR) << errormsg;
@@ -512,8 +361,7 @@ void OrVec::setxyz(double xx, double yy, double zz)
 	y = yy;
 	z = zz;
 	xyz = std::to_string(x / 100) + " " + std::to_string(y / 100) + " " + std::to_string(z / 100);
-	// the internal representation of joint occurrences offsets seems to be in cm no matter what you change the units to be. this needs to be checked, but i think it is always like this. if you are reading this line and wondering if this is the reason why your assembly looks like it exploded, then I was wrong...
-	// there will be inconsistencies here and if you change the values below to be "right", then the translation part on .genlink will not work. be mindful when trying to fix it. 
+	// the internal representation of joint occurrences offsets seems to be in cm no matter what you change the units to be.
 	isset = true;
 };
 void OrVec::setrpy(double rr, double pp, double yy)
@@ -535,16 +383,12 @@ void UJoint::setjoint(Ptr<Joint> joint)
 	//set origin 
 	try
 	{
-		LOG(DEBUG) << "1";
 		Ptr<JointGeometry> jointGeometry_var = joint->geometryOrOriginOne();
-		//todo: set from origin 2 as well?
-		LOG(DEBUG) << "2";
+		//question: set from origin 2 as well?
 
 		Ptr<Point3D> thisorigin = jointGeometry_var->origin();
-		LOG(DEBUG) << "3";
 
 		origin.setxyz(thisorigin->x(), thisorigin->y(), thisorigin->z());
-		LOG(DEBUG) << "4";
 
 	}
 	catch (...)
@@ -567,36 +411,36 @@ void UJoint::setjoint(Ptr<Joint> joint)
 
 	try
 	{
-		LOG(DEBUG) << "5:trying to get jointmotion";
+		LOG(DEBUG) << "trying to get jointmotion";
 
 		Ptr<JointMotion> jointMotion_var = joint->jointMotion();
 		//Ptr<Point3D> thisorigin = jointMotion_var->origin();
 		//origin.setxyz(thisorigin->x, thisorigin->x, thisorigin->x);
-		LOG(DEBUG) << "6: got jointmotion";
+		LOG(DEBUG) << "got jointmotion";
 
 		switch (jointMotion_var->jointType())
 		{
 			case 0: //
 			{
-				LOG(DEBUG) << "0:7 joint is fixed";
+				LOG(DEBUG) << "joint is fixed!";
 				type = "fixed";
 				break;
 			}
 			case 1: 
 			{
 				//type will be either "revolute" or continuous, depends on whether we have limits or not
-				LOG(DEBUG) << "1:7 joint is either continuous or revolute depending on whether it has limits or not";
+				LOG(DEBUG) << "Joint is either continuous or revolute depending on whether it has limits or not";
 
 				type = "continuous";
 				bool haslimits = false;
 				//tries to sets joint limits -> "revolute"
 				Ptr<RevoluteJointMotion> thisjointmotion = joint->jointMotion();
-				LOG(DEBUG) << "1:8: revolutejointmotion casting worked.";
+				LOG(DEBUG) << "Revolutejointmotion casting worked.";
 				Ptr<Vector3D> myaxis = thisjointmotion->rotationAxisVector();
 				axis = std::to_string(myaxis->x()) + " " + std::to_string(myaxis->y()) + " " + std::to_string(myaxis->z());
 
 				Ptr< JointLimits > thislimits = thisjointmotion->rotationLimits();
-				LOG(DEBUG) << "1:9: jointlimits casting worked.";
+				LOG(DEBUG) << "Jointlimits casting worked.";
 				if (thislimits->isMinimumValueEnabled())
 				{
 					limit.lower = std::to_string(thislimits->minimumValue());
@@ -615,7 +459,7 @@ void UJoint::setjoint(Ptr<Joint> joint)
 			}
 			default:
 			{
-				LOG(DEBUG) << "default:7";
+				LOG(DEBUG) << "default:";
 
 				LOG(ERROR) << "joint type" +std::to_string(jointMotion_var->jointType()) + " not implemented!";
 				break;
@@ -624,7 +468,7 @@ void UJoint::setjoint(Ptr<Joint> joint)
 	}
 	catch (...)
 	{
-		LOG(ERROR) << "something wrong happened. you need to set this manually";
+		LOG(ERROR) << "something wrong happened in setjoint. you need to set this joint's value manually";
 	}
 	isset = true;
 	return;
@@ -700,8 +544,6 @@ void UJoint::makexml(TiXmlElement* urdfroot, std::string ) //don't need packagen
 	}
 	catch (...)
 	{
-		//todo: 
-		//LOG(ERROR) << "not implemented!";
 		LOG(ERROR) << "joint " + name + "FAILED to be parsed as xml!";
 	}
 };

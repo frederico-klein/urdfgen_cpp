@@ -29,7 +29,7 @@ template <class myType> std::string asstring(myType v)
 {
 	return std::to_string(v);
 };
-//overloading instead of specializing, because I couldnot get the syntax to work //specialized template for strings.
+//overloading instead of specializing
 std::string asstring(const std::string v);
 
 template<typename T, typename A> std::string showarrayasstring(std::vector<T, A> v)

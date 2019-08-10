@@ -14,11 +14,6 @@ using namespace adsk::cam;
 
 namespace fs = std::filesystem;
 
-//class UrdfRoot
-//{
-//public:
-//};
-
 class OrVec
 {
 public:
@@ -80,9 +75,6 @@ class UElement {
 public:
 	int row;
 	std::string name;
-
-	//perhaps unused
-	int level;
 	virtual std::string getitems() { return "not implemented"; };
 	virtual void makexml(TiXmlElement*, std::string) 
 	{
@@ -111,8 +103,6 @@ public:
 	std::string type;
 	bool isset;
 
-	//perhaps unused?
-	int level;
 	Ptr<Joint> entity;
 
 	//methods
@@ -123,18 +113,13 @@ public:
 		isset = false;
 	};
 	~UJoint() {};
-	void setjoint(Ptr<Joint> joint); ////////// this is super incomplete as far as logging goes. we need a solution. either a shared object to collect errors (sounds more obnoxious than setting up logging, really...)
+	void setjoint(Ptr<Joint> joint); 
 	void setrealorigin(OrVec);
 	std::string getitems();
 	void makexml(TiXmlElement*, std::string);
 
 	// when sixdegree is working!
 	void setjoint(Ptr<Joint> joint, Ptr<CommandInput> cmdInput, Ptr<CommandInputs> inputs);
-
-	//UJoint(std::string name_) 
-	//{
-	//	name = name_;
-	//};
 };
 
 
@@ -148,10 +133,8 @@ public:
 	OrVec coordinatesystem;
 	bool isVirtual = true;
 	bool isBase = false;
-	std::vector<Ptr<Occurrence>> group; //vector of what?
+	std::vector<Ptr<Occurrence>> group; 
 	Ptr<Joint> fatherjoint;
-	//what I think is unused
-
 	std::string parent;
 
 	//methods
@@ -160,6 +143,4 @@ public:
 	void makexml(TiXmlElement*, std::string);
 	bool genlink(fs::path, fs::path, Ptr<Design>, Ptr<Application>);
 
-private:
-	//groupmembers
 };
