@@ -639,8 +639,15 @@ void UJoint::setjoint(Ptr<Joint> joint, Ptr<CommandInput> cmdInput, Ptr<CommandI
 
 void UJoint::setrealorigin(OrVec fathercoordinatesystem)
 {
-	assert(fathercoordinatesystem.isset);
-	realorigin.setxyz(origin.x-fathercoordinatesystem.x, origin.y - fathercoordinatesystem.y, origin.z - fathercoordinatesystem.z);
+	try {
+		if (!fathercoordinatesystem.isset)
+			throw "The father coordinate system is not set. The resulting model will be incorrect!!!";
+		realorigin.setxyz(origin.x - fathercoordinatesystem.x, origin.y - fathercoordinatesystem.y, origin.z - fathercoordinatesystem.z);
+	}
+	catch (char* msg)
+	{
+		LOG(ERROR) << msg;
+	}
 };
 
 std::string UJoint::getitems()

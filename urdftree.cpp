@@ -155,7 +155,15 @@ std::string UrdfTree::genTree()
 		thiselementsdict = placed_and_this.second;
 		DicElement firstel = placedlinks[0];
 		ULink* firstlink = dynamic_cast<ULink*>(firstel.second);
-		assert(firstlink->coordinatesystem.isset);
+		if (!firstlink->coordinatesystem.isset)
+			throw "Coordinate system for the base not set! Resulting model would be incorrect";
+	}
+	catch (char* msg)
+	{
+		report += string(msg);
+		LOG(ERROR) << msg;
+		ui->messageBox(string(msg)+"\nproblems finding base!\nCannot proceed.");
+		return report;
 	}
 	catch (...)
 	{
@@ -372,7 +380,8 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 							LOG(DEBUG) << "findjointscore:: no good. ASSERT WILL FAIL!";
 
 
-						assert(mylink->coordinatesystem.isset);
+						if (!mylink->coordinatesystem.isset)
+							LOG(ERROR) << "Coordinate system is not set! the Link's origin will be incorrect and the resulting model will need to be fixed manually!";
 						myjoint->setrealorigin(mylink->coordinatesystem);
 					}
 				}
