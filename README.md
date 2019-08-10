@@ -2,12 +2,16 @@
 
 Port of python addin. 
 
-Work in progress.
-Mostly done. Fixed some bugs from the python version that were easier to spot with a cleaner implementation. 
+Currently in a beta state. Some bugs remain.
 
+## Known issues:
 
-## todo:
+- Sometimes occurrences origins are not parsed correctly and the link is incorrectly placed. Workaround is to place all derived Occurrences instead of the original one (more clicking).
 
-- The attempted dictionary like implementation of urdftree did not work and uses a bunch of workarounds. Either should implement a proper dictionary or skip it completely
-- there is no control to fix a joint that has improper origin. This should never be necessary (it's up to the API to give me valid joint pointers), but if it does, the sixdegre class needs to be implemented as well. 
-- Currently is not generating stls for links. 
+- For some reason the selected joint is not highlighted when working with a UJoint control. 
+
+- ULink and UJoint names are not editable.
+
+- Deleting all Links places a link that does not have the name base, which will make it impossible for "Create tree" to find base.
+
+For new issues/bug reports please open ticket under Issues.
