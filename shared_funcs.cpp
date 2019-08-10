@@ -14,7 +14,7 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
 	return true;
 }
 
-void replaceAll(std::string& str, const std::string& from, const std::string& to) { //thnx stoverflow
+void replaceAll(std::string& str, const std::string& from, const std::string& to) { //from stoverflow
 	if (from.empty())
 		return;
 	size_t start_pos = 0;
@@ -45,7 +45,7 @@ std::string asstring(const std::string v)
 
 std::vector<std::string> splitstr(std::string s, std::string token)
 {
-	//thanks StackOverflow:
+	//from StackOverflow:
 	std::vector<std::string> vstrings;
 	size_t pos = 0;
 	while ((pos = s.find(token)) != std::string::npos) {
