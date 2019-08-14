@@ -7,7 +7,7 @@
     default="True" />
   <param
     name="robot_description"
-    textfile="$(find somepackage)/robot.urdf" />
+    textfile="$(find subchain_template)/robot.urdf" />
   <param
     name="use_gui"
     value="$(arg gui)" />
@@ -23,5 +23,5 @@
     name="rviz"
     pkg="rviz"
     type="rviz"
-    args="-d $(find somepackage)/urdf_.rviz" />
+    args="-d $(find subchain_template)/urdf_.rviz" />
 </launch>
