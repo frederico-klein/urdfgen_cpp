@@ -10,7 +10,7 @@ using namespace adsk::fusion;
 using namespace adsk::cam;
 using namespace std;
 
-typedef pair<int, UElement*> DicElement; //defines something like a python keyed dictionary
+typedef pair<int, UElement*> DicElement; 
 typedef pair<vector<DicElement>, vector<DicElement>> TwoDic;
 typedef vector<UJoint*> UJointList;
 typedef vector<ULink*> ULinkList;
@@ -22,7 +22,7 @@ public:
 	std::string report;
 	vector<DicElement> elementsDict;
 	UElement* currentEl;
-	Ptr<UserInterface> ui; // Poorman's debug tool. consider removing after either: (1) you implement proper debugging (2) everything mostly works.
+	Ptr<UserInterface> ui; 
 	// methods
 	void removeElementByName(vector<DicElement>*, string);
 	void addLink(string name, int row);

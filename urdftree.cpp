@@ -1,6 +1,7 @@
 #include "urdftree.h"
 #include "ujl.h"
 #include "inc/easylogging/easylogging++.h"
+#include "shared_funcs.h"
 
 const int MAX_OP = 10;
 
@@ -18,8 +19,6 @@ void UrdfTree::removeElementByName(vector<DicElement>* thiselementsdict, string 
 	}
 	assert(thisshouldprobablybeamethodfromadictionaryclass_foundmyelement);
 	LOG(INFO) << "trying to remove item:" + std::to_string(i) + "\nelement i think i am removing:" + (*thiselementsdict)[i].second->name;
-	/*ui->messageBox("trying to remove item:" + std::to_string(jointDicElement.first));
-	ui->messageBox("element i think i am removing:" + thiselementsdict[jointDicElement.first].second->name);*/
 	thiselementsdict->erase(thiselementsdict->begin() + i);
 
 };
@@ -69,19 +68,13 @@ UElement* UrdfTree::getEl(int i)
 
 	for (auto el : elementsDict) // I need this because the list index does not correspont to how many items are there in the dic. 
 	{
-		//ui->messageBox(std::to_string(el.first));
 		if (el.first == i)
 		{
-			//i don't like this, lets try it the simpler way
-			//thisEl = dynamic_cast<UElement*>(el.second);
 			thisEl = el.second;
-			//ui->messageBox("found element!"+thisEl->name);
 			break;
 		}
 	}
-	//ui->messageBox("UrdfTree::getEl ended");
 	return thisEl;
-
 };
 std::string UrdfTree::getCurrentElDesc() 
 {
@@ -97,7 +90,7 @@ void UrdfTree::setCurrentEl(int i)
 	if (thisEl)
 	{
 		currentEl = thisEl;
-		//ui->messageBox("current element set to" + currentEl->name);
+		LOG(DEBUG) << "current element set to" + currentEl->name;
 	}
 	// if I set i to -1, I get a null pointer
 	if (i == -1)
@@ -106,7 +99,7 @@ void UrdfTree::setCurrentEl(int i)
 		UElement* nullEl{ 0 };
 		currentEl = nullEl;
 	}
-	//ui->messageBox("UrdfTree::setCurrentEl ended");
+	LOG(DEBUG) << "UrdfTree::setCurrentEl ended";
 
 };
 pair<string, ULinkList> UrdfTree::allLinks()
@@ -132,21 +125,13 @@ pair<string, vector<UElement*>> UrdfTree::allElements()
 
 std::string UrdfTree::genTree()
 {
-	string lotsofequals ="=============================================================================";
-	LOG(INFO) << "\n"+lotsofequals+"\n"+lotsofequals + "\n"+ " starting gentree " + "\n" + lotsofequals + "\n" + lotsofequals + "\n";
-
+	
+	LOG(INFO) << bigprint("starting gentree");
 
 	report = "Report:\n";
 	std::vector<DicElement> placedlinks, thiselementsdict = elementsDict;
 	TwoDic placed_and_this;
-	//std::vector<DicElement> thiselementsdict;
-	//for some reason when I wrote this in python, deepcopy/copy didn't work, so I iterated over the dictionary and copied item per item
-	//I do not remember why i needed to do this, but I suppose a shallow copy should work
-	/*for (auto el = elementsDict.cbegin(); el != elementsDict.cend(); el++)
-	{
 
-	}*/
-	//we don't have std::tie, so we need a bit more work here
 	try
 	{
 		placed_and_this = gentreefindbase(thiselementsdict);
@@ -154,15 +139,23 @@ std::string UrdfTree::genTree()
 		thiselementsdict = placed_and_this.second;
 		DicElement firstel = placedlinks[0];
 		ULink* firstlink = dynamic_cast<ULink*>(firstel.second);
-		assert(firstlink->coordinatesystem.isset);
+		if (!firstlink->coordinatesystem.isset)
+			throw "Coordinate system for the base not set! Resulting model would be incorrect";
+	}
+	catch (char* msg)
+	{
+		report += string(msg);
+		LOG(ERROR) << msg;
+		ui->messageBox(string(msg)+"\nproblems finding base!\nCannot proceed.");
+		return report;
 	}
 	catch (...)
 	{
 		ui->messageBox("problems finding base!");
 	}
 	//now I need to find the joints that connect to base and place them alternatingly with the links!
-	//danger part. a while. 
-	int max_operations = MAX_OP; //makes sure I break out of the while with an error and don't get stuck there forever
+
+	int max_operations = MAX_OP; 
 	int num_op = 0;
 	bool still_things_to_be_placed = true;
 
@@ -173,14 +166,13 @@ std::string UrdfTree::genTree()
 		std::pair<UJointList, TwoDic> joints_placed_this;
 		joints_placed_this = findjoints(placed_and_this);
 		LOG(DEBUG) << "findjoints seemed to be okay";
-		//make sure we update our dictionaries so that things make sense. I suppose if I used pointers this would not be necessary
 		
 		UJointList placedjoints = joints_placed_this.first;
 		placed_and_this = joints_placed_this.second;
 		if (!placedjoints.empty()) 
 		{
 			LOG(DEBUG) << "!placedjoints.empty() , that means I have links to place!";
-			placed_and_this = gentreecore(joints_placed_this); //this is bad. at some point I will forget to update these and the code will not work. consider change to pointers!
+			placed_and_this = gentreecore(joints_placed_this); 
 			LOG(DEBUG) << "gentreecore seemed to have worked";
 			placedlinks = placed_and_this.first;
 			thiselementsdict = placed_and_this.second;
@@ -191,7 +183,7 @@ std::string UrdfTree::genTree()
 			still_things_to_be_placed = false;
 			if (!thiselementsdict.empty())
 			{
-				//perhaps show what elements those are?
+				//todo:perhaps show what elements those are?
 				report += " floating elements found. This tree is not correct, please review your work!";
 				return report;
 			}
@@ -202,7 +194,7 @@ std::string UrdfTree::genTree()
 		report += "reached maximum number of operations. unexpected. check code!";
 	}
 	LOG(INFO) << report;
-	LOG(INFO) << "\n" + lotsofequals + "\n" + lotsofequals + "\n" + " finishing gentree " + "\n" + lotsofequals + "\n" + lotsofequals + "\n";
+	LOG(INFO) << bigprint(" finishing gentree ");
 	return report;
 }
 void UrdfTree::rmElement(int elnum)
@@ -212,10 +204,9 @@ void UrdfTree::rmElement(int elnum)
 std::string UrdfTree::getdebugtext()
 {
 	std::pair<string, vector<UElement*>> alllinkstrpair = allElements();
-	//ui->messageBox("15");
 
 	return "current element: " + getCurrentElDesc() + "\n" + alllinkstrpair.first;
-	//ui->messageBox("16");
+
 };
 //private
 TwoDic UrdfTree::gentreefindbase(std::vector<DicElement> thiselementsdict) {
@@ -226,15 +217,16 @@ TwoDic UrdfTree::gentreefindbase(std::vector<DicElement> thiselementsdict) {
 		//el is const_iterator
 		//need to check if element is link
 		UElement* myel = el->second;
-		//ui->messageBox(myel->name);
+
 		ULink* currLink = dynamic_cast<ULink*>(myel);
 		if (currLink && myel->name == "base")
-			//if (el->second->type == UElement::DT_LINK && el->second->link.name == "base")
+
 		{
 			foundbase = true;
 			LOG(DEBUG) << "hey found base!";
 			report += "found my base when testing. base is on row:" + std::to_string(currLink->row) + "\n";
 			currLink->coordinatesystem.isset = true; //base coordinate system is zero by default, so it is already set
+			currLink->isBase = true;
 			DicElement mybase = std::make_pair(0,currLink);
 			placedlinks.push_back(mybase);
 			thiselementsdict.erase(thiselementsdict.begin() + el->first);
@@ -244,21 +236,19 @@ TwoDic UrdfTree::gentreefindbase(std::vector<DicElement> thiselementsdict) {
 	if (!foundbase)
 		ui->messageBox("did not find base!");
 	return { placedlinks,thiselementsdict };
-	//return std::make_tuple();
+
 };
 TwoDic UrdfTree::gentreecore(std::pair<UJointList, TwoDic> joints_placed_this) 
 {
 	int max_op = MAX_OP, num_op=0;
 	TwoDic placed_and_this = joints_placed_this.second;
-	//for (auto it = joints_placed_this.first.cbegin(); it != joints_placed_this.first.cend(); it++)
+
 	std::string thisjointstr = alljoints(joints_placed_this.first);
 	LOG(DEBUG) << "all placed(?) joints" + thisjointstr;
 
 	for (UJoint* joint :joints_placed_this.first)		
 	{
 		bool stillmerging = true;
-		/*bool* stillmerging = new bool;
-		*stillmerging = true;*/
 		while (stillmerging&&num_op<max_op)
 		{
 			num_op++;
@@ -271,10 +261,6 @@ TwoDic UrdfTree::gentreecore(std::pair<UJointList, TwoDic> joints_placed_this)
 };
 TwoDic UrdfTree::gentreecorecore(TwoDic placed_and_this, UJoint* joint, bool* stillmerging)
 {
-	//unpacking...
-	//actually, not using pointers here will have also affect speed
-	//UJointList placedjoints = joints_placed_this.first;
-	//TwoDic placed_and_this = joints_placed_this.second;
 	std::vector<DicElement> placedeldic = placed_and_this.first;
 	std::vector<DicElement> thiseldic = placed_and_this.second;
 	
@@ -282,22 +268,18 @@ TwoDic UrdfTree::gentreecorecore(TwoDic placed_and_this, UJoint* joint, bool* st
 	for (DicElement el: thiseldic)
 	{
 		ULink* currLink = dynamic_cast<ULink*>(el.second);
-		//debug{
+
 		if (currLink)
 		{
 			LOG(DEBUG) << "current element is a link\ncurrentelement has name"+ currLink->name +"\ncurrent joint childlink is" + joint->childlink ;
 		}
-		//debug}
+
 		if (currLink && currLink->name == joint->childlink)
 		{
 			DicElement placeel = std::make_pair(placedeldic.size(), currLink);
 			placedeldic.push_back(placeel);
 			genfatherjoint(el.second->name, joint);
 			*stillmerging = true;
-			
-			//it did break!
-			//thiseldic.erase(thiseldic.begin() + el.first); //I changed this a bit, hopefully it doesn't break
-			//now I don't want to reimplement a python dictionary in cpp, i just want this to work. 
 			removeElementByName(&thiseldic, currLink->name);
 
 			report += "placed a link named:" + el.second->name + " because joint named:" + joint->name + "told me to!\n";
@@ -337,8 +319,6 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 
 	bool foundjoint = false;
 	int el_row;
-	//unpacking twodic
-	//vector<DicElement> placedeldic = placed_and_this.first, thiselementsdict=placed_and_this.second;
 	LOG(DEBUG) << "findjointscore initialized all vars okay.";
 	LOG(DEBUG) << "IMPORTANT:::findjointscore thiselementsdict size is "+std::to_string(thiselementsdict->size());
 
@@ -350,11 +330,6 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 		{			
 			LOG(DEBUG) << "findjointscore found an element that is a joint!";
 			el_row = el.first;
-			//check if joint's parent is in allplacedlinks
-			//if (std::find(allplacedlinks.begin(), allplacedlinks.end(), myjoint->parentlink) != allplacedlinks.end()) // I might not need this
-			//{
-				// Element in vector.
-				// This feels very awkward, I think I am searching twice
 				for (auto elel : *placedeldic)
 				{
 					ULink* mylink = dynamic_cast<ULink*>(elel.second);
@@ -370,12 +345,12 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 							LOG(DEBUG) << "findjointscore:: no good. ASSERT WILL FAIL!";
 
 
-						assert(mylink->coordinatesystem.isset);
+						if (!mylink->coordinatesystem.isset)
+							LOG(ERROR) << "Coordinate system is not set! the Link's origin will be incorrect and the resulting model will need to be fixed manually!";
 						myjoint->setrealorigin(mylink->coordinatesystem);
 					}
 				}
 				break;
-			//}
 		}
 	}
 
@@ -386,39 +361,34 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 };
 std::pair<UJointList, TwoDic> UrdfTree::findjoints(TwoDic placed_and_this)
 {
-	//ui->messageBox("findjoint1");
 	//finds all the joints that can be placed, i.e., whose parent links are already placed
 	bool madamada = true;
 	UJointList foundjoints;
 	//unpacking
 	std::vector<DicElement> placedelements = placed_and_this.first, thiselementsdict = placed_and_this.second;
-	//ui->messageBox("findjoint2");
 	DicElement jointDicElement;
 
 	while (madamada)
 	{
-		//debug things!
+		//setting debug vars!{
 		pair<pair<string, vector<UElement*>>, vector<string>> allelsout1 = allelements(thiselementsdict);
 		string allremainingelements = allelsout1.first.first;
 		pair<pair<string, vector<UElement*>>, vector<string>> allelsout2 = allelements(placedelements);
 		string allplacedelements = allelsout2.first.first;
-		//DicElement jointDicElement = findjointscore(placed_and_this);// this is incorrect!
+		
 		LOG(DEBUG) << "findjoint: size of thiselementsdict:" +std::to_string(thiselementsdict.size())+"\nplaced elements\n" + allplacedelements + "\nremaining elements" + allremainingelements;
 
 		//}end debug things!
 		jointDicElement = findjointscore(&placedelements, &thiselementsdict);
 		//casting...
 		UJoint* joint = dynamic_cast<UJoint*>(jointDicElement.second);
-		//ui->messageBox("findjoint: casting was okay");
 
 		if (joint)
 		{
 			LOG(INFO) << "findjoint: found a joint even!\njointname:"+joint->name;
 
 			foundjoints.push_back(joint);
-			//alright there is something fishy here, it is not working as the python script was, so I definitely made an indexing error!
-			//this is because we didn't really implement a dictionary, so I guess there are hidden for loops everywhere.. 
-
+			
 			removeElementByName(&thiselementsdict, joint->name);
 					   			 
 			DicElement DEJoint = make_pair(placedelements.size(),joint);
@@ -456,7 +426,7 @@ pair<pair<string, ULinkList>, vector<string>> UrdfTree::alllinks(vector<DicEleme
 	if (nolinks)
 		exstr = "no links!";
 
-	return make_pair(make_pair(exstr, alllinks), alllinknames); //hmm...
+	return make_pair(make_pair(exstr, alllinks), alllinknames); 
 
 };
 pair<pair<string, UJointList>, vector<string>> UrdfTree::alljoints(vector<DicElement> someeldic) {

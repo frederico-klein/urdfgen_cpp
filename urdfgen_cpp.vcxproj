@@ -14,19 +14,19 @@
     <ProjectGuid>{D7CBB035-8CC0-4576-9C72-5076E079586B}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>urdfgen_cpp</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -99,6 +99,7 @@
     <ClCompile Include="inc\tinyxml.cpp" />
     <ClCompile Include="inc\tinyxmlerror.cpp" />
     <ClCompile Include="inc\tinyxmlparser.cpp" />
+    <ClCompile Include="shared_funcs.cpp" />
     <ClCompile Include="ujl.cpp" />
     <ClCompile Include="urdftree.cpp" />
     <ClCompile Include="urdftree.h" />
@@ -114,6 +115,7 @@
     </Text>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="shared_funcs.h" />
     <ClInclude Include="inc\easylogging\easylogging++.h" />
     <ClInclude Include="ujl.h" />
     <ClInclude Include="inc\tinystr.h" />

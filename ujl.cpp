@@ -2,10 +2,10 @@
 #include "inc/tinyxml.h"
 #include "inc/easylogging/easylogging++.h"
 #include <filesystem>
+#include "shared_funcs.h"
 
 namespace fs = std::filesystem;
 
-//ulink stuff
 std::string ULink::getitems()
 {
 	std::string iss = (coordinatesystem.isset) ? "Yes" : "No";
@@ -26,7 +26,26 @@ void ULink::genfatherjoint(UJoint joint)
 		LOG(ERROR) << "tried to set displacement for link:" + name + ",but joint " + joint.name + " is not set!";
 	else
 	{
-		coordinatesystem = joint.origin;
+		coordinatesystem = joint.origin; 
+		fatherjoint = joint.entity;
+		if (!joint.entity)
+			LOG(ERROR) << "joint entity not set!";
+		LOG(DEBUG) << "Original def:\nlink: " << name << " origin is:" << joint.origin.x << "," << joint.origin.y << "," << joint.origin.z;
+		//new def
+		double xx = fatherjoint->occurrenceTwo()->transform()->translation()->x();
+		double yy = fatherjoint->occurrenceTwo()->transform()->translation()->y();
+		double zz = fatherjoint->occurrenceTwo()->transform()->translation()->z();
+
+		LOG(DEBUG) << "\n full transformation matrix is" << showarrayasstring(fatherjoint->occurrenceTwo()->transform()->asArray());
+
+		double dxx = joint.origin.x - xx;
+		double dyy = joint.origin.y - yy;
+		double dzz = joint.origin.z - zz;
+
+		LOG(DEBUG) << "From link2:\nlink: " << name << " origin is:" << xx << "," << yy << "," << zz;
+
+		LOG(DEBUG) << "Difference:\nlink: " << name << " origin is:" << dxx << "," << dyy << "," << dzz;
+		//coordinatesystem.setxyz(dxx,dyy,dzz);
 	}
 };
 
@@ -122,140 +141,47 @@ void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 	}
 	catch (...)
 	{
-		//todo: 
-		//LOG(ERROR) << "not implemented!";
 		LOG(ERROR) << "link " + name + "FAILED to be parsed as xml!";
 	}
 }
 
-template <class myType> std::string asstring(myType v)
+bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Ptr<Design> _design, Ptr<Application> _app)
 {
- return std::to_string(v);
-};
-//overloading instead of specializing, because I couldnot get the syntax to work //specialized template for strings.
-std::string asstring(const std::string v)
-{
-	return v;
-};
-
-template <class T> std::string showarrayasstring(std::vector<T> v)
-{
-	std::string myres = "size:" + std::to_string(v.size()) + "\n";
-	if (v.size() != 16)
-	{
-		myres += "{";
-		for (auto num : v)
-		{
-			myres += asstring(num) + std::string(" ");
-		}
-		myres += "}";
-	}
-	else
-	{
-		myres += "[";
-		int i = 0; //
-		for (auto num : v)
-		{
-			myres += asstring(num) + std::string(" ");
-			if ((i+1) % 4 == 0)
-				myres += '\n';
-			i++;
-		}
-		myres += "]";
-
-	}
-	return myres;
-};
-
-std::vector<std::string> splitstr(std::string s, std::string token)
-{
-	//thanks StackOverflow:
-	std::vector<std::string> vstrings;
-	size_t pos = 0;
-	while ((pos = s.find(token)) != std::string::npos) {
-		vstrings.push_back(s.substr(0, pos));
-		s.erase(0, pos + token.length());
-	}
-	if (s!="")
-		vstrings.push_back(s);
-	return vstrings;
-}
-
-std::string clearupst(std::string s)
-{
-	std::vector<std::string> vstrings;
-	std::string mystring =s;
-	char* removethese = "[:!@#$.()/-]";
-	char changethis = ' ', forthis = '_';
-
-	for (char * removethis = removethese; *removethis != '\0'; removethis++)
-	{
-		vstrings = splitstr(mystring, std::string(1, *removethis));
-		mystring = "";
-		for (auto astring : vstrings)
-		{
-			mystring += astring;
-		}
-	}
-	vstrings = splitstr(mystring, std::string(1, changethis));
-	mystring = "";
-	for (auto astring : vstrings)
-	{
-		mystring += astring + forthis;
-	}
-
-	return mystring.substr(0,mystring.size()-1);
-}
-
-void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Ptr<Design> _design, Ptr<Application> _app)
-{
-	LOG(ERROR) << "not implemented!";
+	//LOG(ERROR) << "not implemented!";
 
 	isVirtual = false;
 	try {
-		LOG(DEBUG) << "starting genlink";
+		LOG(DEBUG) << bigprint("starting genlink for link:" + name);
 		// Get the root component of the active design;
 
 		Ptr<Component> rootComp = _design->rootComponent();
 		if (!rootComp)
 			throw "error: can't find root component";
 
+		//this needs to be allOccurrences. if you use Occurrences, you also need to implement a recursion function!
 		Ptr<OccurrenceList> allOccs = rootComp->allOccurrences();
 		if (!allOccs)
-			throw "error: can't get all orccurrences";
+			throw "error: can't get all occurrences";
 
 		// create the exportManager for the original file that has the whole design;
 		Ptr<ExportManager> exportMgr = _design->exportManager();
 		if (!exportMgr)
 			throw "error: can't find export manager";
 
+		// creates the jointtranslation TM for this link:
+
 		Ptr<Matrix3D> removejointtranslation = Matrix3D::create();
 		Ptr<Vector3D> translation = Vector3D::create(-coordinatesystem.x, -coordinatesystem.y, -coordinatesystem.z);
 		removejointtranslation->setToIdentity();
 		removejointtranslation->translation(translation);
-		LOG(DEBUG) << "Offset from joint tm is: " + showarrayasstring(removejointtranslation->asArray());
+		LOG(DEBUG) << "\nOffset from joint tm is: " + showarrayasstring(removejointtranslation->asArray());
 		LOG(DEBUG) << "Offset from joint translation is: " + showarrayasstring(removejointtranslation->translation()->asArray());
-
-		////////// add occurrences from other stuff to this new stuff;
-
-		//let's test the occurrence text splitter thingy:
-
-		//std::string myfunnystring = "some+weird+string+with_a_lot+of+plusses!";
-		//std::vector<std::string> a = splitstr(myfunnystring,"+");
-		//LOG(INFO) << "my string split: " + showarrayasstring(a);
-
-		//std::string myfunnystring2 = "some+weird";
-		//std::vector<std::string> a2 = splitstr(myfunnystring2, "+");
-		//LOG(INFO) << "my string split: " + showarrayasstring(a2);
-
-		//std::string myfunnystring3 = "some++weird";
-		//std::vector<std::string> a3 = splitstr(myfunnystring3, "+");
-		//LOG(INFO) << "my string split: " + showarrayasstring(a3);
 
 		std::vector<Ptr<Matrix3D>> it;
 		for (int i = 0; i< group.size();i++)
 		{
 			auto occ = group[i];
+			//we get all the TMs for all the parents
 			std::vector<std::string> pathsplit = splitstr(occ->fullPathName(),"+");
 
 			std::vector<Ptr<Matrix3D>> newrotl;
@@ -263,66 +189,65 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 			{
 				std::vector<std::string> thisoccnamelist = std::vector(pathsplit.begin(),pathsplit.begin()+j);
 				std::string	thisoccname = thisoccnamelist[0];
-				for (size_t k = 1; k < thisoccnamelist.size(); k++)	//		for ( k in range(1, len(thisoccnamelist)) )
+				for (size_t k = 1; k < thisoccnamelist.size(); k++)	
 					{
 						thisoccname = thisoccname + "+" + thisoccnamelist[k];
 					}
 				LOG(INFO) << "\tTMS::: getting the tm for:" + thisoccname;
-				for (size_t l = 1; l < allOccs->count(); l++) //for (l in range(0, allOccs.count)) {
+				for (size_t l = 0; l < allOccs->count(); l++) 
 					{   				
 					if (allOccs->item(l)->fullPathName() == thisoccname)
 						{
-							//then i want to multiply their matrices!;
+							//here we just stack them
 							Ptr<Matrix3D> lasttm = allOccs->item(l)->transform()->copy();
 							newrotl.push_back(lasttm);
-							LOG(DEBUG) << allOccs->item(l)->fullPathName();
-							LOG(DEBUG) << "\twith tm:" + showarrayasstring(lasttm->asArray());
-							LOG(DEBUG) << "\twith translation is:" + showarrayasstring(lasttm->translation()->asArray());
-							//newrot.transformBy(allOccs.item(l).transform);
+							LOG(DEBUG) << allOccs->item(l)->fullPathName() << std::endl
+							 << "\twith tm:" + showarrayasstring(lasttm->asArray()) << std::endl
+							 << "\twith translation is:" + showarrayasstring(lasttm->translation()->asArray());
 						}
-					}
-				////// now that i have all the occurrences names i need to get them from allOccs(?!);				
+					}		
 			}
+
+			//need to add the transform from the occurrence itself as well
 			Ptr<Matrix3D> lasttransform = occ->transform()->copy();
+			LOG(DEBUG) << "Occurrence fullpathname: " + bigprint(occ->fullPathName());
 			LOG(DEBUG) << "own tm (lasttransform) is:" + showarrayasstring(lasttransform->asArray());
 			newrotl.push_back(lasttransform);
-			//                newrot = removejointtranslation;
+
+
+			//set a blank TM to apply those TMs to in order so we can correct translation afterwards
 			Ptr<Matrix3D> newrot = Matrix3D::create();
 			newrot->setToIdentity();
 
-			// trying to uncomment the largest amount of lines the fastest without causing compile/runtime errors
-
 			//checking indexing
 			LOG(DEBUG) << "newrotl.size()=" + std::to_string(newrotl.size());
-			//for (int j = newrotl.size(); j < 0; --j) 
-			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = newrotl.rbegin();newrotlj != newrotl.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
+
+			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = newrotl.rbegin();newrotlj != newrotl.rend(); ++newrotlj)
 			{
 				auto j = std::distance(newrotl.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
 				LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
 				newrot->transformBy(*newrotlj);
-				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
-				//newrot->transformBy(newrotl[j]);
 			}
+
+			//we finally add the link's translation TM
+
 			newrot->transformBy(removejointtranslation);
-			//		express = "it" + str(i) + "=newrot";
-			//		exec(express);
+			
 			LOG(DEBUG) << "\nit transformation is:" + showarrayasstring(newrot->asArray());
+			//this is the total TM for this group[i]'th Occurrence
 			it.push_back(newrot);
 		}
 
-
-			//		//stlname = rootComp.name.translate(None, "{!@//$");
-			//		//line = re.sub("[!@//$]", "", line);
 		std::string	stlname = clearupst(name);
 		LOG(INFO) << "stl name after removing weird characters:" + stlname;
-		//LOG(INFO) << "my string clearupst'ed: " + clearupst("Funny:[name(2)-8].#Hi  Purpur");
-			//		//fileName = components_directory+"/" + stlname;
+
 		for (int i =0; i< group.size();i++ )
 		{		
 			std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
 			LOG(INFO) << "saving file " + fileName.string();
 			LOG(INFO) << "from occurrence" + group[i]->fullPathName();
 			LOG(DEBUG) << "with tm:" + showarrayasstring(it[i]->asArray());
+			
 			Ptr<STEPExportOptions> stpOptions = exportMgr->createSTEPExportOptions(fileName.string(), group[i]->component());
 			if (!stpOptions)
 				throw "error: can't set step export options";
@@ -331,6 +256,7 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 			if (!isOk)
 				throw "exportMgr failed to generate file" + fileName.string();
 			LOG(INFO) << "File " + fileName.string() + " exported successfully";
+
 		}
 
 		//created all the components. now I need to open a new document. load them and export the whole rootcomponent as STL file.
@@ -341,7 +267,7 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		if (!docs)
 			throw "cant get documents";
 
-		// Create a document.
+		// Actually creates a document.
 		Ptr<Document> doc = docs->add(DocumentTypes::FusionDesignDocumentType);
 		if (!doc)
 			throw "cant add document";
@@ -350,22 +276,22 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		Ptr<Design> design = _app->activeProduct();
 		if (!design)
 			throw "cant get current design";
-
-
-
+			   
 		// Get the root component of the active design;
 		Ptr<Component> rootComp2 = design->rootComponent();
-			//		// Create two new components under root component;
-			//		allOccs = rootComp.occurrences;
+			
 		// Get import manager;
 		Ptr<ImportManager> importManager = _app->importManager();
 		if (!importManager)
 			throw "cant create importManager";
-		//////// add occurrances from other stuff to this new stuff;
+		
+		// add occurrences we just generated to the new document;
 		for (int i = 0; i< group.size();i++) 
 		{
+			
 			std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
 			LOG(INFO) << "loading file: " + fileName.string();
+			
 			Ptr<STEPImportOptions> stpOptions = importManager->createSTEPImportOptions(fileName.string());
 			if (!stpOptions)
 				throw "error: can't set step import options";
@@ -376,7 +302,6 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		assert(rootComp2->occurrences()->count()== group.size()); //it should be the same, right?
 		for (int i = 0; i<rootComp2->occurrences()->count();i++)
 		{
-			//thistransf.transformBy(removejointtranslation)    ;
 			rootComp2->occurrences()->item(i)->transform(it[i]);
 		}
 		double xx;
@@ -393,10 +318,11 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		//setting this to inertial
 		inertial.setall(mass, xx, xy, xz, yy, yz, zz);
 
-		////// setting units to meters so stls will have proper sizes!;
+		// setting units to meters so stls will have proper sizes!;
 		Ptr<FusionUnitsManager> unitsMgr = design->fusionUnitsManager();
 		unitsMgr->distanceDisplayUnits(DistanceUnits::MeterDistanceUnits);
-		// create aNOTHER! exportManager instance;
+
+		// create another exportManager instance, now for STLs;
 		Ptr<ExportManager> exportMgr2 = design->exportManager();
 		if (!exportMgr2)
 			throw "error: can't create second export manager";
@@ -406,25 +332,27 @@ void ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		stlRootOptions->sendToPrintUtility(false);
 		LOG(INFO) << "saving STL file: " + meshname;
 		exportMgr->execute(stlRootOptions);
-		//visual.geometryfilename = "package://" + _ms.packagename + "/meshes/" + stlname + ".stl";
-		//collision.geometryfilename = visual.geometryfilename; // the legend has it that this file should be a slimmer version of the visuals, so that collisions can be calculated more easily....       ;
+		
 	}
 	catch (std::exception& e)
 	{
 		LOG(ERROR) << e.what();
 		std::string errormsg = "issues running genstl\n";
 		LOG(ERROR) << errormsg;
+		return false;
 	}
 	catch (char* msg)
 	{
 		LOG(ERROR) << msg;
+		return false;
 	}
-	catch (...) // is there an exception that is not derived from std::exception?
+	catch (...) 
 	{
 		std::string errormsg = "issues running genstl";
 		LOG(ERROR) << errormsg;
+		return false;
 	}
-
+	return true;
 };
 
 void OrVec::setxyz(double xx, double yy, double zz)
@@ -433,8 +361,7 @@ void OrVec::setxyz(double xx, double yy, double zz)
 	y = yy;
 	z = zz;
 	xyz = std::to_string(x / 100) + " " + std::to_string(y / 100) + " " + std::to_string(z / 100);
-	// the internal representation of joint occurrences offsets seems to be in cm no matter what you change the units to be. this needs to be checked, but i think it is always like this. if you are reading this line and wondering if this is the reason why your assembly looks like it exploded, then I was wrong...
-	// there will be inconsistencies here and if you change the values below to be "right", then the translation part on .genlink will not work. be mindful when trying to fix it. 
+	// the internal representation of joint occurrences offsets seems to be in cm no matter what you change the units to be.
 	isset = true;
 };
 void OrVec::setrpy(double rr, double pp, double yy)
@@ -456,16 +383,12 @@ void UJoint::setjoint(Ptr<Joint> joint)
 	//set origin 
 	try
 	{
-		LOG(DEBUG) << "1";
 		Ptr<JointGeometry> jointGeometry_var = joint->geometryOrOriginOne();
-		//todo: set from origin 2 as well?
-		LOG(DEBUG) << "2";
+		//question: set from origin 2 as well?
 
 		Ptr<Point3D> thisorigin = jointGeometry_var->origin();
-		LOG(DEBUG) << "3";
 
 		origin.setxyz(thisorigin->x(), thisorigin->y(), thisorigin->z());
-		LOG(DEBUG) << "4";
 
 	}
 	catch (...)
@@ -488,36 +411,36 @@ void UJoint::setjoint(Ptr<Joint> joint)
 
 	try
 	{
-		LOG(DEBUG) << "5:trying to get jointmotion";
+		LOG(DEBUG) << "trying to get jointmotion";
 
 		Ptr<JointMotion> jointMotion_var = joint->jointMotion();
 		//Ptr<Point3D> thisorigin = jointMotion_var->origin();
 		//origin.setxyz(thisorigin->x, thisorigin->x, thisorigin->x);
-		LOG(DEBUG) << "6: got jointmotion";
+		LOG(DEBUG) << "got jointmotion";
 
 		switch (jointMotion_var->jointType())
 		{
 			case 0: //
 			{
-				LOG(DEBUG) << "0:7 joint is fixed";
+				LOG(DEBUG) << "joint is fixed!";
 				type = "fixed";
 				break;
 			}
 			case 1: 
 			{
 				//type will be either "revolute" or continuous, depends on whether we have limits or not
-				LOG(DEBUG) << "1:7 joint is either continuous or revolute depending on whether it has limits or not";
+				LOG(DEBUG) << "Joint is either continuous or revolute depending on whether it has limits or not";
 
 				type = "continuous";
 				bool haslimits = false;
 				//tries to sets joint limits -> "revolute"
 				Ptr<RevoluteJointMotion> thisjointmotion = joint->jointMotion();
-				LOG(DEBUG) << "1:8: revolutejointmotion casting worked.";
+				LOG(DEBUG) << "Revolutejointmotion casting worked.";
 				Ptr<Vector3D> myaxis = thisjointmotion->rotationAxisVector();
 				axis = std::to_string(myaxis->x()) + " " + std::to_string(myaxis->y()) + " " + std::to_string(myaxis->z());
 
 				Ptr< JointLimits > thislimits = thisjointmotion->rotationLimits();
-				LOG(DEBUG) << "1:9: jointlimits casting worked.";
+				LOG(DEBUG) << "Jointlimits casting worked.";
 				if (thislimits->isMinimumValueEnabled())
 				{
 					limit.lower = std::to_string(thislimits->minimumValue());
@@ -536,7 +459,7 @@ void UJoint::setjoint(Ptr<Joint> joint)
 			}
 			default:
 			{
-				LOG(DEBUG) << "default:7";
+				LOG(DEBUG) << "default:";
 
 				LOG(ERROR) << "joint type" +std::to_string(jointMotion_var->jointType()) + " not implemented!";
 				break;
@@ -545,7 +468,7 @@ void UJoint::setjoint(Ptr<Joint> joint)
 	}
 	catch (...)
 	{
-		LOG(ERROR) << "something wrong happened. you need to set this manually";
+		LOG(ERROR) << "something wrong happened in setjoint. you need to set this joint's value manually";
 	}
 	isset = true;
 	return;
@@ -560,8 +483,15 @@ void UJoint::setjoint(Ptr<Joint> joint, Ptr<CommandInput> cmdInput, Ptr<CommandI
 
 void UJoint::setrealorigin(OrVec fathercoordinatesystem)
 {
-	assert(fathercoordinatesystem.isset);
-	realorigin.setxyz(origin.x-fathercoordinatesystem.x, origin.y - fathercoordinatesystem.y, origin.z - fathercoordinatesystem.z);
+	try {
+		if (!fathercoordinatesystem.isset)
+			throw "The father coordinate system is not set. The resulting model will be incorrect!!!";
+		realorigin.setxyz(origin.x - fathercoordinatesystem.x, origin.y - fathercoordinatesystem.y, origin.z - fathercoordinatesystem.z);
+	}
+	catch (char* msg)
+	{
+		LOG(ERROR) << msg;
+	}
 };
 
 std::string UJoint::getitems()
@@ -614,8 +544,6 @@ void UJoint::makexml(TiXmlElement* urdfroot, std::string ) //don't need packagen
 	}
 	catch (...)
 	{
-		//todo: 
-		//LOG(ERROR) << "not implemented!";
 		LOG(ERROR) << "joint " + name + "FAILED to be parsed as xml!";
 	}
 };
