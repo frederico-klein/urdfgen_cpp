@@ -23,7 +23,7 @@ Ptr<Design> design;
 
 // this file has mostly gui things.
 
-const bool runfrommenu = true; // this allowed to be run as script as well. TODO: KEEP? 
+const bool runfrommenu = false; // this allowed to be run as script as well. TODO: KEEP? 
 
 class MotherShip
 {

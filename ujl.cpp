@@ -154,7 +154,7 @@ void recurse_component(Ptr<Component> myComp, std::string fullPathName, std::vec
 	level++;
 	if (*level > maxlevel)
 		return;
-	Ptr<Occurrences> allOccs = myComp->occurrences();
+	Ptr<OccurrenceList> allOccs = myComp->allOccurrences();
 	if (!allOccs)
 		throw "error: can't get all occurrences";
 
@@ -244,57 +244,65 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 		// this is tricky and involves another nested for loop, just as we need the ones to get the occurrences transforms.
 		//or I am wrong. 
 
-		
-		std::vector<Ptr<Matrix3D>> jointtmMat;
-		int level = 0;
-		
-		//&(jointtmMat) = new std::vector<Ptr<Matrix3D>>;
-		recurse_component(rootComp, fatherjoint->occurrenceOne()->fullPathName(), &jointtmMat, &level);
-
-		//now I need to multiply all of that. either forwards or backwards, dunno yet. 
-
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		LOG(DEBUG) << semibigprint("option1: reverse iterator secondJointElementDisplacement");
-
 		Ptr<Matrix3D> secondJointElementDisplacement1 = Matrix3D::create();// = fatherjoint->occurrenceTwo()->transform();
 		secondJointElementDisplacement1->setToIdentity();
 
-	 	for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = jointtmMat.rbegin(); newrotlj != jointtmMat.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
-		{
-			auto j = std::distance(jointtmMat.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
-			LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(secondJointElementDisplacement1->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
-			secondJointElementDisplacement1->transformBy(*newrotlj);
-			//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
-			//newrot->transformBy(newrotl[j]);
-		}
-		secondJointElementDisplacement1->transformBy(removejointtranslation);
-
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		LOG(DEBUG) << semibigprint("option2: forward iterator secondJointElementDisplacement");
 
 		Ptr<Matrix3D> secondJointElementDisplacement2 = Matrix3D::create();// = fatherjoint->occurrenceTwo()->transform();
 		secondJointElementDisplacement2->setToIdentity();
-
-		for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = jointtmMat.rbegin(); newrotlj != jointtmMat.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
-		{
-			auto j = std::distance(jointtmMat.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
-			LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(secondJointElementDisplacement2->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
-			secondJointElementDisplacement2->transformBy(*newrotlj);
-			//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
-			//newrot->transformBy(newrotl[j]);
-		}
-		secondJointElementDisplacement2->transformBy(removejointtranslation);
-
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		LOG(DEBUG) << semibigprint("option3: only last term of jointtmMat is secondJointElementDisplacement");
+		
 
 		Ptr<Matrix3D> secondJointElementDisplacement3 = Matrix3D::create();// = fatherjoint->occurrenceTwo()->transform();
 		secondJointElementDisplacement3->setToIdentity();
 
-		secondJointElementDisplacement3->transformBy(jointtmMat[-1]);
+
+		std::vector<Ptr<Matrix3D>> jointtmMat;
+		int level = 0;
+		
+		if (!isBase)
+		{
+			//&(jointtmMat) = new std::vector<Ptr<Matrix3D>>;
+			recurse_component(rootComp, fatherjoint->occurrenceOne()->fullPathName(), &jointtmMat, &level);
+
+			//now I need to multiply all of that. either forwards or backwards, dunno yet. 
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			LOG(DEBUG) << semibigprint("option1: reverse iterator secondJointElementDisplacement");
+
+
+
+			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = jointtmMat.rbegin(); newrotlj != jointtmMat.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
+			{
+				auto j = std::distance(jointtmMat.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
+				LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(secondJointElementDisplacement1->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
+				secondJointElementDisplacement1->transformBy(*newrotlj);
+				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
+				//newrot->transformBy(newrotl[j]);
+			}
+			secondJointElementDisplacement1->transformBy(removejointtranslation);
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			LOG(DEBUG) << semibigprint("option2: forward iterator secondJointElementDisplacement");
+
+
+			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = jointtmMat.rbegin(); newrotlj != jointtmMat.rend(); ++newrotlj)  //for (int j = newrotl.size(); j < 0; j--)  //for (j in reversed(range(0, len(newrotl)))) // this was failing!
+			{
+				auto j = std::distance(jointtmMat.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
+				LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(secondJointElementDisplacement2->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
+				secondJointElementDisplacement2->transformBy(*newrotlj);
+				//LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring(newrotl[j]->asArray());
+				//newrot->transformBy(newrotl[j]);
+			}
+			secondJointElementDisplacement2->transformBy(removejointtranslation);
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			LOG(DEBUG) << semibigprint("option3: only last term of jointtmMat is secondJointElementDisplacement");
+
+			secondJointElementDisplacement3->transformBy(jointtmMat.back());
+		}
 
 		std::vector<Ptr<Matrix3D>> it;
 		for (int i = 0; i< group.size();i++)
@@ -331,7 +339,7 @@ bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Pt
 			Ptr<Matrix3D> lasttransform = occ->transform()->copy();
 			LOG(DEBUG) << "Occurrence fullpathname: " + bigprint(occ->fullPathName());
 			LOG(DEBUG) << "own tm (lasttransform) is:" + showarrayasstring(lasttransform->asArray());
-			newrotl.push_back(lasttransform);
+			//newrotl.push_back(lasttransform); //could I be pushing the last one twice?
 
 			//not sure if this should be here:
 
