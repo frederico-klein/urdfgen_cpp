@@ -194,7 +194,11 @@ std::string UrdfTree::genTree()
 		report += "reached maximum number of operations. unexpected. check code!";
 	}
 	LOG(INFO) << report;
-	LOG(INFO) << bigprint(" finishing gentree ");
+	LOG(INFO) << bigprint(" finishing gentree basic");
+
+	// now let's distribute it into multiple packages!
+
+
 	return report;
 }
 void UrdfTree::rmElement(int elnum)
@@ -283,7 +287,11 @@ TwoDic UrdfTree::gentreecorecore(TwoDic placed_and_this, UJoint* joint, bool* st
 			removeElementByName(&thiseldic, currLink->name);
 
 			report += "placed a link named:" + el.second->name + " because joint named:" + joint->name + "told me to!\n";
+			//setting up containerPackage
+			currLink->containerPackage = joint->containerPackage;
+			report += "containerPackage: " + currLink->containerPackage;
 			LOG(DEBUG) << "report so far:\n" + report;
+			
 			break;
 		}
 	}
@@ -348,6 +356,25 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 						if (!mylink->coordinatesystem.isset)
 							LOG(ERROR) << "Coordinate system is not set! the Link's origin will be incorrect and the resulting model will need to be fixed manually!";
 						myjoint->setrealorigin(mylink->coordinatesystem);
+
+						//now if this joint is an FS joint, I will need to change the package context. if it isn't it keeps the context. links just keep the context of their father joints!
+
+						assert(myjoint->childPackage != "");
+						assert(myjoint->parentPackage!="");
+						if (myjoint->isFastSwitch)
+						{
+							//need to change the package to the next one in the list
+							//theoretically, if I don't screw up, this should also place closed chains with 2 FSs, but it is hard to guarantee we will not have unexpected behaviour with more complex linkage chains
+							//I mean, if there is a mistake and the fs joined by one side is defined on one package and from the other side defined to another, this procedure will break them apart. it will be up to the user to make sure things are correct.
+							//I could do an extra flood-fill like algorithm to check this, but this would be rather hard and I don't see the point in doing so now. 
+							myjoint->containerPackage = myjoint->childPackage;
+
+						}
+						else 
+						{
+							myjoint->containerPackage = myjoint->parentPackage;
+						}
+
 					}
 				}
 				break;

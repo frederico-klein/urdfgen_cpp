@@ -75,6 +75,7 @@ class UElement {
 public:
 	int row;
 	std::string name;
+	std::string containerPackage;
 	virtual std::string getitems() { return "not implemented"; };
 	virtual void makexml(TiXmlElement*, std::string) 
 	{
@@ -98,6 +99,11 @@ public:
 	OrVec realorigin;
 	std::string parentlink;
 	std::string childlink;
+
+	bool isFastSwitch;
+	std::string parentPackage;
+	std::string childPackage;
+
 	std::string axis;
 	Limit limit;
 	std::string type;

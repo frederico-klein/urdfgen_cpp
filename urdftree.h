@@ -21,6 +21,8 @@ public:
 	//properties
 	std::string report;
 	vector<DicElement> elementsDict;
+	vector<vector<DicElement>> packageTree;
+	vector<std::string> packageList;
 	UElement* currentEl;
 	Ptr<UserInterface> ui; 
 	// methods

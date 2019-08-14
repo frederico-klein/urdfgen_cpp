@@ -28,7 +28,7 @@ const bool runfrommenu = true; // this allowed to be run as script as well. TODO
 class MotherShip
 {
 public:
-	int rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1,lastrow = 0;
+	int rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1,lastrow = 0, active_tab = 0;
 	std::string packagename = "mypackage";
 	fs::path thisscriptpath;
 	//missing! jtctrl lastjoint is maybe not a ujoint object?
@@ -54,7 +54,28 @@ public:
 	};
 	~MotherShip() {};
 	void addRowToTable(Ptr<TableCommandInput>, std::string);
+	void update_active_tab(Ptr<CommandInputs> inputs);
 } _ms;
+
+void MotherShip::update_active_tab(Ptr<CommandInputs> inputs) {
+	Ptr<TabCommandInput> tabCmdInput1 = inputs->itemById("tab_1");
+	if (!tabCmdInput1)
+		return;
+	if (tabCmdInput1->isActive())
+	{
+		//ui->messageBox("tab 1 is active");
+		active_tab = 1;
+	}
+	Ptr<TabCommandInput> tabCmdInput2 = inputs->itemById("tab_2");
+	if (!tabCmdInput2)
+		return;
+	if (tabCmdInput2->isActive())
+	{
+		//ui->messageBox("tab 2 is active");
+		active_tab = 2;
+	}
+
+};
 
 class SixDegree : OrVec
 {
@@ -303,403 +324,412 @@ public:
 		Ptr<CommandInput> cmdInput = eventArgs->input();
 		if (!cmdInput)
 			return;
-
-
-
-		Ptr<TableCommandInput> tableInput = inputs->itemById("table");
-		//if (!tableInput)
-		//	return;
-		LOG_IF(!tableInput, DEBUG) << "no table input. inside a group, probably";
-
-		Ptr<TextBoxCommandInput> debugInput = inputs->itemById("debugbox");
-
-		//define the groups first:
-		Ptr<GroupCommandInput> linkgroupInput = inputs->itemById("linkgroup");
-		Ptr<GroupCommandInput> jointgroupInput = inputs->itemById("jointgroup");
-
-		Ptr<SelectionCommandInput> linkselInput;
-		Ptr<SelectionCommandInput> jointselInput;
-		Ptr<DropDownCommandInput> cln;
-		Ptr<DropDownCommandInput> pln;
-
-		//inside the group, there is no group!
-		if (!linkgroupInput) 
-		{
-			LOG(DEBUG) << "probably inside linkgroup!";
-			linkselInput = inputs->itemById("linkselection");
-		}
-		else
-			linkselInput = linkgroupInput->children()->itemById("linkselection");
-		LOG_IF(!linkselInput, WARNING) << "linkselInput is a null pointer, either things are gonna fail, or I am inside jointgroup";
-				
-		LOG(DEBUG) << "Middle part check.";
-
-		//inside the group, there is no group!
-		if (!jointgroupInput) // linkgroupInput is None:			
-		{
 		
-			if (!linkselInput) 
+		_ms.update_active_tab(inputs);
+
+		if (_ms.active_tab == 1)
+		{
+			Ptr<TableCommandInput> tableInput = inputs->itemById("table");
+			//if (!tableInput)
+			//	return;
+			LOG_IF(!tableInput, DEBUG) << "no table input. inside a group, probably";
+
+			Ptr<TextBoxCommandInput> debugInput = inputs->itemById("debugbox");
+
+			//define the groups first:
+			Ptr<GroupCommandInput> linkgroupInput = inputs->itemById("linkgroup");
+			Ptr<GroupCommandInput> jointgroupInput = inputs->itemById("jointgroup");
+
+			Ptr<SelectionCommandInput> linkselInput;
+			Ptr<SelectionCommandInput> jointselInput;
+			Ptr<DropDownCommandInput> cln;
+			Ptr<DropDownCommandInput> pln;
+
+			//inside the group, there is no group!
+			if (!linkgroupInput)
 			{
-		
-				LOG(DEBUG) << "probably inside jointgroup!";
-				jointselInput = inputs->itemById("jointselection");
-				cln = inputs->itemById("childlinkname");
-				if (!cln)
-				{
-					ui->messageBox("cln is a null pointer!");
-					LOG(WARNING) << "cln is a null pointer!";
-				}
-				pln = inputs->itemById("parentlinkname");
-				if (!pln)
-				{
-					ui->messageBox("pln is a null pointer!");
-					LOG(WARNING) << "pln is a null pointer!";
-				}
+				LOG(DEBUG) << "probably inside linkgroup!";
+				linkselInput = inputs->itemById("linkselection");
 			}
-		}
-		else
-		{
-			jointselInput = jointgroupInput->children()->itemById("jointselection");
-			cln = jointgroupInput->children()->itemById("childlinkname");
-			pln = jointgroupInput->children()->itemById("parentlinkname");
-		}
+			else
+				linkselInput = linkgroupInput->children()->itemById("linkselection");
+			LOG_IF(!linkselInput, WARNING) << "linkselInput is a null pointer, either things are gonna fail, or I am inside jointgroup";
 
-		LOG_IF(!jointselInput, ERROR) << "jointselInput is a null pointer, references are gonna fail";
+			LOG(DEBUG) << "Middle part check.";
 
-		LOG(DEBUG) << "Currently executing command:" + cmdInput->id();
+			//inside the group, there is no group!
+			if (!jointgroupInput) // linkgroupInput is None:			
+			{
 
-		if (tableInput)
-		{
-			int currrow = tableInput->selectedRow();
-
-			Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(currrow, 0);
-
-			if (thisstringinput)
-				int elementtobedefined = std::stoi(thisstringinput->value());
-		}
-
-		// Reactions
-		if (cmdInput->id() == "tableLinkAdd") {
-			try {
-				_ms.addRowToTable(tableInput, "Link");
-
+				if (!linkselInput)
 				{
-					//actually I changed addrow and removed the add element button, so I don't really need to do this.
-					Ptr<DropDownCommandInput> JorLInput = tableInput->getInputAtPosition(_ms.lastrow, 1);
-					if (!JorLInput) {
-						std::string thiserror = "error getting dropdown command box in position" + std::to_string(_ms.lastrow);
-						throw thiserror;
+
+					LOG(DEBUG) << "probably inside jointgroup!";
+					jointselInput = inputs->itemById("jointselection");
+					cln = inputs->itemById("childlinkname");
+					if (!cln)
+					{
+						ui->messageBox("cln is a null pointer!");
+						LOG(WARNING) << "cln is a null pointer!";
 					}
-						
-					JorLInput->isEnabled(false); 
+					pln = inputs->itemById("parentlinkname");
+					if (!pln)
+					{
+						ui->messageBox("pln is a null pointer!");
+						LOG(WARNING) << "pln is a null pointer!";
+					}
 				}
-
-				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.lastrow, 2);
-				if (!thisstringinput)
-					throw "error getting row!";
-
-				jointname = thisstringinput->value();
-				_ms.thistree.addLink(jointname, _ms.elnum - 1);
-
-			}
-			catch (const char* msg) {
-				LOG(ERROR) << msg;
-				ui->messageBox(msg);
-			}
-			catch (...)
-			{
-				string errormessage = "issues adding link!";
-				LOG(ERROR) << errormessage;
-				ui->messageBox(errormessage);
-			}
-		}
-		else if (cmdInput->id() == "tableJointAdd") {
-			try {
-				_ms.addRowToTable(tableInput, "Joint");
-				tableInput->getInputAtPosition(_ms.lastrow, 1)->isEnabled(false);
-				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.lastrow, 2);
-				if (!thisstringinput)
-					throw "error getting row!";
-				jointname = thisstringinput->value();
-				LOG(DEBUG) << "added joint:" + jointname;
-				_ms.thistree.addJoint(jointname, _ms.elnum - 1);
-			}
-			catch (const char* msg) {
-				LOG(ERROR) << msg;
-				ui->messageBox(msg);
-			}
-
-			catch (...)
-			{
-				string errormessage = "issues adding joint!";
-				LOG(ERROR) << errormessage;
-				ui->messageBox(errormessage);
-			}
-		}
-		else if (cmdInput->id() == "tableDelete") {
-			if (tableInput->selectedRow() == -1) {
-				ui->messageBox("Select one row to delete.");
-			}
-			else {
-				int elementtobedeleted = tableInput->selectedRow();
-				//first I set the current link to the one above it
-				Ptr<StringValueCommandInput> thisstringinput;
-				if (tableInput->selectedRow() != 0)
-					thisstringinput = tableInput->getInputAtPosition(tableInput->selectedRow()-1, 0);
-				else
-				{
-					//if it is the first row, we can't get the one above it
-					thisstringinput = tableInput->getInputAtPosition( 1, 0);
-				}
-				if (thisstringinput)
-				{
-					std::string oneaboveorbelownumstr = thisstringinput->value();
-					_ms.thistree.setCurrentEl(std::stoi(oneaboveorbelownumstr));
-				}
-				else
-				{
-					//table is empty
-					_ms.thistree.setCurrentEl(-1);
-				}
-
-				//now I can delete the row
-				tableInput->deleteRow(elementtobedeleted);
-				//and delete the element
-				_ms.thistree.rmElement(elementtobedeleted);
-				_ms.rowNumber -= 1;
-				
-				//I also want to update the debug message text!
-				debugInput->text(_ms.thistree.getdebugtext());
-				LOG(DEBUG) << "deleted element okay";
-			}
-		}
-		if (cmdInput->id() == "linkselection") 
-		{
-
-			ULink* currLink = dynamic_cast<ULink*>(_ms.thistree.currentEl);
-			if (currLink)
-			{
-				currLink->group.clear();
-				for (int i = 0; i < linkselInput->selectionCount();i++) 
-				{
-					Ptr<Occurrence> thisFusionOcc = linkselInput->selection(i)->entity();
-					LOG(DEBUG) << "adding link entity:" + thisFusionOcc->name();
-					currLink->group.push_back(linkselInput->selection(i)->entity());
-				}
-			}
-			LOG(DEBUG) << "linkselection: done ";
-
-		}
-		else if (cmdInput->id() == "jointselection" && jointselInput->selectionCount() == 1)
-		{
-
-			Ptr<Joint> thisFusionJoint = jointselInput->selection(0)->entity();
-			LOG(DEBUG) << "adding joint entity:"+ thisFusionJoint->name();
-
-			UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
-
-			if (thisjoint)
-			{
-				thisjoint->setjoint(thisFusionJoint);
-
 			}
 			else
 			{
-				string errormsg = "the cast didn't work. it should have.";
-				LOG(ERROR) << errormsg;
-				ui->messageBox(errormsg);
+				jointselInput = jointgroupInput->children()->itemById("jointselection");
+				cln = jointgroupInput->children()->itemById("childlinkname");
+				pln = jointgroupInput->children()->itemById("parentlinkname");
 			}
-			LOG(DEBUG) << "jointselection: done ";
 
-		}
-		else if (cmdInput->id() == "parentlinkname") 
-		{
-			LOG(DEBUG) << "i am aware i am a parentlinkname control";
-			//since I changed the visibility of controls I know current element is a joint, if this is accessible
-			UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
-			if (thisjoint)
-			{
-				Ptr<ListItem> dropdown_parent1 = pln->selectedItem();
-				std::string myparentlinkname = dropdown_parent1->name();
-				thisjoint->parentlink = myparentlinkname;
-				_ms.thistree.currentEl = thisjoint;
-			}
-			else
-			{
-				string errormsg = "the cast didn't work";
-				LOG(ERROR) << errormsg;
-				ui->messageBox(errormsg);
-			}
-			LOG(DEBUG) << "parentlinkname: done ";
-		}
-		else if (cmdInput->id() == "childlinkname") 
-		{
-			LOG(DEBUG) << "i am aware i am a childlinkname control";
+			LOG_IF(!jointselInput, ERROR) << "jointselInput is a null pointer, references are gonna fail";
 
-			//since I changed the visibility of controls I know current element is a joint, if this is accessible
-			UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
-			if (thisjoint)
-			{
-				Ptr<ListItem> dropdown_child2 = cln->selectedItem();
-				std::string childlinkname = dropdown_child2->name();
-				thisjoint->childlink = childlinkname;
-				LOG(DEBUG) << "thisjointchildlink:"+ thisjoint->childlink +"\ndropdownthing:"+ dropdown_child2->name();
-				_ms.thistree.currentEl = thisjoint;
-			}
-			else
-			{
-				string errormsg = "the cast didn't work";
-				LOG(ERROR) << errormsg;
-				ui->messageBox(errormsg);
-			}
-			LOG(DEBUG) << "childlinkname: done ";
-		}
-		else if (cmdInput->id() == "createtree") 
-		{
-			linkgroupInput->isVisible(false);
-			jointgroupInput->isVisible(false);
-			ui->messageBox(_ms.thistree.genTree());
-		}		
-		else if (cmdInput->id().find("butselectClick") != std::string::npos) ///// TODO: add all other controls from table here, if we ever want to make them selectable/changeable then how it is, will break!
-		{
-			//first we set current element
+			LOG(DEBUG) << "Currently executing command:" + cmdInput->id();
+
 			if (tableInput)
 			{
-				std::string num_str = cmdInput->id().substr(14); // I used to get the value of the index from the control of the selected row. I guess I can double check
-				if (tableInput->selectedRow() != -1)
+				int currrow = tableInput->selectedRow();
+
+				Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(currrow, 0);
+
+				if (thisstringinput)
+					int elementtobedefined = std::stoi(thisstringinput->value());
+			}
+
+			// Reactions
+			if (cmdInput->id() == "tableLinkAdd") {
+				try {
+					_ms.addRowToTable(tableInput, "Link");
+
+					{
+						//actually I changed addrow and removed the add element button, so I don't really need to do this.
+						Ptr<DropDownCommandInput> JorLInput = tableInput->getInputAtPosition(_ms.lastrow, 1);
+						if (!JorLInput) {
+							std::string thiserror = "error getting dropdown command box in position" + std::to_string(_ms.lastrow);
+							throw thiserror;
+						}
+
+						JorLInput->isEnabled(false);
+					}
+
+					Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.lastrow, 2);
+					if (!thisstringinput)
+						throw "error getting row!";
+
+					jointname = thisstringinput->value();
+					_ms.thistree.addLink(jointname, _ms.elnum - 1);
+
+				}
+				catch (const char* msg) {
+					LOG(ERROR) << msg;
+					ui->messageBox(msg);
+				}
+				catch (...)
 				{
-					Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(tableInput->selectedRow(), 0);
+					string errormessage = "issues adding link!";
+					LOG(ERROR) << errormessage;
+					ui->messageBox(errormessage);
+				}
+			}
+			else if (cmdInput->id() == "tableJointAdd") {
+				try {
+					_ms.addRowToTable(tableInput, "Joint");
+					tableInput->getInputAtPosition(_ms.lastrow, 1)->isEnabled(false);
+					Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(_ms.lastrow, 2);
+					if (!thisstringinput)
+						throw "error getting row!";
+					jointname = thisstringinput->value();
+					LOG(DEBUG) << "added joint:" + jointname;
+					_ms.thistree.addJoint(jointname, _ms.elnum - 1);
+				}
+				catch (const char* msg) {
+					LOG(ERROR) << msg;
+					ui->messageBox(msg);
+				}
+
+				catch (...)
+				{
+					string errormessage = "issues adding joint!";
+					LOG(ERROR) << errormessage;
+					ui->messageBox(errormessage);
+				}
+			}
+			else if (cmdInput->id() == "tableDelete") {
+				if (tableInput->selectedRow() == -1) {
+					ui->messageBox("Select one row to delete.");
+				}
+				else {
+					int elementtobedeleted = tableInput->selectedRow();
+					//first I set the current link to the one above it
+					Ptr<StringValueCommandInput> thisstringinput;
+					if (tableInput->selectedRow() != 0)
+						thisstringinput = tableInput->getInputAtPosition(tableInput->selectedRow() - 1, 0);
+					else
+					{
+						//if it is the first row, we can't get the one above it
+						thisstringinput = tableInput->getInputAtPosition(1, 0);
+					}
 					if (thisstringinput)
 					{
-						std::string num_str2 = thisstringinput->value();
-	
-						if (num_str2 != num_str)
-						{
-							rows_differ = true;
-							//actually, getting the number from the controlname string is better, since the value of the selected row will only change after this input events are processed!
-	
-							LOG(DEBUG) << "numstr:" + num_str + "\nnumstr2:" + num_str2; //this will only show if you have ui->messageBox's 
-							_ms.oldrow = std::stoi(num_str);
-							_ms.rowNumber = std::stoi(num_str2);
-						}
+						std::string oneaboveorbelownumstr = thisstringinput->value();
+						_ms.thistree.setCurrentEl(std::stoi(oneaboveorbelownumstr));
+					}
+					else
+					{
+						//table is empty
+						_ms.thistree.setCurrentEl(-1);
+					}
+
+					//now I can delete the row
+					tableInput->deleteRow(elementtobedeleted);
+					//and delete the element
+					_ms.thistree.rmElement(elementtobedeleted);
+					_ms.rowNumber -= 1;
+
+					//I also want to update the debug message text!
+					debugInput->text(_ms.thistree.getdebugtext());
+					LOG(DEBUG) << "deleted element okay";
+				}
+			}
+			if (cmdInput->id() == "linkselection")
+			{
+
+				ULink* currLink = dynamic_cast<ULink*>(_ms.thistree.currentEl);
+				if (currLink)
+				{
+					currLink->group.clear();
+					for (int i = 0; i < linkselInput->selectionCount(); i++)
+					{
+						Ptr<Occurrence> thisFusionOcc = linkselInput->selection(i)->entity();
+						LOG(DEBUG) << "adding link entity:" + thisFusionOcc->name();
+						currLink->group.push_back(linkselInput->selection(i)->entity());
 					}
 				}
-				_ms.thistree.setCurrentEl(std::stoi(num_str));
-				LOG(DEBUG) << "current selected element's name is:"+_ms.thistree.currentEl->name;
-				debugInput->text(_ms.thistree.getdebugtext());
+				LOG(DEBUG) << "linkselection: done ";
+
 			}
-		}
+			else if (cmdInput->id() == "jointselection" && jointselInput->selectionCount() == 1)
+			{
 
-		else if (cmdInput->id() == "packagename")
-		{
+				Ptr<Joint> thisFusionJoint = jointselInput->selection(0)->entity();
+				LOG(DEBUG) << "adding joint entity:" + thisFusionJoint->name();
 
-			Ptr<StringValueCommandInput> thisstringinput = inputs->itemById("packagename");
-			_ms.packagename = thisstringinput->value();
-		}
+				UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
 
-		//else if (cmdInput->id() == "") {}
-
-		//checks current element and updates all things!
-
-		LOG(DEBUG) << "Entering the old function setcurrelement from Mothership";
-
-		bool runonce = true;
-		while (runonce) {
-			runonce = false;
-			try {
-				if (_ms.thistree.currentEl)
+				if (thisjoint)
 				{
-					if (rows_differ)
-					{
-						if (!linkselInput || !jointselInput)
-						{
-							//no need to throw an error here, this happens in harmless situations. i'll just break out
-							break;
-							//throw "either linkselInput or jointselInput are null. this will fail, aborting";
-						}
-						if (!linkgroupInput || !jointgroupInput)
-						{
-							//no need to throw an error here, this happens in harmless situations. i'll just break out
-							break;
-							//throw "either linkgroupInput or jointgroupInput are null. this will fail, aborting";
-						}
-						linkselInput->clearSelection();
-						jointselInput->clearSelection();
-						//is it a link?
-						ULink* currLink = dynamic_cast<ULink*>(_ms.thistree.currentEl);
-						if (currLink)
-						{
-							std::vector<Ptr<Occurrence>> group = currLink->group;
-							LOG(DEBUG) << "repopulating link selection";
-							for (auto it = group.cbegin(); it != group.cend(); it++)
-							{
-								linkselInput->addSelection(*it);
-							}
-							//we hide the joint selection
-							linkgroupInput->isVisible(true);
-							jointgroupInput->isVisible(false);
-						}
-						//same for joints
+					thisjoint->setjoint(thisFusionJoint);
 
-						UJoint* currJoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
-						if (currJoint)
-						{
-							LOG(DEBUG) << "repopulating joint selection";
-							jointselInput->addSelection(currJoint->entity);
-
-							//we hide the link selection
-							linkgroupInput->isVisible(false);
-							jointgroupInput->isVisible(true);
-
-							//we set the controls for parent and child links
-
-							vector<string> alllinkgr = _ms.thistree.allLinksvec();
-
-							if (!cln || !pln)
-								throw "either cln or pln (or both!) don't exist. this will fail, aborting";
-
-							cln->listItems()->clear();
-							pln->listItems()->clear();
-
-							cln->listItems()->add(">>not set<<", true);
-							pln->listItems()->add(">>not set<<", true);
-
-							LOG(DEBUG) << "repopulating joint names";
-							for (auto linknamestr : alllinkgr)
-							{
-								bool isthischildselected = linknamestr == currJoint->childlink;
-								bool isthisparentselected = linknamestr == currJoint->parentlink;
-								cln->listItems()->add(linknamestr, isthischildselected);
-								pln->listItems()->add(linknamestr, isthisparentselected);
-							}
-
-						}
-
-					}
 				}
 				else
 				{
-					LOG(WARNING) << "could not resolve _ms.thistree.currentEl\nThis happens if there is no selected row and can usually be ignored.";
+					string errormsg = "the cast didn't work. it should have.";
+					LOG(ERROR) << errormsg;
+					ui->messageBox(errormsg);
+				}
+				LOG(DEBUG) << "jointselection: done ";
+
+			}
+			else if (cmdInput->id() == "parentlinkname")
+			{
+				LOG(DEBUG) << "i am aware i am a parentlinkname control";
+				//since I changed the visibility of controls I know current element is a joint, if this is accessible
+				UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+				if (thisjoint)
+				{
+					Ptr<ListItem> dropdown_parent1 = pln->selectedItem();
+					std::string myparentlinkname = dropdown_parent1->name();
+					thisjoint->parentlink = myparentlinkname;
+					_ms.thistree.currentEl = thisjoint;
+				}
+				else
+				{
+					string errormsg = "the cast didn't work";
+					LOG(ERROR) << errormsg;
+					ui->messageBox(errormsg);
+				}
+				LOG(DEBUG) << "parentlinkname: done ";
+			}
+			else if (cmdInput->id() == "childlinkname")
+			{
+				LOG(DEBUG) << "i am aware i am a childlinkname control";
+
+				//since I changed the visibility of controls I know current element is a joint, if this is accessible
+				UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+				if (thisjoint)
+				{
+					Ptr<ListItem> dropdown_child2 = cln->selectedItem();
+					std::string childlinkname = dropdown_child2->name();
+					thisjoint->childlink = childlinkname;
+					LOG(DEBUG) << "thisjointchildlink:" + thisjoint->childlink + "\ndropdownthing:" + dropdown_child2->name();
+					_ms.thistree.currentEl = thisjoint;
+				}
+				else
+				{
+					string errormsg = "the cast didn't work";
+					LOG(ERROR) << errormsg;
+					ui->messageBox(errormsg);
+				}
+				LOG(DEBUG) << "childlinkname: done ";
+			}
+			else if (cmdInput->id() == "createtree")
+			{
+				linkgroupInput->isVisible(false);
+				jointgroupInput->isVisible(false);
+				ui->messageBox(_ms.thistree.genTree());
+			}
+			else if (cmdInput->id().find("butselectClick") != std::string::npos) ///// TODO: add all other controls from table here, if we ever want to make them selectable/changeable then how it is, will break!
+			{
+				//first we set current element
+				if (tableInput)
+				{
+					std::string num_str = cmdInput->id().substr(14); // I used to get the value of the index from the control of the selected row. I guess I can double check
+					if (tableInput->selectedRow() != -1)
+					{
+						Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(tableInput->selectedRow(), 0);
+						if (thisstringinput)
+						{
+							std::string num_str2 = thisstringinput->value();
+
+							if (num_str2 != num_str)
+							{
+								rows_differ = true;
+								//actually, getting the number from the controlname string is better, since the value of the selected row will only change after this input events are processed!
+
+								LOG(DEBUG) << "numstr:" + num_str + "\nnumstr2:" + num_str2; //this will only show if you have ui->messageBox's 
+								_ms.oldrow = std::stoi(num_str);
+								_ms.rowNumber = std::stoi(num_str2);
+							}
+						}
+					}
+					_ms.thistree.setCurrentEl(std::stoi(num_str));
+					LOG(DEBUG) << "current selected element's name is:" + _ms.thistree.currentEl->name;
+					debugInput->text(_ms.thistree.getdebugtext());
 				}
 			}
-			catch (const char* msg) {
-				LOG(ERROR) << msg;
-				ui->messageBox(msg);
+
+			else if (cmdInput->id() == "packagename")
+			{
+
+				Ptr<StringValueCommandInput> thisstringinput = inputs->itemById("packagename");
+				_ms.packagename = thisstringinput->value();
 			}
 
-			catch (std::exception& e)
-			{
-				LOG(ERROR) << e.what();
-				std::string errormsg = "the update region bit failed...\n" ;
-				LOG(ERROR) << errormsg;
-				ui->messageBox(errormsg);
+			//else if (cmdInput->id() == "") {}
+
+			//checks current element and updates all things!
+
+			LOG(DEBUG) << "Entering the old function setcurrelement from Mothership";
+
+			bool runonce = true;
+			while (runonce) {
+				runonce = false;
+				try {
+					if (_ms.thistree.currentEl)
+					{
+						if (rows_differ)
+						{
+							if (!linkselInput || !jointselInput)
+							{
+								//no need to throw an error here, this happens in harmless situations. i'll just break out
+								break;
+								//throw "either linkselInput or jointselInput are null. this will fail, aborting";
+							}
+							if (!linkgroupInput || !jointgroupInput)
+							{
+								//no need to throw an error here, this happens in harmless situations. i'll just break out
+								break;
+								//throw "either linkgroupInput or jointgroupInput are null. this will fail, aborting";
+							}
+							linkselInput->clearSelection();
+							jointselInput->clearSelection();
+							//is it a link?
+							ULink* currLink = dynamic_cast<ULink*>(_ms.thistree.currentEl);
+							if (currLink)
+							{
+								std::vector<Ptr<Occurrence>> group = currLink->group;
+								LOG(DEBUG) << "repopulating link selection";
+								for (auto it = group.cbegin(); it != group.cend(); it++)
+								{
+									linkselInput->addSelection(*it);
+								}
+								//we hide the joint selection
+								linkgroupInput->isVisible(true);
+								jointgroupInput->isVisible(false);
+							}
+							//same for joints
+
+							UJoint* currJoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+							if (currJoint)
+							{
+								LOG(DEBUG) << "repopulating joint selection";
+								jointselInput->addSelection(currJoint->entity);
+
+								//we hide the link selection
+								linkgroupInput->isVisible(false);
+								jointgroupInput->isVisible(true);
+
+								//we set the controls for parent and child links
+
+								vector<string> alllinkgr = _ms.thistree.allLinksvec();
+
+								if (!cln || !pln)
+									throw "either cln or pln (or both!) don't exist. this will fail, aborting";
+
+								cln->listItems()->clear();
+								pln->listItems()->clear();
+
+								cln->listItems()->add(">>not set<<", true);
+								pln->listItems()->add(">>not set<<", true);
+
+								LOG(DEBUG) << "repopulating joint names";
+								for (auto linknamestr : alllinkgr)
+								{
+									bool isthischildselected = linknamestr == currJoint->childlink;
+									bool isthisparentselected = linknamestr == currJoint->parentlink;
+									cln->listItems()->add(linknamestr, isthischildselected);
+									pln->listItems()->add(linknamestr, isthisparentselected);
+								}
+
+							}
+
+						}
+					}
+					else
+					{
+						LOG(WARNING) << "could not resolve _ms.thistree.currentEl\nThis happens if there is no selected row and can usually be ignored.";
+					}
+				}
+				catch (const char* msg) {
+					LOG(ERROR) << msg;
+					ui->messageBox(msg);
+				}
+
+				catch (std::exception& e)
+				{
+					LOG(ERROR) << e.what();
+					std::string errormsg = "the update region bit failed...\n";
+					LOG(ERROR) << errormsg;
+					ui->messageBox(errormsg);
+				}
+				catch (...)
+				{
+					std::string errormsg = "Error: the update region bit failed hard!";
+					LOG(ERROR) << errormsg;
+					ui->messageBox(errormsg);
+				}
 			}
-			catch (...) 
-			{
-				std::string errormsg = "Error: the update region bit failed hard!";
-				LOG(ERROR) << errormsg;
-				ui->messageBox(errormsg);
-			}
+		}
+
+		if (_ms.active_tab == 2)
+		{
+			//ui->messageBox("tab 2 is active");
+			ui->messageBox(cmdInput->id());
 		}
 	}
 };
@@ -870,6 +900,11 @@ public:
 					if (!inputs)
 						return;
 
+
+
+
+
+
 					// Create a tab input.
 					Ptr<TabCommandInput> tabCmdInput3 = inputs->addTabCommandInput("tab_1", "URDFGEN");
 					if (!tabCmdInput3)
@@ -877,6 +912,29 @@ public:
 					Ptr<CommandInputs> tab3ChildInputs = tabCmdInput3->children();
 					if (!tab3ChildInputs)
 						return;
+
+					//
+					// Create a tab input.
+					Ptr<TabCommandInput> tabCmdInput2 = inputs->addTabCommandInput("tab_2", "MultiPack");
+					if (!tabCmdInput2)
+						return;
+					Ptr<CommandInputs> tab2ChildInputs = tabCmdInput2->children();
+					if (!tab2ChildInputs)
+						return;
+
+					// Create table input.
+					Ptr<TableCommandInput> tableInput2 = tab2ChildInputs->addTableCommandInput("table_pack", "Packages", 3, "1:2:3:1");
+					tableInput2->maximumVisibleRows(5);
+					tableInput2->minimumVisibleRows(3);
+
+					// Add inputs into the table.
+					Ptr<CommandInput> addpackButtonInput2 = tab2ChildInputs->addBoolValueInput("table_packAdd", "Add Package", false, "", true);
+					tableInput2->addToolbarCommandInput(addpackButtonInput2);
+					Ptr<CommandInput> deletepackButtonInput2 = tab2ChildInputs->addBoolValueInput("table_packDelete", "Delete", false, "", true);
+					tableInput2->addToolbarCommandInput(deletepackButtonInput2);
+					//
+
+
 
 					tab3ChildInputs->addStringValueInput("packagename", "Name of your URDF package", _ms.packagename);
 
