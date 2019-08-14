@@ -670,7 +670,7 @@ public:
 					Ptr<ListItem> dropdown_child2 = cln->selectedItem();
 					std::string childlinkname = dropdown_child2->name();
 					thisjoint->childlink = childlinkname;
-					LOG(DEBUG) << "thisjointchildlink:" + thisjoint->childlink + "\ndropdownthing:" + dropdown_child2->name();
+					LOG(DEBUG) << "thisjointchildlink:" + thisjoint->childlink->name + "\ndropdownthing:" + dropdown_child2->name();
 					_ms.thistree.currentEl = thisjoint;
 				}
 				else
@@ -794,8 +794,8 @@ public:
 								LOG(DEBUG) << "repopulating joint names";
 								for (auto linknamestr : alllinkgr)
 								{
-									bool isthischildselected = linknamestr == currJoint->childlink;
-									bool isthisparentselected = linknamestr == currJoint->parentlink;
+									bool isthischildselected = linknamestr == currJoint->childlink->name;
+									bool isthisparentselected = linknamestr == currJoint->parentlink->name;
 									cln->listItems()->add(linknamestr, isthischildselected);
 									pln->listItems()->add(linknamestr, isthisparentselected);
 								}
@@ -878,7 +878,7 @@ public:
 		setaxisjoint.isset = true;
 		setaxisjoint.type = "fixed";
 		setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
-		setaxisjoint.parentlink = "base_link";
+		setaxisjoint.parentlink = &base_link;
 		setaxisjoint.childlink = "base";
 		setaxisjoint.makexml(robot_root, _ms.packagename);
 		

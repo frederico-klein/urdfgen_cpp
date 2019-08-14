@@ -88,6 +88,7 @@ public:
 	//std::string name;
 };
 
+class ULink;
 
 class UJoint:public UElement
 {

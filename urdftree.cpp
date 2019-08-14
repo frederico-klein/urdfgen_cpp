@@ -48,10 +48,10 @@ void UrdfTree::addJoint(std::string name, int row)
 		UJoint* thisjoint = new UJoint();
 		thisjoint->name = name;
 		thisjoint->row = row;
-		ULink* 
-
-		thisjoint->childlink = "nonameyet"+name;
-		thisjoint->parentlink = "nonameyet"+name;
+		ULink* nolink = new ULink();
+		nolink->name = "nonameyet" + name;
+		thisjoint->childlink = nolink;
+		thisjoint->parentlink = nolink;
 		LOG(DEBUG) << "added joint with name: " + name;
 		DicElement thisElement = std::make_pair(row, thisjoint);
 		elementsDict.push_back(thisElement);
