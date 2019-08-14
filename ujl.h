@@ -97,8 +97,8 @@ public:
 	std::string generatingjointname;
 	OrVec origin; //SixDegree origin;
 	OrVec realorigin;
-	std::string parentlink;
-	std::string childlink;
+	ULink* parentlink;
+	ULink* childlink;
 
 	bool isFastSwitch;
 	std::string parentPackage;
@@ -142,6 +142,8 @@ public:
 	std::vector<Ptr<Occurrence>> group; 
 	Ptr<Joint> fatherjoint;
 	std::string parent;
+	//for srdf I also need to keep track of adjacent elements
+	std::vector<std::string> adjacents;
 
 	//methods
 	std::string getitems();

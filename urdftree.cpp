@@ -48,6 +48,8 @@ void UrdfTree::addJoint(std::string name, int row)
 		UJoint* thisjoint = new UJoint();
 		thisjoint->name = name;
 		thisjoint->row = row;
+		ULink* 
+
 		thisjoint->childlink = "nonameyet"+name;
 		thisjoint->parentlink = "nonameyet"+name;
 		LOG(DEBUG) << "added joint with name: " + name;
@@ -275,10 +277,10 @@ TwoDic UrdfTree::gentreecorecore(TwoDic placed_and_this, UJoint* joint, bool* st
 
 		if (currLink)
 		{
-			LOG(DEBUG) << "current element is a link\ncurrentelement has name"+ currLink->name +"\ncurrent joint childlink is" + joint->childlink ;
+			LOG(DEBUG) << "current element is a link\ncurrentelement has name"+ currLink->name +"\ncurrent joint childlink is" + joint->childlink->name ;
 		}
 
-		if (currLink && currLink->name == joint->childlink)
+		if (currLink && currLink->name == joint->childlink->name)
 		{
 			DicElement placeel = std::make_pair(placedeldic.size(), currLink);
 			placedeldic.push_back(placeel);
@@ -341,7 +343,7 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 				for (auto elel : *placedeldic)
 				{
 					ULink* mylink = dynamic_cast<ULink*>(elel.second);
-					if (mylink && mylink->name == myjoint->parentlink)
+					if (mylink && mylink->name == myjoint->parentlink->name)
 					{
 						foundjoint = true;
 						//found a link of which I can have the real coordinate system
@@ -356,6 +358,10 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 						if (!mylink->coordinatesystem.isset)
 							LOG(ERROR) << "Coordinate system is not set! the Link's origin will be incorrect and the resulting model will need to be fixed manually!";
 						myjoint->setrealorigin(mylink->coordinatesystem);
+
+						//for srdf I also need to keep track of adjacent elements
+
+
 
 						//now if this joint is an FS joint, I will need to change the package context. if it isn't it keeps the context. links just keep the context of their father joints!
 

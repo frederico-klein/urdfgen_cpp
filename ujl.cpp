@@ -497,7 +497,7 @@ void UJoint::setrealorigin(OrVec fathercoordinatesystem)
 std::string UJoint::getitems()
 {
 	std::string iss = (isset) ? "Yes" : "No";
-	std::string items = "isset:" + iss + "\tgenjn:" + generatingjointname + "\n" + "parent:" + parentlink + "\t" + "child:" + childlink + "\n";
+	std::string items = "isset:" + iss + "\tgenjn:" + generatingjointname + "\n" + "parent:" + parentlink->name + "\t" + "child:" + childlink->name + "\n";
 	return items;
 };
 
@@ -518,12 +518,12 @@ void UJoint::makexml(TiXmlElement* urdfroot, std::string ) //don't need packagen
 		jointXE->LinkEndChild(originXE);
 
 		TiXmlElement * parentXE = new TiXmlElement("parent");
-		parentXE->SetAttribute("link", parentlink.c_str());
+		parentXE->SetAttribute("link", parentlink->name.c_str());
 
 		jointXE->LinkEndChild(parentXE);
 
 		TiXmlElement * childXE = new TiXmlElement("child");
-		childXE->SetAttribute("link", childlink.c_str());
+		childXE->SetAttribute("link", childlink->name.c_str());
 
 		jointXE->LinkEndChild(childXE);
 

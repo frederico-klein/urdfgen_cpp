@@ -209,36 +209,13 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 };
 
 
-vector<fs::path> createpaths(string _ms_packagename, fs::path thisscriptpath)
+vector<fs::path> createpathsubchain(string _ms_packagename, fs::path thisscriptpath, fs::path base_directory)
 {
 	vector<fs::path> returnvectstr;
 
 	try {
 		LOG(DEBUG) << "called createpaths";
-		fs::path userdir = "";
-
-		char* buf = nullptr;
-		size_t sz = 0;
-		if (_dupenv_s(&buf, &sz, "USERPROFILE") == 0 && buf != nullptr)
-		{
-			userdir = buf;
-			free(buf);
-		}
-
-		auto folderDlg = ui->createFolderDialog();
-		folderDlg->title("Choose location to save your URDF new package");
-		folderDlg->initialDirectory(userdir.string());
-		DialogResults dlgResult = folderDlg->showDialog();
-		if (dlgResult == DialogError)
-			LOG(ERROR) << "failed to create dialog";
-		if (dlgResult != DialogOK) 
-		{
-			ui->messageBox("you need to select a folder!");
-			throw std::runtime_error("Directory not selected. cannot continue.\nError code: DialogResults enum" +std::to_string(dlgResult));
-		}
-
-		fs::path outputdir = folderDlg->folder();
-		fs::path base_directory = outputdir / _ms_packagename;
+	
 		LOG(INFO) << "This script's path: "+ (thisscriptpath.string());
 
 		LOG(INFO) <<"Base directory:"+base_directory.string();
@@ -283,7 +260,7 @@ vector<fs::path> createpaths(string _ms_packagename, fs::path thisscriptpath)
 			}
 			file_out.close();
 		}
-		returnvectstr = { base_directory, meshes_directory, components_directory };
+		returnvectstr = { meshes_directory, components_directory };
 	}
 	catch (const char* msg) {
 		LOG(ERROR) << msg;
@@ -303,6 +280,133 @@ vector<fs::path> createpaths(string _ms_packagename, fs::path thisscriptpath)
 		ui->messageBox(errormessage);
 	}
 return returnvectstr;
+};
+
+vector<fs::path> createpathwholechain(string _ms_packagename, fs::path thisscriptpath, fs::path base_directory)
+{
+	vector<fs::path> returnvectstr;
+
+	try {
+		LOG(DEBUG) << "called createpaths";
+
+		LOG(INFO) << "This script's path: " + (thisscriptpath.string());
+
+		LOG(INFO) << "Base directory:" + base_directory.string();
+		if (!fs::exists(base_directory))
+			fs::create_directories(base_directory); //// will create whole tree if needed
+		fs::path meshes_directory = base_directory / "meshes";
+
+		fs::path components_directory = base_directory / "components";
+
+		if (!fs::exists(meshes_directory))
+			fs::create_directory(meshes_directory);
+		if (!fs::exists(components_directory))
+			fs::create_directory(components_directory);
+		vector<string> filestochange = { "display.launch", "urdf_.rviz", "package.xml", "CMakeLists.txt" };
+
+		for (auto myfilename : filestochange)
+		{
+			ifstream file_in;
+			// Read in the file
+
+			auto thisfilename = thisscriptpath / "resources" / myfilename;
+
+			LOG(INFO) << "Opening file:" + (thisfilename.string());
+			file_in.open(thisfilename);
+			if (!file_in)
+				LOG(ERROR) << "failed to open input file:" + thisfilename.string();
+
+			auto thisoutfilename = base_directory / myfilename;
+			ofstream file_out(thisoutfilename.string(), std::ofstream::out);
+
+			string filedata;
+
+			while (std::getline(file_in, filedata))
+			{
+				// Replace the target string
+
+				replaceAll(filedata, "somepackage", _ms_packagename);
+
+				// Write the file out again
+
+				file_out << filedata << endl;
+			}
+			file_out.close();
+		}
+		returnvectstr = { meshes_directory, components_directory };
+	}
+	catch (const char* msg) {
+		LOG(ERROR) << msg;
+		ui->messageBox(msg);
+	}
+	catch (const std::exception& e)
+	{
+		LOG(ERROR) << e.what();
+		std::string errormsg = "issues creating folders...\n";
+		LOG(ERROR) << errormsg;
+		ui->messageBox(errormsg);
+	}
+	catch (...)
+	{
+		string errormessage = "issues creating folders!";
+		LOG(ERROR) << errormessage;
+		ui->messageBox(errormessage);
+	}
+	return returnvectstr;
+};
+
+fs::path create_base_path(string _ms_packagename, fs::path thisscriptpath)
+{
+	fs::path returnpath;
+
+	try {
+		LOG(DEBUG) << "called create_base_path";
+		fs::path userdir = "";
+
+		char* buf = nullptr;
+		size_t sz = 0;
+		if (_dupenv_s(&buf, &sz, "USERPROFILE") == 0 && buf != nullptr)
+		{
+			userdir = buf;
+			free(buf);
+		}
+
+		auto folderDlg = ui->createFolderDialog();
+		folderDlg->title("Choose location to save your URDF new package");
+		folderDlg->initialDirectory(userdir.string());
+		DialogResults dlgResult = folderDlg->showDialog();
+		if (dlgResult == DialogError)
+			LOG(ERROR) << "failed to create dialog";
+		if (dlgResult != DialogOK)
+		{
+			ui->messageBox("you need to select a folder!");
+			throw std::runtime_error("Directory not selected. cannot continue.\nError code: DialogResults enum" + std::to_string(dlgResult));
+		}
+
+		fs::path outputdir = folderDlg->folder();
+		fs::path base_directory = outputdir / _ms_packagename;
+		LOG(INFO) << "This script's path: " + (thisscriptpath.string());
+
+		returnpath = base_directory;
+	}
+	catch (const char* msg) {
+		LOG(ERROR) << msg;
+		ui->messageBox(msg);
+	}
+	catch (const std::exception& e)
+	{
+		LOG(ERROR) << e.what();
+		std::string errormsg = "issues creating folders...\n";
+		LOG(ERROR) << errormsg;
+		ui->messageBox(errormsg);
+	}
+	catch (...)
+	{
+		string errormessage = "issues creating folders!";
+		LOG(ERROR) << errormessage;
+		ui->messageBox(errormessage);
+	}
+	return returnpath;
 };
 
 // InputChange event handler.
@@ -743,8 +847,15 @@ public:
 		ui->messageBox("Executing! ");
 		LOG(INFO) << "Executing! ";
 
+		fs::path mypaths_zero = create_base_path(_ms.packagename, _ms.thisscriptpath);
+
+		//we now should go over all the packages
+
+
 		vector<fs::path> mypaths = createpaths(_ms.packagename, _ms.thisscriptpath);
 		// lets create a simple xml to make sure we understand tinyxml sintax
+
+		//we need to split this into xacro vied and xacro includes!!!!
 
 		TiXmlDocument urdfdoc;
 
@@ -754,6 +865,8 @@ public:
 		TiXmlElement * robot_root = new TiXmlElement("robot");
 		robot_root->SetAttribute("name", "gummi");
 		urdfdoc.LinkEndChild(robot_root);
+
+		//xacro view part
 
 		ULink base_link;
 		base_link.name = "base_link";
@@ -769,6 +882,8 @@ public:
 		setaxisjoint.childlink = "base";
 		setaxisjoint.makexml(robot_root, _ms.packagename);
 		
+		//xacro macro part
+
 		//now parse the urdftree
 		for (auto el:_ms.thistree.elementsDict) 
 		{
@@ -788,7 +903,7 @@ public:
 			el.second->makexml(robot_root, _ms.packagename); 
 		};
 
-		string filenametosave = (mypaths[0] / "robot.urdf").string();
+		string filenametosave = (mypaths_zero / "robot.urdf").string();
 
 		LOG(INFO) << "Saving file" + (filenametosave); 
 		urdfdoc.SaveFile(filenametosave.c_str());
