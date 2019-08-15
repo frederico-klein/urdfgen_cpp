@@ -36,12 +36,15 @@ public:
 	pair<string, UJointList> allJoints() ;
 	pair<string, vector<UElement*>> allElements() ;
 	UElement* getEl(int) ;
+	UElement* getElementByName(std::string);
 	string getCurrentElDesc() ;
 	void setCurrentEl(int) ;
 	std::string UrdfTree::getdebugtext();
 	UrdfTree() {};
 	UrdfTree(UrdfTree&) = default;
 	~UrdfTree() {};
+	//functions for multipack
+
 private:
 	TwoDic gentreefindbase(vector<DicElement>);
 	TwoDic gentreecore(pair<UJointList, TwoDic>) ;

@@ -28,7 +28,7 @@ const bool runfrommenu = true; // this allowed to be run as script as well. TODO
 class MotherShip
 {
 public:
-	int rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1,lastrow = 0, active_tab = 0;
+	int rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1,lastrow = 0, active_tab = 0,packnum;
 	std::string packagename = "mypackage";
 	fs::path thisscriptpath;
 	//missing! jtctrl lastjoint is maybe not a ujoint object?
@@ -36,7 +36,7 @@ public:
 	UrdfTree thistree;
 	MotherShip() {
 		rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1, lastrow = 0;	
-
+		packnum = 0;
 		//setting thisscriptpath
 		
 		fs::path appdatadir = "";
@@ -54,6 +54,7 @@ public:
 	};
 	~MotherShip() {};
 	void addRowToTable(Ptr<TableCommandInput>, std::string);
+	void addRowToOtherTable(Ptr<TableCommandInput>);
 	void update_active_tab(Ptr<CommandInputs> inputs);
 } _ms;
 
@@ -207,7 +208,36 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 	elnum += 1;
 
 };
+void MotherShip::addRowToOtherTable(Ptr<TableCommandInput> tableInput)
+{
+	if (!tableInput)
+		return;
+	// Get the CommandInputs object associated with the parent command.
+	Ptr<CommandInputs> cmdInputs = tableInput->commandInputs();
 
+	// Setting up controls to be added for each row
+	Ptr<CommandInput> packnumInput = cmdInputs->addStringValueInput("packnum" + std::to_string(packnum), "packnumTable" + std::to_string(packnum), std::to_string(packnum));
+	packnumInput->isEnabled(false);
+
+	std::string packname = "package" + std::to_string(packnum);
+
+	Ptr<CommandInput> stringInput = cmdInputs->addStringValueInput("TablePackageInput_string" + std::to_string(packnum), "StringTablePackage" + std::to_string(elnum), packname);
+	stringInput->isEnabled(false); //I'm disabling the ability to change element's name randomly...
+
+
+	// Add the inputs to the table.
+	//lastrow = tableInput->rowCount();
+	//if (!lastrow)
+	//	LOG(DEBUG) << "cant get last row from package table";
+	packnum += 1;
+
+	tableInput->addCommandInput(packnumInput, packnum, 0);
+	tableInput->addCommandInput(stringInput, packnum, 1);
+	// Increment a counter used to make each row unique.
+
+
+
+};
 
 vector<fs::path> createpathsubchain(string _ms_packagename, fs::path thisscriptpath, fs::path base_directory)
 {
@@ -448,6 +478,9 @@ public:
 			Ptr<SelectionCommandInput> jointselInput;
 			Ptr<DropDownCommandInput> cln;
 			Ptr<DropDownCommandInput> pln;
+			Ptr<DropDownCommandInput> cpn;
+			Ptr<DropDownCommandInput> ppn;
+			Ptr<BoolValueCommandInput> isFs;
 
 			//inside the group, there is no group!
 			if (!linkgroupInput)
@@ -482,6 +515,24 @@ public:
 						ui->messageBox("pln is a null pointer!");
 						LOG(WARNING) << "pln is a null pointer!";
 					}
+					cpn = inputs->itemById("childPackageName");
+					if (!cpn)
+					{
+						ui->messageBox("cpn is a null pointer!");
+						LOG(WARNING) << "cpn is a null pointer!";
+					}
+					ppn = inputs->itemById("parentPackageName");
+					if (!ppn)
+					{
+						ui->messageBox("ppn is a null pointer!");
+						LOG(WARNING) << "ppn is a null pointer!";
+					}
+					isFs = inputs->itemById("fsCheckBox");
+					if (!isFs)
+					{
+						ui->messageBox("isFs is a null pointer!");
+						LOG(WARNING) << "isFs is a null pointer!";
+					}
 				}
 			}
 			else
@@ -489,6 +540,9 @@ public:
 				jointselInput = jointgroupInput->children()->itemById("jointselection");
 				cln = jointgroupInput->children()->itemById("childlinkname");
 				pln = jointgroupInput->children()->itemById("parentlinkname");
+				cpn = jointgroupInput->children()->itemById("childPackageName");
+				ppn = jointgroupInput->children()->itemById("parentPackageName");
+				isFs = jointgroupInput->children()->itemById("fsCheckBox");
 			}
 
 			LOG_IF(!jointselInput, ERROR) << "jointselInput is a null pointer, references are gonna fail";
@@ -648,7 +702,7 @@ public:
 				{
 					Ptr<ListItem> dropdown_parent1 = pln->selectedItem();
 					std::string myparentlinkname = dropdown_parent1->name();
-					thisjoint->parentlink = myparentlinkname;
+					thisjoint->parentlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName(myparentlinkname));
 					_ms.thistree.currentEl = thisjoint;
 				}
 				else
@@ -669,7 +723,7 @@ public:
 				{
 					Ptr<ListItem> dropdown_child2 = cln->selectedItem();
 					std::string childlinkname = dropdown_child2->name();
-					thisjoint->childlink = childlinkname;
+					thisjoint->childlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName(childlinkname));
 					LOG(DEBUG) << "thisjointchildlink:" + thisjoint->childlink->name + "\ndropdownthing:" + dropdown_child2->name();
 					_ms.thistree.currentEl = thisjoint;
 				}
@@ -680,6 +734,58 @@ public:
 					ui->messageBox(errormsg);
 				}
 				LOG(DEBUG) << "childlinkname: done ";
+			}
+			else if (cmdInput->id() == "parentPackageName")
+			{
+				LOG(DEBUG) << "i am aware i am a parentPackageName control";
+				UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+				if (thisjoint)
+				{
+					Ptr<ListItem> dropdown_parent_temp = ppn->selectedItem();
+					std::string parentPackageName = dropdown_parent_temp->name();
+					thisjoint->parentPackage = parentPackageName;
+				}
+				else
+				{
+					string errormsg = "the cast didn't work";
+					LOG(ERROR) << errormsg;
+					ui->messageBox(errormsg);
+				}
+				LOG(DEBUG) << "parentPackageName: done ";
+			}
+			else if (cmdInput->id() == "childPackageName")
+			{
+				LOG(DEBUG) << "i am aware i am a childPackageName control";
+				UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+				if (thisjoint)
+				{
+					Ptr<ListItem> dropdown_child_temp = cpn->selectedItem();
+					std::string childPackageName = dropdown_child_temp->name();
+					thisjoint->childPackage = childPackageName;
+				}
+				else
+				{
+					string errormsg = "the cast didn't work";
+					LOG(ERROR) << errormsg;
+					ui->messageBox(errormsg);
+				}
+				LOG(DEBUG) << "childPackageName: done ";
+			}
+			else if (cmdInput->id() == "fsCheckBox")
+			{
+				LOG(DEBUG) << "i am aware i am a fsCheckBox control";
+				//change visibility of childPackageName and parentPackageName;
+				if (isFs->isCheckBox())
+				{
+					cpn->isVisible(true);
+					ppn->isVisible(true);
+				}
+				else
+				{
+					cpn->isVisible(false);
+					ppn->isVisible(false);
+				}
+
 			}
 			else if (cmdInput->id() == "createtree")
 			{
@@ -800,6 +906,31 @@ public:
 									pln->listItems()->add(linknamestr, isthisparentselected);
 								}
 
+								//same for packagelist
+
+								//we set the controls for parent and child links
+
+								vector<string> allPacks = _ms.thistree.packageList;
+
+								if (!cpn || !ppn)
+									throw "either cpn or ppn (or both!) don't exist. this will fail, aborting";
+
+								cpn->listItems()->clear();
+								ppn->listItems()->clear();
+
+								cpn->listItems()->add(">>not set<<", true);
+								ppn->listItems()->add(">>not set<<", true);
+
+								LOG(DEBUG) << "repopulating package names";
+								for (auto packagenamestr : allPacks)
+								{
+									bool isthischildselected = packagenamestr == currJoint->childPackage;
+									bool isthisparentselected = packagenamestr == currJoint->parentPackage;
+									cpn->listItems()->add(packagenamestr, isthischildselected);
+									ppn->listItems()->add(packagenamestr, isthisparentselected);
+								}
+
+
 							}
 
 						}
@@ -834,7 +965,49 @@ public:
 		{
 			//ui->messageBox("tab 2 is active");
 			ui->messageBox(cmdInput->id());
+
+		Ptr<TableCommandInput> tableInput2 = inputs->itemById("table_pack");
+		if (!tableInput2)
+			ui->messageBox("cannot get table!");
+
+
+		if (cmdInput->id() == "table_packAdd") {
+			try {
+				_ms.addRowToOtherTable(tableInput2);
+				tableInput2->getInputAtPosition(_ms.packnum, 0)->isEnabled(false);
+				Ptr<StringValueCommandInput> thisstringinput = tableInput2->getInputAtPosition(_ms.packnum, 1);
+				if (!thisstringinput)
+					throw "error getting row!";
+				std::string packname = thisstringinput->value();
+				LOG(DEBUG) << "added package:" + packname;
+				_ms.thistree.packageList.push_back(packname);
+			}
+			catch (const char* msg) {
+				LOG(ERROR) << msg;
+				ui->messageBox(msg);
+			}
+
+			catch (...)
+			{
+				string errormessage = "issues adding package!";
+				LOG(ERROR) << errormessage;
+				ui->messageBox(errormessage);
+			}
 		}
+		else if (cmdInput->id() == "table_packDelete") 
+		{
+
+				//always deletes the last package. easier to keep track. 
+
+				//now I can delete the row
+				tableInput2->deleteRow(_ms.packnum);
+				//and delete the element
+				_ms.thistree.packageList.pop_back();
+				_ms.packnum -= 1;
+								
+				LOG(DEBUG) << "deleted package okay";
+			}
+		}		
 	}
 };
 
@@ -852,7 +1025,7 @@ public:
 		//we now should go over all the packages
 
 
-		vector<fs::path> mypaths = createpaths(_ms.packagename, _ms.thisscriptpath);
+		vector<fs::path> mypaths = createpathsubchain(_ms.packagename, _ms.thisscriptpath, mypaths_zero);
 		// lets create a simple xml to make sure we understand tinyxml sintax
 
 		//we need to split this into xacro vied and xacro includes!!!!
@@ -879,7 +1052,7 @@ public:
 		setaxisjoint.type = "fixed";
 		setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
 		setaxisjoint.parentlink = &base_link;
-		setaxisjoint.childlink = "base";
+		setaxisjoint.childlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName("base"));
 		setaxisjoint.makexml(robot_root, _ms.packagename);
 		
 		//xacro macro part
@@ -907,6 +1080,8 @@ public:
 
 		LOG(INFO) << "Saving file" + (filenametosave); 
 		urdfdoc.SaveFile(filenametosave.c_str());
+
+		//at some point we need to write the complete xacro for main chain
 		}
 };
 
@@ -1115,6 +1290,18 @@ public:
 					Ptr<DropDownCommandInput> parentlinkin = jointGroupChildInputs->addDropDownCommandInput("parentlinkname", "Name of parent link", DropDownStyles::TextListDropDownStyle);
 
 					Ptr<DropDownCommandInput> childlinkin = jointGroupChildInputs->addDropDownCommandInput("childlinkname", "Name of child link", DropDownStyles::TextListDropDownStyle);
+
+					//now FS bits:
+
+					jointGroupChildInputs->addBoolValueInput("fsCheckBox", "FastSwitch Joint", true);
+
+					Ptr<DropDownCommandInput> parentpackin = jointGroupChildInputs->addDropDownCommandInput("parentPackageName", "Name of parent package", DropDownStyles::TextListDropDownStyle);
+
+					Ptr<DropDownCommandInput> childpackin = jointGroupChildInputs->addDropDownCommandInput("childPackageName", "Name of child package", DropDownStyles::TextListDropDownStyle);
+					//change initial visibitily for dropdowns to false:
+					parentpackin->isVisible(true);
+					childpackin->isVisible(true);
+
 					LOG(INFO) << "Created GUI alright. ";
 				}
 			}

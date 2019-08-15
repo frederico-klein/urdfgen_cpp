@@ -78,6 +78,23 @@ UElement* UrdfTree::getEl(int i)
 	}
 	return thisEl;
 };
+UElement* UrdfTree::getElementByName(std::string name_)
+{
+	LOG(DEBUG) << "UrdfTree::getElementByName reached";
+	UElement* thisEl{ 0 };
+
+	for (auto el : elementsDict) // I need this because the list index does not correspont to how many items are there in the dic. 
+	{
+		if (el.second->name == name_)
+		{
+			thisEl = el.second;
+			break;
+		}
+	}
+	return thisEl;
+};
+
+
 std::string UrdfTree::getCurrentElDesc() 
 {
 	if (currentEl)
