@@ -910,7 +910,7 @@ public:
 
 								//we set the controls for parent and child links
 
-								vector<string> allPacks = _ms.thistree.packageList;
+								vector<string> allPacks = _ms.thistree.packageList();
 
 								if (!cpn || !ppn)
 									throw "either cpn or ppn (or both!) don't exist. this will fail, aborting";
@@ -979,8 +979,11 @@ public:
 				if (!thisstringinput)
 					throw "error getting row!";
 				std::string packname = thisstringinput->value();
+				UPackage thispackage;
+				thispackage.name = packname;
+				_ms.thistree.packageTree.push_back(thispackage);
 				LOG(DEBUG) << "added package:" + packname;
-				_ms.thistree.packageList.push_back(packname);
+
 			}
 			catch (const char* msg) {
 				LOG(ERROR) << msg;
@@ -1002,7 +1005,7 @@ public:
 				//now I can delete the row
 				tableInput2->deleteRow(_ms.packnum);
 				//and delete the element
-				_ms.thistree.packageList.pop_back();
+				_ms.thistree.packageTree.pop_back();
 				_ms.packnum -= 1;
 								
 				LOG(DEBUG) << "deleted package okay";
@@ -1024,64 +1027,83 @@ public:
 
 		//we now should go over all the packages
 
-
-		vector<fs::path> mypaths = createpathsubchain(_ms.packagename, _ms.thisscriptpath, mypaths_zero);
-		// lets create a simple xml to make sure we understand tinyxml sintax
-
-		//we need to split this into xacro vied and xacro includes!!!!
-
-		TiXmlDocument urdfdoc;
-
-		TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", "");
-		urdfdoc.LinkEndChild(decl);
-
-		TiXmlElement * robot_root = new TiXmlElement("robot");
-		robot_root->SetAttribute("name", "gummi");
-		urdfdoc.LinkEndChild(robot_root);
-
-		//xacro view part
-
-		ULink base_link;
-		base_link.name = "base_link";
-
-		base_link.makexml(robot_root, _ms.packagename);
-#
-		UJoint setaxisjoint;
-		setaxisjoint.name = "set_worldaxis";
-		setaxisjoint.isset = true;
-		setaxisjoint.type = "fixed";
-		setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
-		setaxisjoint.parentlink = &base_link;
-		setaxisjoint.childlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName("base"));
-		setaxisjoint.makexml(robot_root, _ms.packagename);
-		
-		//xacro macro part
-
-		//now parse the urdftree
-		for (auto el:_ms.thistree.elementsDict) 
+		for (auto thisPackage:_ms.thistree.packageTree)
 		{
-			ULink* currLink = dynamic_cast<ULink*>(el.second);
-			if (currLink)
+
+			vector<fs::path> mypaths = createpathsubchain(thisPackage.name, _ms.thisscriptpath, mypaths_zero);
+
+			//we need to split this into xacro vied and xacro includes!!!!
+
+			TiXmlDocument thisurdfdoc, thisxacro;
+
+			TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", "");
+			thisurdfdoc.LinkEndChild(decl);
+			thisxacro.LinkEndChild(decl);
+
+			TiXmlElement * thisurdfdocrobot_root = new TiXmlElement("robot");
+			thisurdfdocrobot_root->SetAttribute("name", "gummi");
+			thisurdfdoc.LinkEndChild(thisurdfdocrobot_root);
+
+			TiXmlElement * thisxacrorobot_root = new TiXmlElement("robot");
+			thisxacrorobot_root->SetAttribute("name", "gummi");
+			thisxacro.LinkEndChild(thisxacrorobot_root);
+
+
+
+			//xacro view part
+
+			ULink base_link;
+			base_link.name = "base_link";
+
+			base_link.makexml(thisurdfdocrobot_root, _ms.packagename);
+#
+			UJoint setaxisjoint;
+			setaxisjoint.name = "set_worldaxis";
+			setaxisjoint.isset = true;
+			setaxisjoint.type = "fixed";
+			setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
+			setaxisjoint.parentlink = &base_link;
+			setaxisjoint.childlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName("base"));
+			setaxisjoint.makexml(thisurdfdocrobot_root, _ms.packagename);
+
+			//xacro macro part
+
+			TiXmlElement * thisxacromacro = new TiXmlElement("xacro:macro");
+			thisxacromacro->SetAttribute("name", thisPackage.name.c_str());
+			thisxacromacro->SetAttribute("params", "package_name");
+
+			//now parse the urdftree
+			for (auto el : thisPackage.elementsDict)
 			{
-				LOG(INFO) << "calling genlink for link:" + currLink->name;
-				bool succeeded = currLink->genlink(mypaths[1], mypaths[2], design, app);
-				if (!succeeded)
+				ULink* currLink = dynamic_cast<ULink*>(el.second);
+				if (currLink)
 				{
-					string errormsg = "failed generating link" + currLink->name;
-					LOG(ERROR) << errormsg;
-					ui->messageBox(errormsg);
-					return;
+					LOG(INFO) << "calling genlink for link:" + currLink->name;
+					bool succeeded = currLink->genlink(mypaths[0], mypaths[1], design, app);
+					if (!succeeded)
+					{
+						string errormsg = "failed generating link" + currLink->name;
+						LOG(ERROR) << errormsg;
+						ui->messageBox(errormsg);
+						return;
+					}
 				}
-			}
-			el.second->makexml(robot_root, _ms.packagename); 
-		};
+				el.second->makexml(thisxacromacro, "${package_name}");
+			};
 
-		string filenametosave = (mypaths_zero / "robot.urdf").string();
+			string filenametosave = (mypaths_zero / (thisPackage.name + ".xacro")).string();
 
-		LOG(INFO) << "Saving file" + (filenametosave); 
-		urdfdoc.SaveFile(filenametosave.c_str());
+			LOG(INFO) << "Saving file" + (filenametosave);
+			thisxacro.SaveFile(filenametosave.c_str());
+
+			//TODO: we need some more things to generate the view for this link
+
+
+		}
 
 		//at some point we need to write the complete xacro for main chain
+
+
 		}
 };
 

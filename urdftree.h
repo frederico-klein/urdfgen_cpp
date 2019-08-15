@@ -15,14 +15,16 @@ typedef pair<vector<DicElement>, vector<DicElement>> TwoDic;
 typedef vector<UJoint*> UJointList;
 typedef vector<ULink*> ULinkList;
 
+class UPackage;
+
 class UrdfTree
 {
 public:
 	//properties
 	std::string report;
 	vector<DicElement> elementsDict;
-	vector<vector<DicElement>> packageTree;
-	vector<std::string> packageList;
+	vector<UPackage> packageTree;
+
 	UElement* currentEl;
 	Ptr<UserInterface> ui; 
 	// methods
@@ -44,6 +46,7 @@ public:
 	UrdfTree(UrdfTree&) = default;
 	~UrdfTree() {};
 	//functions for multipack
+	vector<std::string> packageList();
 
 private:
 	TwoDic gentreefindbase(vector<DicElement>);
@@ -56,4 +59,16 @@ private:
 	pair<pair<string, UJointList>, vector<string>> alljoints(vector<DicElement>);
 	pair<pair<string, vector<UElement*>>, vector<string>> UrdfTree::allelements(vector<DicElement>);
 	string UrdfTree::alljoints(UJointList);
+};
+
+class UPackage {
+public:
+	vector<DicElement> elementsDict;
+	std::string name;
+
+	//methods
+	vector<UJoint*> alljoints();
+	vector<ULink*> alllinks();
+
+
 };

@@ -565,3 +565,43 @@ void Inertial::setall(double mass_, double xx_, double xy_, double xz_, double y
 	inertia.set(xx_,xy_, xz_, yy_, yz_, zz_);
 	LOG(INFO) << "inertial set with mass and inertia ";
 };
+
+void ULink::addAdjacent(ULink* alink) 
+{
+	//check if it is already there first
+	for (auto link : adjacentsList)
+	{
+		if (link == alink)
+		{	//link exists, I can safely return
+			LOG(DEBUG) << "link " + alink->name + " already in adjacents list for link:" + name;
+			return;
+		}
+	}
+	//if I am still executing, it means that the link was not found!
+	//so I add it. 
+	adjacentsList.push_back(alink);
+	LOG(DEBUG) << "Link " + alink->name + " added to adjacents list for link:" + name;
+};
+void ULink::parseadjacents()
+{
+	LOG(DEBUG) << "parsing link:" + name;
+	//these are going to be in separate positions in the srdf. actually, this one is quite tricky, because the name of the last joint should be standardized, or I won't be able to neglect the mixed collision
+	std::vector<ULink*> seldadjvec, mixedadjvec;
+	for (auto link: adjacentsList)
+	{
+		if (link->containerPackage == containerPackage)
+		{
+			LOG(DEBUG) << "link" +link->name << "added to self adjacents list";
+			seldadjvec.push_back(link);
+		}
+		else
+		{
+			LOG(DEBUG) << "link" + link->name << "added to mixed adjacents list";
+			mixedadjvec.push_back(link);
+		}
+	}
+	selfAdjacents = seldadjvec;
+	mixedAdjacents = mixedadjvec;
+
+};
+

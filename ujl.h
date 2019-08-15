@@ -144,12 +144,15 @@ public:
 	Ptr<Joint> fatherjoint;
 	std::string parent;
 	//for srdf I also need to keep track of adjacent elements
-	std::vector<std::string> adjacents;
+	std::vector<ULink*> adjacentsList;
+	std::vector<ULink*> selfAdjacents;
+	std::vector<ULink*> mixedAdjacents;
 
 	//methods
 	std::string getitems();
 	void genfatherjoint(UJoint joint);
 	void makexml(TiXmlElement*, std::string);
 	bool genlink(fs::path, fs::path, Ptr<Design>, Ptr<Application>);
-
+	void addAdjacent(ULink*);
+	void parseadjacents();
 };

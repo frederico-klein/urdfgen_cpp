@@ -216,7 +216,30 @@ std::string UrdfTree::genTree()
 	LOG(INFO) << bigprint(" finishing gentree basic");
 
 	// now let's distribute it into multiple packages!
+	bool isAllGood = true;
+	for (auto el : elementsDict)
+	{
+		bool foundPackage = false;
+		for (auto package : packageTree)
+		{
+			if (package.name == el.second->containerPackage)
+			{
+				LOG(INFO) << "found package for element: " +el.second->name << "package is:" + package.name;
+				foundPackage = true;
+				package.elementsDict.push_back(el);
+			}
 
+			if (foundPackage)
+				break;
+		}
+		if (!foundPackage)
+		{
+			isAllGood = false;
+			report += "could not find package" + el.second->containerPackage +"\nGenerating this model will fail!";
+		}
+	}
+	if (isAllGood)
+		report += "Splitting elements to packages successful. This tree can be distributed in subpackages!";
 
 	return report;
 }
@@ -549,4 +572,14 @@ pair<pair<string, vector<UElement*>>, vector<string>> UrdfTree::allelements(vect
 		exstr = "no elements!";
 
 	return make_pair(make_pair(exstr, allels), allelnames);
+};
+
+vector<std::string> UrdfTree::packageList()
+{
+	vector<std::string> mylist;
+	for (auto package : packageTree)
+	{
+		mylist.push_back(package.name);
+	}
+	return mylist;
 };
