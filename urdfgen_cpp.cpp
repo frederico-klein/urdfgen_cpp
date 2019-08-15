@@ -1030,7 +1030,7 @@ public:
 		for (auto thisPackage:_ms.thistree.packageTree)
 		{
 
-			vector<fs::path> mypaths = createpathsubchain(thisPackage.name, _ms.thisscriptpath, mypaths_zero);
+			vector<fs::path> mypaths = createpathsubchain(thisPackage.name, _ms.thisscriptpath, (mypaths_zero / thisPackage.name));
 
 			//we need to split this into xacro vied and xacro includes!!!!
 
@@ -1091,17 +1091,63 @@ public:
 				el.second->makexml(thisxacromacro, "${package_name}");
 			};
 
-			string filenametosave = (mypaths_zero / (thisPackage.name + ".xacro")).string();
+			TiXmlElement * thisxacromacropar = new TiXmlElement(("xacro:"+ thisPackage.name).c_str());
+			thisxacromacropar->SetAttribute("package_name", thisPackage.name.c_str());
+			thisxacro.LinkEndChild(thisxacromacropar);
+
+			string thissegmentxacroname = ("thissegment_" + _ms.packagename + ".urdf.xacro");
+			string filenametosave = ((mypaths_zero / thisPackage.name) / thissegmentxacroname).string();
 
 			LOG(INFO) << "Saving file" + (filenametosave);
 			thisxacro.SaveFile(filenametosave.c_str());
 
-			//TODO: we need some more things to generate the view for this link
+			// we need some more things to generate the view for this link
 
+			TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
+			thisurdfxacromacro->SetAttribute("filename", ("$(arg "+ thisPackage.name +"_dir)/xacro/thissegment_gh2.urdf.xacro").c_str());
+			thisurdfdoc.LinkEndChild(thisurdfxacromacro);
+
+
+			string thissegmentxacroname_view = ("view_thissegment_" + _ms.packagename + ".urdf.xacro");
+			string filenametosave_view = ((mypaths_zero / thisPackage.name) / thissegmentxacroname_view).string();
+			
+			LOG(INFO) << "Saving view file" + (filenametosave_view);
+			thisurdfdoc.SaveFile(filenametosave_view.c_str());
+
+			//TODO: this needs a CMakeslist custom target xacro line!!!
 
 		}
 
 		//at some point we need to write the complete xacro for main chain
+
+		vector<fs::path> mypaths = createpathwholechain(_ms.packagename+"whole", _ms.thisscriptpath, (mypaths_zero / (_ms.packagename + "whole")));
+
+		//we only need the view part, I think.
+
+		TiXmlDocument thisurdfdoc;
+
+		TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", "");
+		thisurdfdoc.LinkEndChild(decl);
+
+		TiXmlElement * thisurdfdocrobot_root = new TiXmlElement("robot");
+		thisurdfdocrobot_root->SetAttribute("name", "gummi");
+		thisurdfdoc.LinkEndChild(thisurdfdocrobot_root);
+
+		//now add all subpackage includes
+		for (auto thisPackage : _ms.thistree.packageTree)
+		{
+
+			TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
+			thisurdfxacromacro->SetAttribute("filename", ("$(arg " + thisPackage.name + "_dir)/xacro/thissegment_gh2.urdf.xacro").c_str());
+			thisurdfdoc.LinkEndChild(thisurdfxacromacro);
+
+		}
+
+		string thissegmentxacroname_view = ("wholearm_" + _ms.packagename + ".urdf.xacro");
+		string filenametosave_view = ((mypaths_zero / (_ms.packagename + "whole")) / thissegmentxacroname_view).string();
+
+		LOG(INFO) << "Saving view file" + (filenametosave_view);
+		thisurdfdoc.SaveFile(filenametosave_view.c_str());
 
 
 		}
