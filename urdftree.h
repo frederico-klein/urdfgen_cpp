@@ -25,7 +25,6 @@ public:
 	std::string report;
 	vector<DicElement> elementsDict;
 	vector<UPackage> packageTree;
-	UPackage mainpackage;
 
 	UElement* currentEl;
 	Ptr<UserInterface> ui; 
@@ -49,6 +48,7 @@ public:
 	~UrdfTree() {};
 	//functions for multipack
 	vector<std::string> packageList();
+	void genMainPack();
 
 private:
 	TwoDic gentreefindbase(vector<DicElement>);
@@ -81,4 +81,10 @@ public:
 	virtual void makeXacroURDF(Ptr<Design> design, Ptr<Application> app);
 	virtual void makeXacroSRDF();
 	virtual void setpath(fs::path thisscriptpath, fs::path base_directory);
+};
+
+class UMainPackage :UPackage
+{
+	void makeView(ULink* Base);
+	void setpath(string _ms_packagename, fs::path thisscriptpath, fs::path base_directory, std::vector<std::string> packagenamelist);
 };

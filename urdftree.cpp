@@ -786,3 +786,156 @@ void UPackage::makeXacroURDF(Ptr<Design> design, Ptr<Application> app) {
 
 
 };
+
+
+void UMainPackage::setpath(string _ms_packagename, fs::path thisscriptpath, fs::path base_directory, std::vector<std::string> packagenamelist)
+{
+	try 
+	{
+		LOG(DEBUG) << "called createpathwholechain";
+
+		LOG(INFO) << "This script's path: " + (thisscriptpath.string());
+
+		LOG(INFO) << "Base directory:" + base_directory.string();
+		if (!fs::exists(base_directory))
+			fs::create_directories(base_directory); //// will create whole tree if needed
+
+		vector<string> filestochange = { "display.launch", "urdf_.rviz", "package.xml", "CMakeLists.txt" };
+
+		for (auto myfilename : filestochange)
+		{
+			ifstream file_in;
+			// Read in the file
+
+			auto thisfilename = thisscriptpath / "resources" / "wholechain" / myfilename;
+
+			LOG(INFO) << "Opening file:" + (thisfilename.string());
+			file_in.open(thisfilename);
+			if (!file_in)
+				LOG(ERROR) << "failed to open input file:" + thisfilename.string();
+
+			auto thisoutfilename = base_directory / myfilename;
+			ofstream file_out(thisoutfilename.string(), std::ofstream::out);
+
+			string filedata;
+
+			while (std::getline(file_in, filedata))
+			{
+				// Replace the target string
+
+				replaceAll(filedata, "wholechain_template", _ms_packagename);
+
+				// Write the file out again
+
+				file_out << filedata << endl;
+			}
+
+			if (myfilename == "CMakeLists.txt")
+			{
+				//vars:
+				//%MAINPACKAGENAME%
+				//%SUBPACKNAME%
+				//%SUBPACKNAMELIST%
+
+				//add the URDF custom target bit:
+				std::string main_package_name = "";
+				const char* urdfcustomtarget = R"<>(
+################ TO GENERATE UDRF FILE #################
+add_custom_target(%MAINPACKAGENAME%urdfgen ALL ${ ROSRUNDIR } / rosrun xacro xacro --inorder
+${ CMAKE_CURRENT_SOURCE_DIR } / xacro / wholearm.urdf.xacro %SUBPACKNAMELIST% >
+${ CMAKE_CURRENT_SOURCE_DIR } / config / wholearm.urdf
+WORKING_DIRECTORY ${ PROJECT_SOURCE_DIR }
+COMMENT ** Creating %MAINPACKAGENAME% URDF file.
+VERBATIM
+)
+)<>";
+				std::string uct = urdfcustomtarget;
+				replaceAll(uct, "%MAINPACKAGENAME%", _ms_packagename);
+				LOG(DEBUG) << "uct so far:\n" << uct;
+
+				//now I need to construct all the lines for all the subpackages I have
+
+				std::string subpackliststr = "";
+				for (auto pack : packagenamelist)
+				{
+					std::string subpackline = "\n%SUBPACKNAME%_dir : = ${ CMAKE_CURRENT_SOURCE_DIR } / .. / %SUBPACKNAME%";
+					replaceAll(subpackline, "%SUBPACKNAME%", pack);
+					subpackliststr += subpackline;
+				}
+				replaceAll(uct, "%SUBPACKNAMELIST%", subpackliststr);
+				LOG(DEBUG) << "uct so far:\n" << uct;
+				//write our uct to CMakelists
+				file_out << uct << endl;
+			}
+			file_out.close();
+		}
+	}
+	catch (const char* msg) {
+		LOG(ERROR) << msg;
+	}
+	catch (const std::exception& e)
+	{
+		LOG(ERROR) << e.what();
+		std::string errormsg = "issues creating folders...\n";
+		LOG(ERROR) << errormsg;
+	}
+	catch (...)
+	{
+		string errormessage = "issues creating folders!";
+		LOG(ERROR) << errormessage;
+	}
+	return;
+};
+
+
+
+void UMainPackage::makeView(ULink* Base)
+{
+TiXmlDocument thisurdfdoc;
+
+TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", "");
+thisurdfdoc.LinkEndChild(decl);
+
+TiXmlElement * thisurdfdocrobot_root = new TiXmlElement("robot");
+thisurdfdocrobot_root->SetAttribute("name", "gummi");
+thisurdfdoc.LinkEndChild(thisurdfdocrobot_root);
+
+ULink base_link;
+base_link.name = "base_link";
+
+base_link.makexml(thisurdfdocrobot_root, name);
+
+UJoint setaxisjoint;
+setaxisjoint.name = "set_worldaxis";
+setaxisjoint.isset = true;
+setaxisjoint.type = "fixed";
+setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
+setaxisjoint.parentlink = &base_link;
+setaxisjoint.childlink = Base;
+setaxisjoint.makexml(thisurdfdocrobot_root, name);
+
+//now add all subpackage includes
+std::vector<std::string> packagenamelist;
+for (auto thisPackage : _ms.thistree.packageTree)
+{
+
+	TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
+	thisurdfxacromacro->SetAttribute("filename", ("$(arg " + thisPackage.name + "_dir)/xacro/thissegment_gh2.urdf.xacro").c_str());
+	thisurdfdocrobot_root->LinkEndChild(thisurdfxacromacro);
+	packagenamelist.push_back(thisPackage.name);
+}
+
+setpath(name, _ms.thisscriptpath, (mypaths_zero / name), packagenamelist);
+
+string thissegmentxacroname_view = ("wholearm_" + _ms.packagename + ".urdf.xacro");
+string filenametosave_view = ((mypaths_zero / name) / thissegmentxacroname_view).string();
+
+LOG(INFO) << "Saving view file" + (filenametosave_view);
+thisurdfdoc.SaveFile(filenametosave_view.c_str());
+
+};
+
+void UrdfTree::genMainPack() {
+	mainpackage.makeView(dynamic_cast<ULink*>(getElementByName("base")));
+
+};
