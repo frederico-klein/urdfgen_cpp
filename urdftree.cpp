@@ -220,13 +220,14 @@ std::string UrdfTree::genTree()
 	for (auto el : elementsDict)
 	{
 		bool foundPackage = false;
-		for (auto package : packageTree)
+		//for (auto package : packageTree)
+		for (auto package = packageTree.begin(); package != packageTree.end(); package++) //we want to modify this, so no constant iterators... otherwise, what's the point?
 		{
-			if (package.name == el.second->containerPackage)
+			if (package->name == el.second->containerPackage)
 			{
-				LOG(INFO) << "found package for element: " +el.second->name << "package is:" + package.name;
+				LOG(INFO) << "found package for element: " +el.second->name << "package is:" + package->name;
 				foundPackage = true;
-				package.elementsDict.push_back(el);
+				package->elementsDict.push_back(el);
 			}
 
 			if (foundPackage)
