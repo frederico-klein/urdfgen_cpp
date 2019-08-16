@@ -31,6 +31,8 @@ public:
 	int rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1,lastrow = 0, active_tab = 0,packnum;
 	std::string packagename = "mypackage";
 	fs::path thisscriptpath;
+
+	bool prepend_arm0, prepend_mainpackname;
 	//missing! jtctrl lastjoint is maybe not a ujoint object?
 	UJoint lastjoint;
 	UrdfTree thistree;
@@ -38,6 +40,10 @@ public:
 		rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1, lastrow = 0;	
 		packnum = 0;
 		active_tab = 1;
+		prepend_arm0 = true;
+		prepend_mainpackname = true;
+
+
 		//setting thisscriptpath
 		
 		fs::path appdatadir = "";
@@ -211,31 +217,56 @@ void MotherShip::addRowToTable(Ptr<TableCommandInput> tableInput, std::string Li
 };
 void MotherShip::addRowToOtherTable(Ptr<TableCommandInput> tableInput)
 {
-	if (!tableInput)
-		return;
-	// Get the CommandInputs object associated with the parent command.
-	Ptr<CommandInputs> cmdInputs = tableInput->commandInputs();
+	try {
+		if (!tableInput)
+			throw "no table!";
+		// Get the CommandInputs object associated with the parent command.
+		Ptr<CommandInputs> cmdInputs = tableInput->commandInputs();
 
-	// Setting up controls to be added for each row
-	Ptr<CommandInput> packnumInput = cmdInputs->addStringValueInput("packnum" + std::to_string(packnum), "packnumTable" + std::to_string(packnum), std::to_string(packnum));
-	packnumInput->isEnabled(false);
+		// Setting up controls to be added for each row
+		Ptr<CommandInput> packnumInput = cmdInputs->addStringValueInput("packnum" + std::to_string(packnum), "packnumTable" + std::to_string(packnum), std::to_string(packnum));
+		packnumInput->isEnabled(false);
 
-	std::string packname = "package" + std::to_string(packnum);
+		//setting prefixes:
+		std::string prefixes = "";
+		if (prepend_arm0)
+			prefixes += "arm0_";
+		if (prepend_mainpackname)
+			prefixes += packagename + "_";
 
-	Ptr<CommandInput> stringInput = cmdInputs->addStringValueInput("TablePackageInput_string" + std::to_string(packnum), "StringTablePackage" + std::to_string(elnum), packname);
-	stringInput->isEnabled(false); //I'm disabling the ability to change element's name randomly...
+		std::string packname = prefixes + "package" + std::to_string(packnum);
+
+		Ptr<CommandInput> stringInput = cmdInputs->addStringValueInput("TablePackageInput_string" + std::to_string(packnum), "StringTablePackage" + std::to_string(elnum), packname);
+		stringInput->isEnabled(false); //I'm disabling the ability to change element's name randomly...
 
 
-	// Add the inputs to the table.
-	//lastrow = tableInput->rowCount();
-	//if (!lastrow)
-	//	LOG(DEBUG) << "cant get last row from package table";
-	packnum += 1;
+		// Add the inputs to the table.
+		//lastrow = tableInput->rowCount();
+		//if (!lastrow)
+		//	LOG(DEBUG) << "cant get last row from package table";
+		packnum += 1;
 
-	tableInput->addCommandInput(packnumInput, packnum, 0);
-	tableInput->addCommandInput(stringInput, packnum, 1);
-	// Increment a counter used to make each row unique.
+		tableInput->addCommandInput(packnumInput, packnum, 0);
+		tableInput->addCommandInput(stringInput, packnum, 1);
+		// Increment a counter used to make each row unique.
 
+		{ //probably not necessary since I am doing this here...
+			tableInput->getInputAtPosition(packnum, 0)->isEnabled(false);
+			Ptr<StringValueCommandInput> thisstringinput = tableInput->getInputAtPosition(packnum, 1);
+			if (!thisstringinput)
+				throw "error getting row!";
+			std::string packname = thisstringinput->value();
+			//prolly just need this:
+			UPackage thispackage;
+			thispackage.name = packname;
+			thistree.packageTree.push_back(thispackage);
+			LOG(DEBUG) << "added package:" + packname;
+		}
+	}
+	catch (char * msg)
+	{
+		LOG(ERROR) << msg;
+	}
 
 
 };
@@ -289,6 +320,7 @@ vector<fs::path> createpathsubchain(string _ms_packagename, fs::path thisscriptp
 
 				file_out << filedata << endl;
 			}
+
 			file_out.close();
 		}
 		returnvectstr = { meshes_directory, components_directory };
@@ -313,26 +345,17 @@ vector<fs::path> createpathsubchain(string _ms_packagename, fs::path thisscriptp
 return returnvectstr;
 };
 
-vector<fs::path> createpathwholechain(string _ms_packagename, fs::path thisscriptpath, fs::path base_directory)
+void createpathwholechain(string _ms_packagename, fs::path thisscriptpath, fs::path base_directory, std::vector<std::string> packagenamelist)
 {
-	vector<fs::path> returnvectstr;
-
 	try {
-		LOG(DEBUG) << "called createpaths";
+		LOG(DEBUG) << "called createpathwholechain";
 
 		LOG(INFO) << "This script's path: " + (thisscriptpath.string());
 
 		LOG(INFO) << "Base directory:" + base_directory.string();
 		if (!fs::exists(base_directory))
 			fs::create_directories(base_directory); //// will create whole tree if needed
-		fs::path meshes_directory = base_directory / "meshes";
 
-		fs::path components_directory = base_directory / "components";
-
-		if (!fs::exists(meshes_directory))
-			fs::create_directory(meshes_directory);
-		if (!fs::exists(components_directory))
-			fs::create_directory(components_directory);
 		vector<string> filestochange = { "display.launch", "urdf_.rviz", "package.xml", "CMakeLists.txt" };
 
 		for (auto myfilename : filestochange)
@@ -362,9 +385,46 @@ vector<fs::path> createpathwholechain(string _ms_packagename, fs::path thisscrip
 
 				file_out << filedata << endl;
 			}
+
+			if (myfilename == "CMakeLists.txt")
+			{
+				//vars:
+				//%MAINPACKAGENAME%
+				//%SUBPACKNAME%
+				//%SUBPACKNAMELIST%
+
+				//add the URDF custom target bit:
+				std::string main_package_name = "";
+				const char* urdfcustomtarget = R"<>(
+################ TO GENERATE UDRF FILE #################
+add_custom_target(%MAINPACKAGENAME%urdfgen ALL ${ ROSRUNDIR } / rosrun xacro xacro --inorder
+${ CMAKE_CURRENT_SOURCE_DIR } / xacro / wholearm.urdf.xacro %SUBPACKNAMELIST% >
+${ CMAKE_CURRENT_SOURCE_DIR } / config / wholearm.urdf
+WORKING_DIRECTORY ${ PROJECT_SOURCE_DIR }
+COMMENT ** Creating %MAINPACKAGENAME% URDF file.
+VERBATIM
+)
+)<>";
+				std::string uct = urdfcustomtarget;
+				replaceAll(uct, "%MAINPACKAGENAME%", _ms_packagename);
+				LOG(DEBUG) << "uct so far:\n"<<uct;
+
+				//now I need to construct all the lines for all the subpackages I have
+
+				std::string subpackliststr = "";
+				for (auto pack : packagenamelist)
+				{
+					std::string subpackline = "\n%SUBPACKNAME%_dir : = ${ CMAKE_CURRENT_SOURCE_DIR } / .. / %SUBPACKNAME%";
+					replaceAll(subpackline, "%SUBPACKNAME%", pack);
+					subpackliststr += subpackline;
+				}
+				replaceAll(uct, "%SUBPACKNAMELIST%", subpackliststr);
+				LOG(DEBUG) << "uct so far:\n" << uct;
+				//write our uct to CMakelists
+				file_out << uct << endl;
+			}
 			file_out.close();
 		}
-		returnvectstr = { meshes_directory, components_directory };
 	}
 	catch (const char* msg) {
 		LOG(ERROR) << msg;
@@ -383,7 +443,7 @@ vector<fs::path> createpathwholechain(string _ms_packagename, fs::path thisscrip
 		LOG(ERROR) << errormessage;
 		ui->messageBox(errormessage);
 	}
-	return returnvectstr;
+	return;
 };
 
 fs::path create_base_path(string _ms_packagename, fs::path thisscriptpath)
@@ -1001,15 +1061,7 @@ public:
 		if (cmdInput->id() == "table_packAdd") {
 			try {
 				_ms.addRowToOtherTable(tableInput2);
-				tableInput2->getInputAtPosition(_ms.packnum, 0)->isEnabled(false);
-				Ptr<StringValueCommandInput> thisstringinput = tableInput2->getInputAtPosition(_ms.packnum, 1);
-				if (!thisstringinput)
-					throw "error getting row!";
-				std::string packname = thisstringinput->value();
-				UPackage thispackage;
-				thispackage.name = packname;
-				_ms.thistree.packageTree.push_back(thispackage);
-				LOG(DEBUG) << "added package:" + packname;
+
 
 			}
 			catch (const char* msg) {
@@ -1038,6 +1090,26 @@ public:
 				LOG(DEBUG) << "deleted package okay";
 			}
 		}		
+		else if (cmdInput->id() == "prepend_arm0")
+		{
+			Ptr<BoolValueCommandInput> prepend_arm0CI = inputs->itemById("prepend_arm0");
+			if (!prepend_arm0CI)
+			{
+				LOG(ERROR) << "prepend_arm0CI failed.";
+				return;
+			}
+			_ms.prepend_arm0 = prepend_arm0CI->value();
+		}
+		else if (cmdInput->id() == "prepend_mainpackname")
+		{
+			Ptr<BoolValueCommandInput> prepend_mainpacknameCI = inputs->itemById("prepend_mainpackname");
+			if (!prepend_mainpacknameCI)
+			{
+				LOG(ERROR) << "prepend_mainpacknameCI failed.";
+				return;
+			}
+			_ms.prepend_mainpackname = prepend_mainpacknameCI->value();
+		}
 	}
 };
 
@@ -1155,7 +1227,6 @@ public:
 
 		//at some point we need to write the complete xacro for main chain
 
-		vector<fs::path> mypaths = createpathwholechain(_ms.packagename+"whole", _ms.thisscriptpath, (mypaths_zero / (_ms.packagename + "whole")));
 
 		//we only need the view part, I think.
 
@@ -1168,18 +1239,36 @@ public:
 		thisurdfdocrobot_root->SetAttribute("name", "gummi");
 		thisurdfdoc.LinkEndChild(thisurdfdocrobot_root);
 
+		ULink base_link;
+		base_link.name = "base_link";
+
+		base_link.makexml(thisurdfdocrobot_root, _ms.packagename);
+#
+		UJoint setaxisjoint;
+		setaxisjoint.name = "set_worldaxis";
+		setaxisjoint.isset = true;
+		setaxisjoint.type = "fixed";
+		setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
+		setaxisjoint.parentlink = &base_link;
+		setaxisjoint.childlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName("base"));
+		setaxisjoint.makexml(thisurdfdocrobot_root, _ms.packagename);
+		
 		//now add all subpackage includes
+		std::vector<std::string> packagenamelist;
 		for (auto thisPackage : _ms.thistree.packageTree)
 		{
 
 			TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
 			thisurdfxacromacro->SetAttribute("filename", ("$(arg " + thisPackage.name + "_dir)/xacro/thissegment_gh2.urdf.xacro").c_str());
 			thisurdfdocrobot_root->LinkEndChild(thisurdfxacromacro);
-
+			packagenamelist.push_back(thisPackage.name);
 		}
+		std::string wholepackagename = _ms.packagename + "whole";
+
+		createpathwholechain(wholepackagename, _ms.thisscriptpath, (mypaths_zero / wholepackagename), packagenamelist);
 
 		string thissegmentxacroname_view = ("wholearm_" + _ms.packagename + ".urdf.xacro");
-		string filenametosave_view = ((mypaths_zero / (_ms.packagename + "whole")) / thissegmentxacroname_view).string();
+		string filenametosave_view = ((mypaths_zero / wholepackagename) / thissegmentxacroname_view).string();
 
 		LOG(INFO) << "Saving view file" + (filenametosave_view);
 		thisurdfdoc.SaveFile(filenametosave_view.c_str());
@@ -1293,17 +1382,12 @@ public:
 					if (!inputs)
 						return;
 
-
-
-
-
-
 					// Create a tab input.
-					Ptr<TabCommandInput> tabCmdInput3 = inputs->addTabCommandInput("tab_1", "URDFGEN");
-					if (!tabCmdInput3)
+					Ptr<TabCommandInput> tabCmdInputMain = inputs->addTabCommandInput("tab_1", "URDFGEN");
+					if (!tabCmdInputMain)
 						return;
-					Ptr<CommandInputs> tab3ChildInputs = tabCmdInput3->children();
-					if (!tab3ChildInputs)
+					Ptr<CommandInputs> tabMainChildInputs = tabCmdInputMain->children();
+					if (!tabMainChildInputs)
 						return;
 
 					//
@@ -1316,7 +1400,7 @@ public:
 						return;
 
 					// Create table input.
-					Ptr<TableCommandInput> tableInput2 = tab2ChildInputs->addTableCommandInput("table_pack", "Packages", 3, "1:2:3:1");
+					Ptr<TableCommandInput> tableInput2 = tab2ChildInputs->addTableCommandInput("table_pack", "Packages", 3, "1:10");
 					tableInput2->maximumVisibleRows(5);
 					tableInput2->minimumVisibleRows(3);
 
@@ -1325,33 +1409,38 @@ public:
 					tableInput2->addToolbarCommandInput(addpackButtonInput2);
 					Ptr<CommandInput> deletepackButtonInput2 = tab2ChildInputs->addBoolValueInput("table_packDelete", "Delete", false, "", true);
 					tableInput2->addToolbarCommandInput(deletepackButtonInput2);
+
+					tab2ChildInputs->addBoolValueInput("prepend_arm0", "prepend arm0 to package names", true, "", true); 
+					tab2ChildInputs->addBoolValueInput("prepend_mainpackname", "prepend main package name", true, "", true);
+
+					_ms.addRowToOtherTable(tableInput2);
 					//
 
 
 
-					tab3ChildInputs->addStringValueInput("packagename", "Name of your URDF package", _ms.packagename);
+					tabMainChildInputs->addStringValueInput("packagename", "Name of your URDF package", _ms.packagename);
 
 					// Create table input.
-					Ptr<TableCommandInput> tableInput = tab3ChildInputs->addTableCommandInput("table", "Table", 3, "1:2:3:1");
+					Ptr<TableCommandInput> tableInput = tabMainChildInputs->addTableCommandInput("table", "Table", 3, "1:2:3:1");
 					tableInput->maximumVisibleRows(20);
 					tableInput->minimumVisibleRows(10);
 
 					// Add inputs into the table.
-					Ptr<CommandInput> addLinkButtonInput = tab3ChildInputs->addBoolValueInput("tableLinkAdd", "Add Link", false, "", true);
+					Ptr<CommandInput> addLinkButtonInput = tabMainChildInputs->addBoolValueInput("tableLinkAdd", "Add Link", false, "", true);
 					tableInput->addToolbarCommandInput(addLinkButtonInput);
-					Ptr<CommandInput> addJointButtonInput = tab3ChildInputs->addBoolValueInput("tableJointAdd", "Add Joint", false, "", true);
+					Ptr<CommandInput> addJointButtonInput = tabMainChildInputs->addBoolValueInput("tableJointAdd", "Add Joint", false, "", true);
 					tableInput->addToolbarCommandInput(addJointButtonInput);
-					Ptr<CommandInput> deleteButtonInput = tab3ChildInputs->addBoolValueInput("tableDelete", "Delete", false, "", true);
+					Ptr<CommandInput> deleteButtonInput = tabMainChildInputs->addBoolValueInput("tableDelete", "Delete", false, "", true);
 					tableInput->addToolbarCommandInput(deleteButtonInput);
 
-					tab3ChildInputs->addBoolValueInput("createtree", "Create tree", false, "", true);
+					tabMainChildInputs->addBoolValueInput("createtree", "Create tree", false, "", true);
 
 					std::string messaged = "";
-					tab3ChildInputs->addTextBoxCommandInput("debugbox", "", messaged, 10, true);
+					tabMainChildInputs->addTextBoxCommandInput("debugbox", "", messaged, 10, true);
 
 					// Adds a group for the link 
 
-					Ptr<GroupCommandInput> linkGroupCmdInput = tab3ChildInputs->addGroupCommandInput("linkgroup", "Link Stuff");
+					Ptr<GroupCommandInput> linkGroupCmdInput = tabMainChildInputs->addGroupCommandInput("linkgroup", "Link Stuff");
 					if (!linkGroupCmdInput)
 						return;
 					linkGroupCmdInput->isVisible(false);
@@ -1367,7 +1456,7 @@ public:
 
 					// Adds a group for the joint 
 				
-					Ptr<GroupCommandInput> jointGroupCmdInput = tab3ChildInputs->addGroupCommandInput("jointgroup", "Joint Stuff");
+					Ptr<GroupCommandInput> jointGroupCmdInput = tabMainChildInputs->addGroupCommandInput("jointgroup", "Joint Stuff");
 					if (!jointGroupCmdInput)
 						return;
 					jointGroupCmdInput->isVisible(false);
