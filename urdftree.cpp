@@ -276,6 +276,9 @@ TwoDic UrdfTree::gentreefindbase(std::vector<DicElement> thiselementsdict) {
 			DicElement mybase = std::make_pair(0,currLink);
 			placedlinks.push_back(mybase);
 			thiselementsdict.erase(thiselementsdict.begin() + el->first);
+			//will also set base to be in the first package!
+			currLink->containerPackage = packageTree[0].name; //TODO: all the references should point to the object not the name, so it can be renamed!
+
 			break;
 		}
 	}
@@ -330,8 +333,13 @@ TwoDic UrdfTree::gentreecorecore(TwoDic placed_and_this, UJoint* joint, bool* st
 
 			report += "placed a link named:" + el.second->name + " because joint named:" + joint->name + "told me to!\n";
 			//setting up containerPackage
+			if (joint->containerPackage == "") 
+			{
+				LOG(ERROR) << joint->name << " does not have containerPackage set! we messed up";
+			}
+			assert(joint->containerPackage != ""); 
 			currLink->containerPackage = joint->containerPackage;
-			report += "containerPackage: " + currLink->containerPackage;
+			report += "containerPackage: " + currLink->containerPackage + "\n";
 			LOG(DEBUG) << "report so far:\n" + report;
 			
 			break;
@@ -405,8 +413,6 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 
 						//now if this joint is an FS joint, I will need to change the package context. if it isn't it keeps the context. links just keep the context of their father joints!
 
-						assert(myjoint->childPackage != "");
-						assert(myjoint->parentPackage!="");
 						if (myjoint->isFastSwitch)
 						{
 							//need to change the package to the next one in the list
@@ -415,10 +421,16 @@ DicElement UrdfTree::findjointscore(vector<DicElement>* placedeldic, vector<DicE
 							//I could do an extra flood-fill like algorithm to check this, but this would be rather hard and I don't see the point in doing so now. 
 							myjoint->containerPackage = myjoint->childPackage;
 
+							//eh, not asserts...
+							assert(myjoint->childPackage != "");
+							assert(myjoint->parentPackage != "");
 						}
 						else 
 						{
-							myjoint->containerPackage = myjoint->parentPackage;
+							LOG(DEBUG) << "setting joint's container package, since it isn't FS joint to:" << mylink->containerPackage;
+							myjoint->containerPackage = mylink->containerPackage;
+							myjoint->parentPackage = mylink->containerPackage;
+							myjoint->childPackage = mylink->containerPackage;
 						}
 
 					}

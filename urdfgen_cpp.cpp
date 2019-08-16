@@ -37,6 +37,7 @@ public:
 	MotherShip() {
 		rowNumber = 0, elnum = 0, oldrow = -1, numlinks = -1, numjoints = -1, lastrow = 0;	
 		packnum = 0;
+		active_tab = 1;
 		//setting thisscriptpath
 		
 		fs::path appdatadir = "";
@@ -266,7 +267,7 @@ vector<fs::path> createpathsubchain(string _ms_packagename, fs::path thisscriptp
 			ifstream file_in;
 			// Read in the file
 
-			auto thisfilename = thisscriptpath / "resources" / myfilename;
+			auto thisfilename = thisscriptpath / "resources"/ "subchain" / myfilename;
 
 			LOG(INFO)<<"Opening file:"+(thisfilename.string());
 			file_in.open(thisfilename);
@@ -282,7 +283,7 @@ vector<fs::path> createpathsubchain(string _ms_packagename, fs::path thisscriptp
 			{
 				// Replace the target string
 
-				replaceAll(filedata, "somepackage", _ms_packagename);
+				replaceAll(filedata, "subchain_template", _ms_packagename);
 
 				// Write the file out again
 
@@ -339,7 +340,7 @@ vector<fs::path> createpathwholechain(string _ms_packagename, fs::path thisscrip
 			ifstream file_in;
 			// Read in the file
 
-			auto thisfilename = thisscriptpath / "resources" / myfilename;
+			auto thisfilename = thisscriptpath / "resources"/ "wholechain" / myfilename;
 
 			LOG(INFO) << "Opening file:" + (thisfilename.string());
 			file_in.open(thisfilename);
@@ -355,7 +356,7 @@ vector<fs::path> createpathwholechain(string _ms_packagename, fs::path thisscrip
 			{
 				// Replace the target string
 
-				replaceAll(filedata, "somepackage", _ms_packagename);
+				replaceAll(filedata, "wholechain_template", _ms_packagename);
 
 				// Write the file out again
 
@@ -775,17 +776,28 @@ public:
 			{
 				LOG(DEBUG) << "i am aware i am a fsCheckBox control";
 				//change visibility of childPackageName and parentPackageName;
-				if (isFs->isCheckBox())
+				UJoint* thisjoint = dynamic_cast<UJoint*>(_ms.thistree.currentEl);
+				if (thisjoint)
 				{
-					cpn->isVisible(true);
-					ppn->isVisible(true);
+					if (isFs->value())
+					{
+						thisjoint->isFastSwitch = true;
+						cpn->isVisible(true);
+						ppn->isVisible(true);
+					}
+					else
+					{
+						thisjoint->isFastSwitch = false;
+						cpn->isVisible(false);
+						ppn->isVisible(false);
+					}
 				}
 				else
 				{
-					cpn->isVisible(false);
-					ppn->isVisible(false);
+					string errormsg = "the cast didn't work";
+					LOG(ERROR) << errormsg;
+					ui->messageBox(errormsg);
 				}
-
 			}
 			else if (cmdInput->id() == "createtree")
 			{
@@ -931,6 +943,21 @@ public:
 								}
 
 
+								//now set the isFS control
+								//and set up the visibilities of cpn and ppn
+
+								if (currJoint->isFastSwitch)
+								{
+									isFs->value(true);
+									cpn->isVisible(true);
+									ppn->isVisible(true);
+								}
+								else
+								{
+									isFs->value(false);
+									cpn->isVisible(false);
+									ppn->isVisible(false);
+								}
 							}
 
 						}
@@ -964,7 +991,7 @@ public:
 		if (_ms.active_tab == 2)
 		{
 			//ui->messageBox("tab 2 is active");
-			ui->messageBox(cmdInput->id());
+			//ui->messageBox(cmdInput->id());
 
 		Ptr<TableCommandInput> tableInput2 = inputs->itemById("table_pack");
 		if (!tableInput2)
@@ -1036,9 +1063,10 @@ public:
 
 			TiXmlDocument thisurdfdoc, thisxacro;
 
-			TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", "");
+			TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", ""); 
 			thisurdfdoc.LinkEndChild(decl);
-			thisxacro.LinkEndChild(decl);
+			TiXmlDeclaration * decl2 = new TiXmlDeclaration("1.0", "", ""); //i don't think we can reuse anything...
+			thisxacro.LinkEndChild(decl2);
 
 			TiXmlElement * thisurdfdocrobot_root = new TiXmlElement("robot");
 			thisurdfdocrobot_root->SetAttribute("name", "gummi");
@@ -1066,11 +1094,16 @@ public:
 			setaxisjoint.childlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName("base"));
 			setaxisjoint.makexml(thisurdfdocrobot_root, _ms.packagename);
 
+			TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
+			thisurdfxacromacro->SetAttribute("filename", ("$(arg " + thisPackage.name + "_dir)/xacro/thissegment_gh2.urdf.xacro").c_str());
+			thisurdfdocrobot_root->LinkEndChild(thisurdfxacromacro);
+
 			//xacro macro part
 
 			TiXmlElement * thisxacromacro = new TiXmlElement("xacro:macro");
 			thisxacromacro->SetAttribute("name", thisPackage.name.c_str());
 			thisxacromacro->SetAttribute("params", "package_name");
+			thisxacrorobot_root->LinkEndChild(thisxacromacro);
 
 			//now parse the urdftree
 			for (auto el : thisPackage.elementsDict)
@@ -1102,10 +1135,6 @@ public:
 			thisxacro.SaveFile(filenametosave.c_str());
 
 			// we need some more things to generate the view for this link
-
-			TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
-			thisurdfxacromacro->SetAttribute("filename", ("$(arg "+ thisPackage.name +"_dir)/xacro/thissegment_gh2.urdf.xacro").c_str());
-			thisurdfdoc.LinkEndChild(thisurdfxacromacro);
 
 
 			string thissegmentxacroname_view = ("view_thissegment_" + _ms.packagename + ".urdf.xacro");
@@ -1139,7 +1168,7 @@ public:
 
 			TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
 			thisurdfxacromacro->SetAttribute("filename", ("$(arg " + thisPackage.name + "_dir)/xacro/thissegment_gh2.urdf.xacro").c_str());
-			thisurdfdoc.LinkEndChild(thisurdfxacromacro);
+			thisurdfdocrobot_root->LinkEndChild(thisurdfxacromacro);
 
 		}
 

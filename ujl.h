@@ -118,6 +118,7 @@ public:
 		generatingjointname = "";
 		axis = "0 0 0";
 		isset = false;
+		isFastSwitch = false;
 	};
 	~UJoint() {};
 	void setjoint(Ptr<Joint> joint); 
