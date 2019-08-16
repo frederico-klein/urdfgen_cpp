@@ -1063,85 +1063,91 @@ public:
 
 			TiXmlDocument thisurdfdoc, thisxacro;
 
-			TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", ""); 
-			thisurdfdoc.LinkEndChild(decl);
-			TiXmlDeclaration * decl2 = new TiXmlDeclaration("1.0", "", ""); //i don't think we can reuse anything...
-			thisxacro.LinkEndChild(decl2);
-
-			TiXmlElement * thisurdfdocrobot_root = new TiXmlElement("robot");
-			thisurdfdocrobot_root->SetAttribute("name", "gummi");
-			thisurdfdoc.LinkEndChild(thisurdfdocrobot_root);
-
-			TiXmlElement * thisxacrorobot_root = new TiXmlElement("robot");
-			thisxacrorobot_root->SetAttribute("name", "gummi");
-			thisxacro.LinkEndChild(thisxacrorobot_root);
-
-
 
 			//xacro view part
-
-			ULink base_link;
-			base_link.name = "base_link";
-
-			base_link.makexml(thisurdfdocrobot_root, _ms.packagename);
-#
-			UJoint setaxisjoint;
-			setaxisjoint.name = "set_worldaxis";
-			setaxisjoint.isset = true;
-			setaxisjoint.type = "fixed";
-			setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
-			setaxisjoint.parentlink = &base_link;
-			setaxisjoint.childlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName("base"));
-			setaxisjoint.makexml(thisurdfdocrobot_root, _ms.packagename);
-
-			TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
-			thisurdfxacromacro->SetAttribute("filename", ("$(arg " + thisPackage.name + "_dir)/xacro/thissegment_gh2.urdf.xacro").c_str());
-			thisurdfdocrobot_root->LinkEndChild(thisurdfxacromacro);
-
-			//xacro macro part
-
-			TiXmlElement * thisxacromacro = new TiXmlElement("xacro:macro");
-			thisxacromacro->SetAttribute("name", thisPackage.name.c_str());
-			thisxacromacro->SetAttribute("params", "package_name");
-			thisxacrorobot_root->LinkEndChild(thisxacromacro);
-
-			//now parse the urdftree
-			for (auto el : thisPackage.elementsDict)
 			{
-				ULink* currLink = dynamic_cast<ULink*>(el.second);
-				if (currLink)
+				TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", "");
+				thisurdfdoc.LinkEndChild(decl);
+
+				TiXmlElement * thisurdfdocrobot_root = new TiXmlElement("robot");
+				thisurdfdocrobot_root->SetAttribute("name", "gummi");
+				thisurdfdoc.LinkEndChild(thisurdfdocrobot_root);
+
+
+				ULink base_link;
+				base_link.name = "base_link";
+
+				base_link.makexml(thisurdfdocrobot_root, _ms.packagename);
+#
+				UJoint setaxisjoint;
+				setaxisjoint.name = "set_worldaxis";
+				setaxisjoint.isset = true;
+				setaxisjoint.type = "fixed";
+				setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
+				setaxisjoint.parentlink = &base_link;
+				setaxisjoint.childlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName("base"));
+				setaxisjoint.makexml(thisurdfdocrobot_root, _ms.packagename);
+
+				TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
+				thisurdfxacromacro->SetAttribute("filename", ("$(arg " + thisPackage.name + "_dir)/xacro/thissegment_gh2.urdf.xacro").c_str());
+				thisurdfdocrobot_root->LinkEndChild(thisurdfxacromacro);
+
+				// we need some more things to generate the view for this link
+
+
+				string thissegmentxacroname_view = ("view_thissegment_" + _ms.packagename + ".urdf.xacro");
+				string filenametosave_view = ((mypaths_zero / thisPackage.name) / thissegmentxacroname_view).string();
+
+				LOG(INFO) << "Saving view file" + (filenametosave_view);
+				thisurdfdoc.SaveFile(filenametosave_view.c_str());
+			}
+			//xacro macro part
+			{
+				TiXmlDeclaration * decl2 = new TiXmlDeclaration("1.0", "", ""); //i don't think we can reuse anything...
+				thisxacro.LinkEndChild(decl2);
+
+				TiXmlElement * thisxacrorobot_root = new TiXmlElement("robot");
+				thisxacrorobot_root->SetAttribute("name", "gummi");
+				thisxacro.LinkEndChild(thisxacrorobot_root);
+
+
+				TiXmlElement * thisxacromacro = new TiXmlElement("xacro:macro");
+				thisxacromacro->SetAttribute("name", thisPackage.name.c_str());
+				thisxacromacro->SetAttribute("params", "package_name");
+				thisxacrorobot_root->LinkEndChild(thisxacromacro);
+
+				//now parse the urdftree
+				assert(thisPackage.elementsDict.size() > 0);
+				for (auto el : thisPackage.elementsDict)
 				{
-					LOG(INFO) << "calling genlink for link:" + currLink->name;
-					bool succeeded = currLink->genlink(mypaths[0], mypaths[1], design, app);
-					if (!succeeded)
+					LOG(INFO) << "Parsing element:" + std::to_string(el.first);
+					ULink* currLink = dynamic_cast<ULink*>(el.second);
+					if (currLink)
 					{
-						string errormsg = "failed generating link" + currLink->name;
-						LOG(ERROR) << errormsg;
-						ui->messageBox(errormsg);
-						return;
+						LOG(INFO) << "calling genlink for link:" + currLink->name;
+						bool succeeded = currLink->genlink(mypaths[0], mypaths[1], design, app);
+						if (!succeeded)
+						{
+							string errormsg = "failed generating link" + currLink->name;
+							LOG(ERROR) << errormsg;
+							ui->messageBox(errormsg);
+							return;
+						}
 					}
-				}
-				el.second->makexml(thisxacromacro, "${package_name}");
-			};
+					el.second->makexml(thisxacromacro, "${package_name}");
+				};
 
-			TiXmlElement * thisxacromacropar = new TiXmlElement(("xacro:"+ thisPackage.name).c_str());
-			thisxacromacropar->SetAttribute("package_name", thisPackage.name.c_str());
-			thisxacro.LinkEndChild(thisxacromacropar);
+				TiXmlElement * thisxacromacropar = new TiXmlElement(("xacro:" + thisPackage.name).c_str());
+				thisxacromacropar->SetAttribute("package_name", thisPackage.name.c_str());
+				thisxacrorobot_root->LinkEndChild(thisxacromacropar);
 
-			string thissegmentxacroname = ("thissegment_" + _ms.packagename + ".urdf.xacro");
-			string filenametosave = ((mypaths_zero / thisPackage.name) / thissegmentxacroname).string();
+				string thissegmentxacroname = ("thissegment_" + _ms.packagename + ".urdf.xacro");
+				string filenametosave = ((mypaths_zero / thisPackage.name) / thissegmentxacroname).string();
 
-			LOG(INFO) << "Saving file" + (filenametosave);
-			thisxacro.SaveFile(filenametosave.c_str());
+				LOG(INFO) << "Saving file" + (filenametosave);
+				thisxacro.SaveFile(filenametosave.c_str());
+			}
 
-			// we need some more things to generate the view for this link
-
-
-			string thissegmentxacroname_view = ("view_thissegment_" + _ms.packagename + ".urdf.xacro");
-			string filenametosave_view = ((mypaths_zero / thisPackage.name) / thissegmentxacroname_view).string();
-			
-			LOG(INFO) << "Saving view file" + (filenametosave_view);
-			thisurdfdoc.SaveFile(filenametosave_view.c_str());
 
 			//TODO: this needs a CMakeslist custom target xacro line!!!
 
