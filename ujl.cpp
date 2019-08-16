@@ -148,209 +148,219 @@ void ULink::makexml(TiXmlElement* urdfroot, std::string packagename)
 bool ULink::genlink(fs::path meshes_directory, fs::path components_directory, Ptr<Design> _design, Ptr<Application> _app)
 {
 	//LOG(ERROR) << "not implemented!";
+	if (group.size()>0)
+	{
+		isVirtual = false;
+		LOG(INFO) << "Group selection is not empty. Link is not virtual. Generating STL and components!";
+		try {
+			LOG(DEBUG) << bigprint("starting genlink for link:" + name);
+			// Get the root component of the active design;
 
-	isVirtual = false;
-	try {
-		LOG(DEBUG) << bigprint("starting genlink for link:" + name);
-		// Get the root component of the active design;
+			Ptr<Component> rootComp = _design->rootComponent();
+			if (!rootComp)
+				throw "error: can't find root component";
 
-		Ptr<Component> rootComp = _design->rootComponent();
-		if (!rootComp)
-			throw "error: can't find root component";
+			//this needs to be allOccurrences. if you use Occurrences, you also need to implement a recursion function!
+			Ptr<OccurrenceList> allOccs = rootComp->allOccurrences();
+			if (!allOccs)
+				throw "error: can't get all occurrences";
 
-		//this needs to be allOccurrences. if you use Occurrences, you also need to implement a recursion function!
-		Ptr<OccurrenceList> allOccs = rootComp->allOccurrences();
-		if (!allOccs)
-			throw "error: can't get all occurrences";
+			// create the exportManager for the original file that has the whole design;
+			Ptr<ExportManager> exportMgr = _design->exportManager();
+			if (!exportMgr)
+				throw "error: can't find export manager";
 
-		// create the exportManager for the original file that has the whole design;
-		Ptr<ExportManager> exportMgr = _design->exportManager();
-		if (!exportMgr)
-			throw "error: can't find export manager";
+			// creates the jointtranslation TM for this link:
 
-		// creates the jointtranslation TM for this link:
+			Ptr<Matrix3D> removejointtranslation = Matrix3D::create();
+			Ptr<Vector3D> translation = Vector3D::create(-coordinatesystem.x, -coordinatesystem.y, -coordinatesystem.z);
+			removejointtranslation->setToIdentity();
+			removejointtranslation->translation(translation);
+			LOG(DEBUG) << "\nOffset from joint tm is: " + showarrayasstring(removejointtranslation->asArray());
+			LOG(DEBUG) << "Offset from joint translation is: " + showarrayasstring(removejointtranslation->translation()->asArray());
 
-		Ptr<Matrix3D> removejointtranslation = Matrix3D::create();
-		Ptr<Vector3D> translation = Vector3D::create(-coordinatesystem.x, -coordinatesystem.y, -coordinatesystem.z);
-		removejointtranslation->setToIdentity();
-		removejointtranslation->translation(translation);
-		LOG(DEBUG) << "\nOffset from joint tm is: " + showarrayasstring(removejointtranslation->asArray());
-		LOG(DEBUG) << "Offset from joint translation is: " + showarrayasstring(removejointtranslation->translation()->asArray());
-
-		std::vector<Ptr<Matrix3D>> it;
-		for (int i = 0; i< group.size();i++)
-		{
-			auto occ = group[i];
-			//we get all the TMs for all the parents
-			std::vector<std::string> pathsplit = splitstr(occ->fullPathName(),"+");
-
-			std::vector<Ptr<Matrix3D>> newrotl;
-			for (size_t j =1; j<pathsplit.size();j++) 
+			std::vector<Ptr<Matrix3D>> it;
+			for (int i = 0; i < group.size(); i++)
 			{
-				std::vector<std::string> thisoccnamelist = std::vector(pathsplit.begin(),pathsplit.begin()+j);
-				std::string	thisoccname = thisoccnamelist[0];
-				for (size_t k = 1; k < thisoccnamelist.size(); k++)	
+				auto occ = group[i];
+				//we get all the TMs for all the parents
+				std::vector<std::string> pathsplit = splitstr(occ->fullPathName(), "+");
+
+				std::vector<Ptr<Matrix3D>> newrotl;
+				for (size_t j = 1; j < pathsplit.size(); j++)
+				{
+					std::vector<std::string> thisoccnamelist = std::vector(pathsplit.begin(), pathsplit.begin() + j);
+					std::string	thisoccname = thisoccnamelist[0];
+					for (size_t k = 1; k < thisoccnamelist.size(); k++)
 					{
 						thisoccname = thisoccname + "+" + thisoccnamelist[k];
 					}
-				LOG(INFO) << "\tTMS::: getting the tm for:" + thisoccname;
-				for (size_t l = 0; l < allOccs->count(); l++) 
-					{   				
-					if (allOccs->item(l)->fullPathName() == thisoccname)
+					LOG(INFO) << "\tTMS::: getting the tm for:" + thisoccname;
+					for (size_t l = 0; l < allOccs->count(); l++)
+					{
+						if (allOccs->item(l)->fullPathName() == thisoccname)
 						{
 							//here we just stack them
 							Ptr<Matrix3D> lasttm = allOccs->item(l)->transform()->copy();
 							newrotl.push_back(lasttm);
 							LOG(DEBUG) << allOccs->item(l)->fullPathName() << std::endl
-							 << "\twith tm:" + showarrayasstring(lasttm->asArray()) << std::endl
-							 << "\twith translation is:" + showarrayasstring(lasttm->translation()->asArray());
+								<< "\twith tm:" + showarrayasstring(lasttm->asArray()) << std::endl
+								<< "\twith translation is:" + showarrayasstring(lasttm->translation()->asArray());
 						}
-					}		
+					}
+				}
+
+				//need to add the transform from the occurrence itself as well
+				Ptr<Matrix3D> lasttransform = occ->transform()->copy();
+				LOG(DEBUG) << "Occurrence fullpathname: " + bigprint(occ->fullPathName());
+				LOG(DEBUG) << "own tm (lasttransform) is:" + showarrayasstring(lasttransform->asArray());
+				newrotl.push_back(lasttransform);
+
+
+				//set a blank TM to apply those TMs to in order so we can correct translation afterwards
+				Ptr<Matrix3D> newrot = Matrix3D::create();
+				newrot->setToIdentity();
+
+				//checking indexing
+				LOG(DEBUG) << "newrotl.size()=" + std::to_string(newrotl.size());
+
+				for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = newrotl.rbegin(); newrotlj != newrotl.rend(); ++newrotlj)
+				{
+					auto j = std::distance(newrotl.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
+					LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
+					newrot->transformBy(*newrotlj);
+				}
+
+				//we finally add the link's translation TM
+
+				newrot->transformBy(removejointtranslation);
+
+				LOG(DEBUG) << "\nit transformation is:" + showarrayasstring(newrot->asArray());
+				//this is the total TM for this group[i]'th Occurrence
+				it.push_back(newrot);
 			}
 
-			//need to add the transform from the occurrence itself as well
-			Ptr<Matrix3D> lasttransform = occ->transform()->copy();
-			LOG(DEBUG) << "Occurrence fullpathname: " + bigprint(occ->fullPathName());
-			LOG(DEBUG) << "own tm (lasttransform) is:" + showarrayasstring(lasttransform->asArray());
-			newrotl.push_back(lasttransform);
+			std::string	stlname = clearupst(name);
+			LOG(INFO) << "stl name after removing weird characters:" + stlname;
 
-
-			//set a blank TM to apply those TMs to in order so we can correct translation afterwards
-			Ptr<Matrix3D> newrot = Matrix3D::create();
-			newrot->setToIdentity();
-
-			//checking indexing
-			LOG(DEBUG) << "newrotl.size()=" + std::to_string(newrotl.size());
-
-			for (std::vector<Ptr<Matrix3D>>::reverse_iterator newrotlj = newrotl.rbegin();newrotlj != newrotl.rend(); ++newrotlj)
+			for (int i = 0; i < group.size(); i++)
 			{
-				auto j = std::distance(newrotl.rbegin(), newrotlj); //with this newrotl[j] also will work, but I just wanted to try the new pointer syntax.
-				LOG(DEBUG) << "\nj:" + std::to_string(j) + "newrot is:" + showarrayasstring(newrot->asArray()) + "newrotl[" + std::to_string(j) + "] is:" + showarrayasstring((*newrotlj)->asArray());
-				newrot->transformBy(*newrotlj);
+				std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
+				LOG(INFO) << "saving file " + fileName.string();
+				LOG(INFO) << "from occurrence" + group[i]->fullPathName();
+				LOG(DEBUG) << "with tm:" + showarrayasstring(it[i]->asArray());
+
+				Ptr<STEPExportOptions> stpOptions = exportMgr->createSTEPExportOptions(fileName.string(), group[i]->component());
+				if (!stpOptions)
+					throw "error: can't set step export options";
+
+				bool isOk = exportMgr->execute(stpOptions);
+				if (!isOk)
+					throw "exportMgr failed to generate file" + fileName.string();
+				LOG(INFO) << "File " + fileName.string() + " exported successfully";
+
 			}
 
-			//we finally add the link's translation TM
+			//created all the components. now I need to open a new document. load them and export the whole rootcomponent as STL file.
 
-			newrot->transformBy(removejointtranslation);
-			
-			LOG(DEBUG) << "\nit transformation is:" + showarrayasstring(newrot->asArray());
-			//this is the total TM for this group[i]'th Occurrence
-			it.push_back(newrot);
+			// Create a document.;
+
+			Ptr<Documents> docs = _app->documents();
+			if (!docs)
+				throw "cant get documents";
+
+			// Actually creates a document.
+			Ptr<Document> doc = docs->add(DocumentTypes::FusionDesignDocumentType);
+			if (!doc)
+				throw "cant add document";
+
+			doc->name(stlname);
+			Ptr<Design> design = _app->activeProduct();
+			if (!design)
+				throw "cant get current design";
+
+			// Get the root component of the active design;
+			Ptr<Component> rootComp2 = design->rootComponent();
+
+			// Get import manager;
+			Ptr<ImportManager> importManager = _app->importManager();
+			if (!importManager)
+				throw "cant create importManager";
+
+			// add occurrences we just generated to the new document;
+			for (int i = 0; i < group.size(); i++)
+			{
+
+				std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
+				LOG(INFO) << "loading file: " + fileName.string();
+
+				Ptr<STEPImportOptions> stpOptions = importManager->createSTEPImportOptions(fileName.string());
+				if (!stpOptions)
+					throw "error: can't set step import options";
+				bool isOk = importManager->importToTarget(stpOptions, rootComp2);
+				if (!isOk)
+					throw "failed to import" + fileName.string();
+			}
+			assert(rootComp2->occurrences()->count() == group.size()); //it should be the same, right?
+			for (int i = 0; i < rootComp2->occurrences()->count(); i++)
+			{
+				rootComp2->occurrences()->item(i)->transform(it[i]);
+			}
+			double xx;
+			double yy;
+			double zz;
+			double xy;
+			double yz;
+			double xz;
+			double mass;
+			rootComp2->physicalProperties()->getXYZMomentsOfInertia(xx, yy, zz, xy, yz, xz);
+			mass = rootComp2->physicalProperties()->mass();
+			LOG(INFO) << "XYZ moments of inertia: xx:" + std::to_string(xx) + "yy" + std::to_string(yy) + "zz" + std::to_string(zz) + "xy" + std::to_string(xy) + "yz" + std::to_string(yz) + "xz" + std::to_string(xz);
+			LOG(INFO) << "Mass:" + std::to_string(mass);
+			//setting this to inertial
+			inertial.setall(mass, xx, xy, xz, yy, yz, zz);
+
+			// setting units to meters so stls will have proper sizes!;
+			Ptr<FusionUnitsManager> unitsMgr = design->fusionUnitsManager();
+			if (!unitsMgr)
+				throw "error: cannot get units manager";
+			unitsMgr->distanceDisplayUnits(DistanceUnits::MeterDistanceUnits);
+
+			// create another exportManager instance, now for STLs;
+			Ptr<ExportManager> exportMgr2 = design->exportManager();
+			if (!exportMgr2)
+				throw "error: can't create second export manager";
+			std::string meshname = (meshes_directory / stlname).string();
+			Ptr<STLExportOptions> stlRootOptions = exportMgr->createSTLExportOptions(rootComp2, meshname);
+			if (!stlRootOptions)
+				throw "error: cannot create STLExportOptions.";
+			stlRootOptions->sendToPrintUtility(false);
+			LOG(INFO) << "saving STL file: " + meshname;
+			exportMgr->execute(stlRootOptions);
+
 		}
-
-		std::string	stlname = clearupst(name);
-		LOG(INFO) << "stl name after removing weird characters:" + stlname;
-
-		for (int i =0; i< group.size();i++ )
-		{		
-			std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
-			LOG(INFO) << "saving file " + fileName.string();
-			LOG(INFO) << "from occurrence" + group[i]->fullPathName();
-			LOG(DEBUG) << "with tm:" + showarrayasstring(it[i]->asArray());
-			
-			Ptr<STEPExportOptions> stpOptions = exportMgr->createSTEPExportOptions(fileName.string(), group[i]->component());
-			if (!stpOptions)
-				throw "error: can't set step export options";
-
-			bool isOk = exportMgr->execute(stpOptions);
-			if (!isOk)
-				throw "exportMgr failed to generate file" + fileName.string();
-			LOG(INFO) << "File " + fileName.string() + " exported successfully";
-
-		}
-
-		//created all the components. now I need to open a new document. load them and export the whole rootcomponent as STL file.
-
-		// Create a document.;
-
-		Ptr<Documents> docs = _app->documents();
-		if (!docs)
-			throw "cant get documents";
-
-		// Actually creates a document.
-		Ptr<Document> doc = docs->add(DocumentTypes::FusionDesignDocumentType);
-		if (!doc)
-			throw "cant add document";
-
-		doc->name(stlname);
-		Ptr<Design> design = _app->activeProduct();
-		if (!design)
-			throw "cant get current design";
-			   
-		// Get the root component of the active design;
-		Ptr<Component> rootComp2 = design->rootComponent();
-			
-		// Get import manager;
-		Ptr<ImportManager> importManager = _app->importManager();
-		if (!importManager)
-			throw "cant create importManager";
-		
-		// add occurrences we just generated to the new document;
-		for (int i = 0; i< group.size();i++) 
+		catch (std::exception& e)
 		{
-			
-			std::filesystem::path fileName = components_directory / (stlname + std::to_string(i) + ".stp");
-			LOG(INFO) << "loading file: " + fileName.string();
-			
-			Ptr<STEPImportOptions> stpOptions = importManager->createSTEPImportOptions(fileName.string());
-			if (!stpOptions)
-				throw "error: can't set step import options";
-			bool isOk = importManager->importToTarget(stpOptions, rootComp2);
-			if (!isOk)
-				throw "failed to import" + fileName.string();
+			LOG(ERROR) << e.what();
+			std::string errormsg = "issues running genstl\n";
+			LOG(ERROR) << errormsg;
+			return false;
 		}
-		assert(rootComp2->occurrences()->count()== group.size()); //it should be the same, right?
-		for (int i = 0; i<rootComp2->occurrences()->count();i++)
+		catch (char* msg)
 		{
-			rootComp2->occurrences()->item(i)->transform(it[i]);
+			LOG(ERROR) << msg;
+			return false;
 		}
-		double xx;
-		double yy;
-		double zz;
-		double xy;
-		double yz;
-		double xz;
-		double mass;
-		rootComp2->physicalProperties()->getXYZMomentsOfInertia(xx, yy, zz, xy, yz, xz);
-		mass = rootComp2->physicalProperties()->mass();
-		LOG(INFO) << "XYZ moments of inertia: xx:" + std::to_string(xx) + "yy" + std::to_string(yy) + "zz" + std::to_string(zz) + "xy" + std::to_string(xy) + "yz" + std::to_string(yz) + "xz" + std::to_string(xz);
-		LOG(INFO) << "Mass:" + std::to_string(mass);
-		//setting this to inertial
-		inertial.setall(mass, xx, xy, xz, yy, yz, zz);
-
-		// setting units to meters so stls will have proper sizes!;
-		Ptr<FusionUnitsManager> unitsMgr = design->fusionUnitsManager();
-		unitsMgr->distanceDisplayUnits(DistanceUnits::MeterDistanceUnits);
-
-		// create another exportManager instance, now for STLs;
-		Ptr<ExportManager> exportMgr2 = design->exportManager();
-		if (!exportMgr2)
-			throw "error: can't create second export manager";
-		std::string meshname = (meshes_directory / stlname).string();
-		Ptr<STLExportOptions> stlRootOptions = exportMgr->createSTLExportOptions(rootComp2, meshname);
-			
-		stlRootOptions->sendToPrintUtility(false);
-		LOG(INFO) << "saving STL file: " + meshname;
-		exportMgr->execute(stlRootOptions);
-		
+		catch (...)
+		{
+			std::string errormsg = "issues running genstl";
+			LOG(ERROR) << errormsg;
+			return false;
+		}
 	}
-	catch (std::exception& e)
+	else
 	{
-		LOG(ERROR) << e.what();
-		std::string errormsg = "issues running genstl\n";
-		LOG(ERROR) << errormsg;
-		return false;
-	}
-	catch (char* msg)
-	{
-		LOG(ERROR) << msg;
-		return false;
-	}
-	catch (...) 
-	{
-		std::string errormsg = "issues running genstl";
-		LOG(ERROR) << errormsg;
-		return false;
+		LOG(WARNING) << "Nothing in group selection! Defining link as virtual. Is this what you wanted??" ;
 	}
 	return true;
 };
