@@ -72,12 +72,13 @@ public:
 	fs::path components_directory;
 	fs::path xacro_directory;
 	fs::path config_directory;
+	ULink* fsFatherLink; //basically we want the name to create a virtual link with the same name, but to keep consistency, we probably should hold a pointer to the ULink object!
 
 	//methods
 	vector<UJoint*> alljoints();
 	vector<ULink*> alllinks();
 	virtual void makeView();
-	virtual void makeXacroURDF();
+	virtual void makeXacroURDF(Ptr<Design> design, Ptr<Application> app);
 	virtual void makeXacroSRDF();
 	virtual void setpath(fs::path thisscriptpath, fs::path base_directory);
 };

@@ -620,6 +620,9 @@ void UPackage::makeView()
 		ULink base_link;
 		base_link.name = "base_link";
 
+		ULink virtual_base_link;
+		virtual_base_link.name = fsFatherLink->name; //this needs to be set!
+
 		base_link.makexml(thisurdfdocrobot_root, name);
 #
 		UJoint setaxisjoint;
@@ -628,17 +631,18 @@ void UPackage::makeView()
 		setaxisjoint.type = "fixed";
 		setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
 		setaxisjoint.parentlink = &base_link;
-		setaxisjoint.childlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName("base")); ////////////not the base, but the father of the FS joint!
-		setaxisjoint.makexml(thisurdfdocrobot_root, _ms.packagename);
+		setaxisjoint.childlink = &virtual_base_link; 
+		//setaxisjoint.childlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName("base")); ////////////not the base, but the father of the FS joint!
+		setaxisjoint.makexml(thisurdfdocrobot_root, name);
 
 		TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
-		thisurdfxacromacro->SetAttribute("filename", ("$(arg " + name + "_dir)/xacro/thissegment_gh2.urdf.xacro").c_str());
+		thisurdfxacromacro->SetAttribute("filename", ("$(arg " + name + "_dir)/xacro/thissegment.urdf.xacro").c_str());
 		thisurdfdocrobot_root->LinkEndChild(thisurdfxacromacro);
 
 		// we need some more things to generate the view for this link
 
 
-		string thissegmentxacroname_view = ("view_thissegment_" + _ms.packagename + ".urdf.xacro");
+		string thissegmentxacroname_view = ("view_thissegment.urdf.xacro");
 		string filenametosave_view = (base_directory / thissegmentxacroname_view).string();
 
 		LOG(INFO) << "Saving view file" + (filenametosave_view);
@@ -730,7 +734,7 @@ void UPackage::setpath(fs::path thisscriptpath, fs::path basemost_directory)
 
 };
 
-void UPackage::makeXacroURDF() {
+void UPackage::makeXacroURDF(Ptr<Design> design, Ptr<Application> app) {
 	TiXmlDocument thisxacro;
 	
 	//xacro macro part
@@ -772,7 +776,7 @@ void UPackage::makeXacroURDF() {
 		thisxacromacropar->SetAttribute("package_name", name.c_str());
 		thisxacrorobot_root->LinkEndChild(thisxacromacropar);
 
-		string thissegmentxacroname = ("thissegment_" + _ms.packagename + ".urdf.xacro");
+		string thissegmentxacroname = ("thissegment.urdf.xacro");
 		string filenametosave = (base_directory / thissegmentxacroname).string();
 
 		LOG(INFO) << "Saving file" + (filenametosave);

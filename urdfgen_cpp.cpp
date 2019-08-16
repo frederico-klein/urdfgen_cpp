@@ -1057,9 +1057,9 @@ public:
 
 			thisPackage.setpath(_ms.thisscriptpath, basemost_directory);
 			//we need to split this into xacro vied and xacro includes!!!!
+			thisPackage.makeView();
 
-
-
+			thisPackage.makeXacroURDF(design, app);
 
 			//TODO: this needs a CMakeslist custom target xacro line!!!
 
