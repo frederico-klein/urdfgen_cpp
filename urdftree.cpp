@@ -3,6 +3,8 @@
 #include "inc/easylogging/easylogging++.h"
 #include "shared_funcs.h"
 
+namespace fs = std::filesystem;
+
 const int MAX_OP = 10;
 
 void UrdfTree::removeElementByName(vector<DicElement>* thiselementsdict, string name)
@@ -595,4 +597,188 @@ vector<std::string> UrdfTree::packageList()
 		mylist.push_back(package.name);
 	}
 	return mylist;
+};
+
+
+//UPackage stuff::
+void UPackage::makeView()
+{
+
+
+	TiXmlDocument thisurdfdoc;
+
+	//xacro view part
+	{
+		TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", "");
+		thisurdfdoc.LinkEndChild(decl);
+
+		TiXmlElement * thisurdfdocrobot_root = new TiXmlElement("robot");
+		thisurdfdocrobot_root->SetAttribute("name", "gummi");
+		thisurdfdoc.LinkEndChild(thisurdfdocrobot_root);
+
+
+		ULink base_link;
+		base_link.name = "base_link";
+
+		base_link.makexml(thisurdfdocrobot_root, name);
+#
+		UJoint setaxisjoint;
+		setaxisjoint.name = "set_worldaxis";
+		setaxisjoint.isset = true;
+		setaxisjoint.type = "fixed";
+		setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
+		setaxisjoint.parentlink = &base_link;
+		setaxisjoint.childlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName("base")); ////////////not the base, but the father of the FS joint!
+		setaxisjoint.makexml(thisurdfdocrobot_root, _ms.packagename);
+
+		TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
+		thisurdfxacromacro->SetAttribute("filename", ("$(arg " + name + "_dir)/xacro/thissegment_gh2.urdf.xacro").c_str());
+		thisurdfdocrobot_root->LinkEndChild(thisurdfxacromacro);
+
+		// we need some more things to generate the view for this link
+
+
+		string thissegmentxacroname_view = ("view_thissegment_" + _ms.packagename + ".urdf.xacro");
+		string filenametosave_view = (base_directory / thissegmentxacroname_view).string();
+
+		LOG(INFO) << "Saving view file" + (filenametosave_view);
+		thisurdfdoc.SaveFile(filenametosave_view.c_str());
+	}
+
+};
+
+
+void UPackage::setpath(fs::path thisscriptpath, fs::path basemost_directory)
+{
+	try {
+		LOG(DEBUG) << "called setpath";
+
+		LOG(INFO) << "This script's path: " + (thisscriptpath.string());
+
+		LOG(INFO) << "Basemost directory:" + basemost_directory.string();
+		base_directory = basemost_directory / name;
+
+		LOG(INFO) << "Base directory for this package:" + base_directory.string();
+		if (!fs::exists(base_directory))
+			fs::create_directories(base_directory); //// will create whole tree if needed
+		meshes_directory		= base_directory / "meshes";
+		components_directory	= base_directory / "components";
+		xacro_directory			= base_directory / "xacro";
+		config_directory		= base_directory / "config";
+
+
+		if (!fs::exists(meshes_directory))
+			fs::create_directory(meshes_directory);
+		if (!fs::exists(components_directory))
+			fs::create_directory(components_directory);
+		if (!fs::exists(xacro_directory))
+			fs::create_directory(xacro_directory);
+		if (!fs::exists(config_directory))
+			fs::create_directory(config_directory);
+
+
+		vector<string> filestochange = { "display.launch", "urdf_.rviz", "package.xml", "CMakeLists.txt" };
+
+		for (auto myfilename : filestochange)
+		{
+			ifstream file_in;
+			// Read in the file
+
+			auto thisfilename = thisscriptpath / "resources" / "subchain" / myfilename;
+
+			LOG(INFO) << "Opening file:" + (thisfilename.string());
+			file_in.open(thisfilename);
+			if (!file_in)
+				LOG(ERROR) << "failed to open input file:" + thisfilename.string();
+
+			auto thisoutfilename = base_directory / myfilename;
+			ofstream file_out(thisoutfilename.string(), std::ofstream::out);
+
+			string filedata;
+
+			while (std::getline(file_in, filedata))
+			{
+				// Replace the target string
+
+				replaceAll(filedata, "subchain_template", name);
+
+				// Write the file out again
+
+				file_out << filedata << endl;
+			}
+
+			file_out.close();
+		}
+	}
+	catch (const char* msg) {
+		LOG(ERROR) << msg;
+
+	}
+	catch (const std::exception& e)
+	{
+		LOG(ERROR) << e.what();
+		std::string errormsg = "issues creating folders...\n";
+		LOG(ERROR) << errormsg;
+
+	}
+	catch (...)
+	{
+		string errormessage = "issues creating folders!";
+		LOG(ERROR) << errormessage;
+
+	}
+
+};
+
+void UPackage::makeXacroURDF() {
+	TiXmlDocument thisxacro;
+	
+	//xacro macro part
+	{
+		TiXmlDeclaration * decl2 = new TiXmlDeclaration("1.0", "", ""); //i don't think we can reuse anything...
+		thisxacro.LinkEndChild(decl2);
+
+		TiXmlElement * thisxacrorobot_root = new TiXmlElement("robot");
+		thisxacrorobot_root->SetAttribute("name", "gummi");
+		thisxacro.LinkEndChild(thisxacrorobot_root);
+
+
+		TiXmlElement * thisxacromacro = new TiXmlElement("xacro:macro");
+		thisxacromacro->SetAttribute("name", name.c_str());
+		thisxacromacro->SetAttribute("params", "package_name");
+		thisxacrorobot_root->LinkEndChild(thisxacromacro);
+
+		//now parse the urdftree
+		assert(elementsDict.size() > 0);
+		for (auto el : elementsDict)
+		{
+			LOG(INFO) << "Parsing element:" + std::to_string(el.first);
+			ULink* currLink = dynamic_cast<ULink*>(el.second);
+			if (currLink)
+			{
+				LOG(INFO) << "calling genlink for link:" + currLink->name;
+				bool succeeded = currLink->genlink(meshes_directory, components_directory, design, app);
+				if (!succeeded)
+				{
+					string errormsg = "failed generating link" + currLink->name;
+					LOG(ERROR) << errormsg;
+					return;
+				}
+			}
+			el.second->makexml(thisxacromacro, "${package_name}");
+		};
+
+		TiXmlElement * thisxacromacropar = new TiXmlElement(("xacro:" + name).c_str());
+		thisxacromacropar->SetAttribute("package_name", name.c_str());
+		thisxacrorobot_root->LinkEndChild(thisxacromacropar);
+
+		string thissegmentxacroname = ("thissegment_" + _ms.packagename + ".urdf.xacro");
+		string filenametosave = (base_directory / thissegmentxacroname).string();
+
+		LOG(INFO) << "Saving file" + (filenametosave);
+		thisxacro.SaveFile(filenametosave.c_str());
+	}
+
+
+
 };

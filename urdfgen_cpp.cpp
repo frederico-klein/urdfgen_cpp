@@ -271,80 +271,6 @@ void MotherShip::addRowToOtherTable(Ptr<TableCommandInput> tableInput)
 
 };
 
-vector<fs::path> createpathsubchain(string _ms_packagename, fs::path thisscriptpath, fs::path base_directory)
-{
-	vector<fs::path> returnvectstr;
-
-	try {
-		LOG(DEBUG) << "called createpaths";
-	
-		LOG(INFO) << "This script's path: "+ (thisscriptpath.string());
-
-		LOG(INFO) <<"Base directory:"+base_directory.string();
-		if (!fs::exists(base_directory))
-			fs::create_directories(base_directory); //// will create whole tree if needed
-		fs::path meshes_directory = base_directory / "meshes";
-
-		fs::path components_directory = base_directory / "components";
-
-		if (!fs::exists(meshes_directory))
-			fs::create_directory(meshes_directory);
-		if (!fs::exists(components_directory))
-			fs::create_directory(components_directory);
-		vector<string> filestochange = { "display.launch", "urdf_.rviz", "package.xml", "CMakeLists.txt" }; 
-
-		for (auto myfilename : filestochange)
-		{
-			ifstream file_in;
-			// Read in the file
-
-			auto thisfilename = thisscriptpath / "resources"/ "subchain" / myfilename;
-
-			LOG(INFO)<<"Opening file:"+(thisfilename.string());
-			file_in.open(thisfilename);
-			if (!file_in)
-				LOG(ERROR) << "failed to open input file:" + thisfilename.string();
-
-			auto thisoutfilename = base_directory / myfilename;
-			ofstream file_out(thisoutfilename.string(), std::ofstream::out);
-			
-			string filedata;
-			
-			while (std::getline(file_in,filedata))
-			{
-				// Replace the target string
-
-				replaceAll(filedata, "subchain_template", _ms_packagename);
-
-				// Write the file out again
-
-				file_out << filedata << endl;
-			}
-
-			file_out.close();
-		}
-		returnvectstr = { meshes_directory, components_directory };
-	}
-	catch (const char* msg) {
-		LOG(ERROR) << msg;
-		ui->messageBox(msg);
-	}
-	catch (const std::exception& e)
-	{
-		LOG(ERROR) << e.what();
-		std::string errormsg = "issues creating folders...\n";
-		LOG(ERROR) << errormsg;
-		ui->messageBox(errormsg);
-	}
-	catch (...)
-	{
-		string errormessage = "issues creating folders!";
-		LOG(ERROR) << errormessage;
-		ui->messageBox(errormessage);
-	}
-return returnvectstr;
-};
-
 void createpathwholechain(string _ms_packagename, fs::path thisscriptpath, fs::path base_directory, std::vector<std::string> packagenamelist)
 {
 	try {
@@ -1122,103 +1048,17 @@ public:
 		ui->messageBox("Executing! ");
 		LOG(INFO) << "Executing! ";
 
-		fs::path mypaths_zero = create_base_path(_ms.packagename, _ms.thisscriptpath);
+		fs::path basemost_directory = create_base_path(_ms.packagename, _ms.thisscriptpath);
 
 		//we now should go over all the packages
 
 		for (auto thisPackage:_ms.thistree.packageTree)
 		{
 
-			vector<fs::path> mypaths = createpathsubchain(thisPackage.name, _ms.thisscriptpath, (mypaths_zero / thisPackage.name));
-
+			thisPackage.setpath(_ms.thisscriptpath, basemost_directory);
 			//we need to split this into xacro vied and xacro includes!!!!
 
-			TiXmlDocument thisurdfdoc, thisxacro;
 
-
-			//xacro view part
-			{
-				TiXmlDeclaration * decl = new TiXmlDeclaration("1.0", "", "");
-				thisurdfdoc.LinkEndChild(decl);
-
-				TiXmlElement * thisurdfdocrobot_root = new TiXmlElement("robot");
-				thisurdfdocrobot_root->SetAttribute("name", "gummi");
-				thisurdfdoc.LinkEndChild(thisurdfdocrobot_root);
-
-
-				ULink base_link;
-				base_link.name = "base_link";
-
-				base_link.makexml(thisurdfdocrobot_root, _ms.packagename);
-#
-				UJoint setaxisjoint;
-				setaxisjoint.name = "set_worldaxis";
-				setaxisjoint.isset = true;
-				setaxisjoint.type = "fixed";
-				setaxisjoint.realorigin.rpy = std::to_string(PI / 2) + " 0 0";
-				setaxisjoint.parentlink = &base_link;
-				setaxisjoint.childlink = dynamic_cast<ULink*>(_ms.thistree.getElementByName("base"));
-				setaxisjoint.makexml(thisurdfdocrobot_root, _ms.packagename);
-
-				TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
-				thisurdfxacromacro->SetAttribute("filename", ("$(arg " + thisPackage.name + "_dir)/xacro/thissegment_gh2.urdf.xacro").c_str());
-				thisurdfdocrobot_root->LinkEndChild(thisurdfxacromacro);
-
-				// we need some more things to generate the view for this link
-
-
-				string thissegmentxacroname_view = ("view_thissegment_" + _ms.packagename + ".urdf.xacro");
-				string filenametosave_view = ((mypaths_zero / thisPackage.name) / thissegmentxacroname_view).string();
-
-				LOG(INFO) << "Saving view file" + (filenametosave_view);
-				thisurdfdoc.SaveFile(filenametosave_view.c_str());
-			}
-			//xacro macro part
-			{
-				TiXmlDeclaration * decl2 = new TiXmlDeclaration("1.0", "", ""); //i don't think we can reuse anything...
-				thisxacro.LinkEndChild(decl2);
-
-				TiXmlElement * thisxacrorobot_root = new TiXmlElement("robot");
-				thisxacrorobot_root->SetAttribute("name", "gummi");
-				thisxacro.LinkEndChild(thisxacrorobot_root);
-
-
-				TiXmlElement * thisxacromacro = new TiXmlElement("xacro:macro");
-				thisxacromacro->SetAttribute("name", thisPackage.name.c_str());
-				thisxacromacro->SetAttribute("params", "package_name");
-				thisxacrorobot_root->LinkEndChild(thisxacromacro);
-
-				//now parse the urdftree
-				assert(thisPackage.elementsDict.size() > 0);
-				for (auto el : thisPackage.elementsDict)
-				{
-					LOG(INFO) << "Parsing element:" + std::to_string(el.first);
-					ULink* currLink = dynamic_cast<ULink*>(el.second);
-					if (currLink)
-					{
-						LOG(INFO) << "calling genlink for link:" + currLink->name;
-						bool succeeded = currLink->genlink(mypaths[0], mypaths[1], design, app);
-						if (!succeeded)
-						{
-							string errormsg = "failed generating link" + currLink->name;
-							LOG(ERROR) << errormsg;
-							ui->messageBox(errormsg);
-							return;
-						}
-					}
-					el.second->makexml(thisxacromacro, "${package_name}");
-				};
-
-				TiXmlElement * thisxacromacropar = new TiXmlElement(("xacro:" + thisPackage.name).c_str());
-				thisxacromacropar->SetAttribute("package_name", thisPackage.name.c_str());
-				thisxacrorobot_root->LinkEndChild(thisxacromacropar);
-
-				string thissegmentxacroname = ("thissegment_" + _ms.packagename + ".urdf.xacro");
-				string filenametosave = ((mypaths_zero / thisPackage.name) / thissegmentxacroname).string();
-
-				LOG(INFO) << "Saving file" + (filenametosave);
-				thisxacro.SaveFile(filenametosave.c_str());
-			}
 
 
 			//TODO: this needs a CMakeslist custom target xacro line!!!

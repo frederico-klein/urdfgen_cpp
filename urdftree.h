@@ -9,6 +9,7 @@ using namespace adsk::core;
 using namespace adsk::fusion;
 using namespace adsk::cam;
 using namespace std;
+namespace fs = std::filesystem;
 
 typedef pair<int, UElement*> DicElement; 
 typedef pair<vector<DicElement>, vector<DicElement>> TwoDic;
@@ -24,6 +25,7 @@ public:
 	std::string report;
 	vector<DicElement> elementsDict;
 	vector<UPackage> packageTree;
+	UPackage mainpackage;
 
 	UElement* currentEl;
 	Ptr<UserInterface> ui; 
@@ -65,10 +67,17 @@ class UPackage {
 public:
 	vector<DicElement> elementsDict;
 	std::string name;
+	fs::path base_directory;
+	fs::path meshes_directory;
+	fs::path components_directory;
+	fs::path xacro_directory;
+	fs::path config_directory;
 
 	//methods
 	vector<UJoint*> alljoints();
 	vector<ULink*> alllinks();
-
-
+	virtual void makeView();
+	virtual void makeXacroURDF();
+	virtual void makeXacroSRDF();
+	virtual void setpath(fs::path thisscriptpath, fs::path base_directory);
 };
