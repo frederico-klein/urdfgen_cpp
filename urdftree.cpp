@@ -824,7 +824,7 @@ void UPackage::makeXacroURDF(Ptr<Design> design, Ptr<Application> app) {
 	   
 };
 
-void UMainPackage::setpath(fs::path thisscriptpath_, fs::path base_directory_)
+void UMainPackage::setpath(fs::path thisscriptpath_, fs::path  basemost_directory)
 {
 
 	LOG(DEBUG) << "called setpath";
@@ -833,12 +833,14 @@ void UMainPackage::setpath(fs::path thisscriptpath_, fs::path base_directory_)
 
 	thisScriptPath = thisscriptpath_;
 
-	LOG(INFO) << "Base directory:" + base_directory_.string();
-	if (!fs::exists(base_directory_))
-		fs::create_directories(base_directory_); //// will create whole tree if needed
 
-	base_directory = base_directory_;
+	LOG(INFO) << "Basemost directory:" + basemost_directory.string();
+	base_directory = basemost_directory / name;
 
+	LOG(INFO) << "Base directory:" + base_directory.string();
+	if (!fs::exists(base_directory))
+		fs::create_directories(base_directory); //// will create whole tree if needed
+	
 	xacro_directory = base_directory / "xacro";
 	config_directory = base_directory / "config";
 	if (!fs::exists(xacro_directory))
