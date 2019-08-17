@@ -74,8 +74,7 @@ public:
 	fs::path components_directory;
 	fs::path xacro_directory;
 	fs::path config_directory;
-	ULink* fsFatherLink; //basically we want the name to create a virtual link with the same name, but to keep consistency, we probably should hold a pointer to the ULink object!
-
+	ULink* fsFatherLink = nullptr; //basically we want the name to create a virtual link with the same name, but to keep consistency, we probably should hold a pointer to the ULink object!
 
 	//methods
 	vector<UJoint*> alljoints();

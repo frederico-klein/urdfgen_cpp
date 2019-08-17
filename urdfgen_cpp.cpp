@@ -953,19 +953,26 @@ public:
 
 		for (auto thisPackage : _ms.thistree.packageTree)
 		{
+			LOG(INFO) << "Parsing package " << thisPackage.name;
 			thisPackage.setpath(_ms.thisscriptpath, basemost_directory);
 			//we need to split this into xacro vied and xacro includes!!!!
+			LOG(INFO) << "Running makeview for package " << thisPackage.name;
 			thisPackage.makeView();
+			LOG(INFO) << "Running makeXacroURDF for package " << thisPackage.name;
+
 			thisPackage.makeXacroURDF(design, app);
 			//TODO: this needs a CMakeslist custom target xacro line!!!
 		}
 
 		//at some point we need to write the complete xacro for main chain
+		LOG(INFO) << "Parsing main package ";
+
 		_ms.thistree.mainPackage->setpath(_ms.thisscriptpath, basemost_directory);
+		LOG(INFO) << "Parsing main package: running genMainPack ";
 		_ms.thistree.genMainPack();
 
 		//we only need the view part, I think.
-
+		LOG(INFO) << "Done! ";
 	}
 };
 
