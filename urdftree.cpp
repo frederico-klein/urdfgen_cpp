@@ -603,8 +603,7 @@ vector<std::string> UrdfTree::packageList()
 //UPackage stuff::
 void UPackage::makeView()
 {
-
-
+	
 	TiXmlDocument thisurdfdoc;
 
 	//xacro view part
@@ -616,10 +615,14 @@ void UPackage::makeView()
 		thisurdfdocrobot_root->SetAttribute("name", "gummi");
 		thisurdfdoc.LinkEndChild(thisurdfdocrobot_root);
 
+		TiXmlComment* comment = new TiXmlComment();
+		comment->SetValue(" Some comment.");
+		thisurdfdoc.LinkEndChild(comment);
 
 		ULink base_link;
 		base_link.name = "base_link";
 
+		//maybe the best thing here is to make this an xacro parameter and then set the parameter to fsFatherLink
 		ULink virtual_base_link;
 		virtual_base_link.name = fsFatherLink->name; //this needs to be set!
 
@@ -746,6 +749,9 @@ void UPackage::makeXacroURDF(Ptr<Design> design, Ptr<Application> app) {
 		thisxacrorobot_root->SetAttribute("name", "gummi");
 		thisxacro.LinkEndChild(thisxacrorobot_root);
 
+		TiXmlComment* comment = new TiXmlComment();
+		comment->SetValue(" Some comment.");
+		thisxacro.LinkEndChild(comment);
 
 		TiXmlElement * thisxacromacro = new TiXmlElement("xacro:macro");
 		thisxacromacro->SetAttribute("name", name.c_str());
@@ -787,18 +793,29 @@ void UPackage::makeXacroURDF(Ptr<Design> design, Ptr<Application> app) {
 
 };
 
+void UMainPackage::setpath(fs::path thisscriptpath_, fs::path base_directory_)
+{
 
-void UMainPackage::setpath(string _ms_packagename, fs::path thisscriptpath, fs::path base_directory, std::vector<std::string> packagenamelist)
+	LOG(DEBUG) << "called setpath";
+
+	LOG(INFO) << "This script's path: " + (thisscriptpath_.string());
+
+	thisScriptPath = thisscriptpath_;
+
+	LOG(INFO) << "Base directory:" + base_directory_.string();
+	if (!fs::exists(base_directory_))
+		fs::create_directories(base_directory_); //// will create whole tree if needed
+
+	base_directory = base_directory_;
+}
+
+
+void UMainPackage::makefiles(string _ms_packagename, std::vector<std::string> packagenamelist)
 {
 	try 
 	{
-		LOG(DEBUG) << "called createpathwholechain";
+		LOG(DEBUG) << "called makefiles";
 
-		LOG(INFO) << "This script's path: " + (thisscriptpath.string());
-
-		LOG(INFO) << "Base directory:" + base_directory.string();
-		if (!fs::exists(base_directory))
-			fs::create_directories(base_directory); //// will create whole tree if needed
 
 		vector<string> filestochange = { "display.launch", "urdf_.rviz", "package.xml", "CMakeLists.txt" };
 
@@ -807,7 +824,7 @@ void UMainPackage::setpath(string _ms_packagename, fs::path thisscriptpath, fs::
 			ifstream file_in;
 			// Read in the file
 
-			auto thisfilename = thisscriptpath / "resources" / "wholechain" / myfilename;
+			auto thisfilename = thisScriptPath / "resources" / "wholechain" / myfilename;
 
 			LOG(INFO) << "Opening file:" + (thisfilename.string());
 			file_in.open(thisfilename);
@@ -900,6 +917,11 @@ TiXmlElement * thisurdfdocrobot_root = new TiXmlElement("robot");
 thisurdfdocrobot_root->SetAttribute("name", "gummi");
 thisurdfdoc.LinkEndChild(thisurdfdocrobot_root);
 
+TiXmlComment* comment = new TiXmlComment();
+comment->SetValue(" Some comment.");
+thisurdfdoc.LinkEndChild(comment);
+
+
 ULink base_link;
 base_link.name = "base_link";
 
@@ -916,7 +938,7 @@ setaxisjoint.makexml(thisurdfdocrobot_root, name);
 
 //now add all subpackage includes
 std::vector<std::string> packagenamelist;
-for (auto thisPackage : _ms.thistree.packageTree)
+for (auto thisPackage : thisTree->packageTree)
 {
 
 	TiXmlElement * thisurdfxacromacro = new TiXmlElement("xacro:include");
@@ -925,10 +947,12 @@ for (auto thisPackage : _ms.thistree.packageTree)
 	packagenamelist.push_back(thisPackage.name);
 }
 
-setpath(name, _ms.thisscriptpath, (mypaths_zero / name), packagenamelist);
+makefiles(name, packagenamelist);
+//base_directory = (mypaths_zero / name)
+//name is not properly set!
 
-string thissegmentxacroname_view = ("wholearm_" + _ms.packagename + ".urdf.xacro");
-string filenametosave_view = ((mypaths_zero / name) / thissegmentxacroname_view).string();
+string thissegmentxacroname_view = ("wholearm_" + name + ".urdf.xacro");
+string filenametosave_view = (base_directory / thissegmentxacroname_view).string();
 
 LOG(INFO) << "Saving view file" + (filenametosave_view);
 thisurdfdoc.SaveFile(filenametosave_view.c_str());
@@ -936,6 +960,13 @@ thisurdfdoc.SaveFile(filenametosave_view.c_str());
 };
 
 void UrdfTree::genMainPack() {
-	mainpackage.makeView(dynamic_cast<ULink*>(getElementByName("base")));
+	mainPackage->name = "arm0_somename";
+	mainPackage->makeView(dynamic_cast<ULink*>(getElementByName("base")));
 
+};
+
+
+UrdfTree::UrdfTree() {
+	mainPackage = new UMainPackage();
+	mainPackage->thisTree = this;
 };

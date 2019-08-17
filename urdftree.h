@@ -17,6 +17,7 @@ typedef vector<UJoint*> UJointList;
 typedef vector<ULink*> ULinkList;
 
 class UPackage;
+class UMainPackage;
 
 class UrdfTree
 {
@@ -25,6 +26,7 @@ public:
 	std::string report;
 	vector<DicElement> elementsDict;
 	vector<UPackage> packageTree;
+	UMainPackage* mainPackage;
 
 	UElement* currentEl;
 	Ptr<UserInterface> ui; 
@@ -43,7 +45,7 @@ public:
 	string getCurrentElDesc() ;
 	void setCurrentEl(int) ;
 	std::string UrdfTree::getdebugtext();
-	UrdfTree() {};
+	UrdfTree();
 	UrdfTree(UrdfTree&) = default;
 	~UrdfTree() {};
 	//functions for multipack
@@ -74,17 +76,22 @@ public:
 	fs::path config_directory;
 	ULink* fsFatherLink; //basically we want the name to create a virtual link with the same name, but to keep consistency, we probably should hold a pointer to the ULink object!
 
+
 	//methods
 	vector<UJoint*> alljoints();
 	vector<ULink*> alllinks();
 	virtual void makeView();
 	virtual void makeXacroURDF(Ptr<Design> design, Ptr<Application> app);
-	virtual void makeXacroSRDF();
+	//virtual void makeXacroSRDF();
 	virtual void setpath(fs::path thisscriptpath, fs::path base_directory);
 };
 
-class UMainPackage :UPackage
+class UMainPackage :public UPackage
 {
+public:
+	fs::path thisScriptPath;
+	const UrdfTree* thisTree;
 	void makeView(ULink* Base);
-	void setpath(string _ms_packagename, fs::path thisscriptpath, fs::path base_directory, std::vector<std::string> packagenamelist);
+	void setpath(fs::path thisscriptpath, fs::path base_directory) override;
+	void makefiles(string _ms_packagename, std::vector<std::string> packagenamelist);
 };

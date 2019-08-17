@@ -951,7 +951,7 @@ public:
 
 		//we now should go over all the packages
 
-		for (auto thisPackage:_ms.thistree.packageTree)
+		for (auto thisPackage : _ms.thistree.packageTree)
 		{
 			thisPackage.setpath(_ms.thisscriptpath, basemost_directory);
 			//we need to split this into xacro vied and xacro includes!!!!
@@ -961,13 +961,12 @@ public:
 		}
 
 		//at some point we need to write the complete xacro for main chain
-		_ms.thistree.mainpackage.
+		_ms.thistree.mainPackage->setpath(_ms.thisscriptpath, basemost_directory);
+		_ms.thistree.genMainPack();
 
 		//we only need the view part, I think.
 
-
-
-		}
+	}
 };
 
 // CommandDestroyed event handler
