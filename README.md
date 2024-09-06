@@ -1,8 +1,13 @@
 # urdfgen_cpp
 
-Port of python addin. 
+This is the source code for the Fusion360 ROS URDF package generator. 
 
-Currently in a beta state. Some bugs remain.
+It allows you to create the URDF model definition and meshes without having to export it intermediately to solidworks and redefining the origins and joints.
+
+
+This is a port of python addin from [urdf addin from GuimmiArmCE's fusion360 scripts](https://github.com/GummiArmCE/fusion360_scripts/blob/master/urdf_generator/urdf-addin.py). 
+
+It was fairly functional last time I have checked, if something isn't working, please open an issue. Some "minor" bugs still remain (see below), please let me know if it bothers you and I will have a crack at it.
 
 ## Known issues:
 
